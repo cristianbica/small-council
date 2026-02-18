@@ -1,0 +1,24 @@
+<div id="conversation_status" class="card bg-base-200">
+  <div class="card-body">
+    <h3 class="card-title">Conversation Summary Ready for Review</h3>
+
+    <% draft_memory = conversation.context["draft_memory"] %>
+    <% memory_data = draft_memory.is_a?(String) ? JSON.parse(draft_memory) : draft_memory %>
+
+    <%= form_with url: approve_summary_conversation_path(conversation), method: :post do |f| %>
+      <div class="form-control mb-4">
+        <%= f.label :memory, "Memory/Summary", class: "label" %>
+        <%= f.text_area :memory,
+            value: memory_data&.dig("raw_summary") || "No summary available",
+            class: "textarea textarea-bordered w-full",
+            rows: 10 %>
+      </div>
+
+      <div class="card-actions justify-end">
+        <%= button_to "Continue Conversation", reject_summary_conversation_path(conversation),
+            method: :post, class: "btn btn-ghost" %>
+        <%= f.submit "Approve & Save Memory", class: "btn btn-primary" %>
+      </div>
+    <% end %>
+  </div>
+</div>

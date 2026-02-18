@@ -11,6 +11,7 @@
 # end
 
 # These inflection rules are supported but not enabled by default:
-# ActiveSupport::Inflector.inflections(:en) do |inflect|
-#   inflect.acronym "RESTful"
-# end
+ActiveSupport::Inflector.inflections(:en) do |inflect|
+  # RoE = Rules of Engagement (acronym)
+  inflect.acronym "RoE"
+end

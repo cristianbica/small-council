@@ -28,6 +28,11 @@ Rails.application.routes.draw do
 
   resources :conversations do
     resources :messages, only: [ :create ]
+    member do
+      post :finish
+      post :approve_summary
+      post :reject_summary
+    end
   end
 
   resources :providers

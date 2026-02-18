@@ -2,38 +2,7 @@
 
 ## Security & Correctness Audit Follow-ups
 
-### Critical
 
-- [x] Fix tenant-unsafe login lookup in `app/controllers/sessions_controller.rb` (use tenant-aware sign-in flow; avoid global `User.find_by(email: ...)` ambiguity). **FIXED**:
-   - Enforced global email uniqueness in User model (`validates :email, uniqueness: true`)
-  - Added database unique index on `users.email` (migration: `ChangeUserEmailIndexToGlobal`)
-  - Removed scoped index on `[account_id, email]`
-  - SessionsController lookup now finds user globally; tenant established via `user.account`
-
-### High
-
-- [x] Enforce space authorization in `app/controllers/messages_controller.rb` so users cannot post to conversations outside `Current.space`. **FIXED**:
-  - Added `before_action :verify_conversation_in_current_space`
-  - Checks `@conversation.council.space == Current.space`
-  - Redirects with alert if conversation is in different space
-
-### Medium
-
-- [x] Prevent email enumeration in `app/controllers/identity/password_resets_controller.rb` by returning a generic response for both existing and non-existing emails. **FIXED**:
-  - Always redirects to sign_in_path with generic notice
-  - Sends email only if user exists, but doesn't reveal this
-  - Same response time (prevents timing attacks)
-- [x] Align provider immutability behavior: remove `provider_type` from update params. **FIXED**:
-  - Added `provider_params_without_type` method for updates
-  - Edit form already shows `disabled: true` with note "Provider type cannot be changed"
-  - Added test to verify provider_type is immutable
-- [ ] Harden `GenerateAdvisorResponseJob` by verifying advisor/conversation/message belong to the same account/conversation before updating records.
-
-### Low
-
-- [ ] Implement account deactivation access blocking (currently skipped in `test/controllers/security_controller_test.rb`).
-
----
 
 ## Remaining Features to Implement
 
@@ -127,21 +96,6 @@
 - [ ] Guided setup wizard (optional)
 - [ ] Example/template councils
 - [ ] Help/tooltip system
-
----
-
-## Documentation Status (Updated 2026-02-18)
-
-- [x] Replace template `README.md` with real setup/run/deploy instructions. (Deferred - not critical for internal)
-- [x] Update `.ai/docs/overview.md` - Refreshed with current stack, Hotwire active, acts_as_tenant enabled
-- [x] Update `.ai/docs/features/multi-tenancy.md` - Updated to reflect active tenant setup
-- [x] Add missing feature docs:
-  - [x] Spaces - New doc for workspace organization
-  - [x] Councils - New doc for advisor groups
-  - [x] Advisors - New doc for AI personas
-  - [x] Providers - New doc for AI credentials
-- [x] Expand `.ai/docs/patterns/architecture.md` - Added tenant context, AI orchestration, jobs/streams
-- [x] Update feature and pattern indexes
 
 ---
 

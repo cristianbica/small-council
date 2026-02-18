@@ -1,6 +1,6 @@
 class ConversationsController < ApplicationController
   before_action :set_council, only: [ :index, :new, :create ]
-  before_action :set_conversation, only: [ :show, :update ]
+  before_action :set_conversation, only: [ :show, :update, :finish, :approve_summary, :reject_summary ]
 
   def index
     @conversations = @council.conversations.recent
@@ -41,6 +41,40 @@ class ConversationsController < ApplicationController
     else
       redirect_to @conversation, alert: "Failed to update Rules of Engagement."
     end
+  end
+
+  def finish
+    # Only user who started or council creator can finish
+    if @conversation.user_id == Current.user.id || @conversation.council.user_id == Current.user.id
+      lifecycle = ConversationLifecycle.new(@conversation)
+      lifecycle.begin_conclusion_process
+      redirect_to @conversation, notice: "Generating conversation summary..."
+    else
+      redirect_to @conversation, alert: "Only the conversation starter or council creator can finish."
+    end
+  end
+
+  def approve_summary
+    memory_content = params[:memory] || @conversation.context["draft_memory"]
+
+    # Save approved memory
+    @conversation.update!(
+      context: @conversation.context.merge("memory" => memory_content),
+      status: :resolved
+    )
+
+    # Persist to space memory (placeholder - future implementation)
+    # append_to_space_memory(@conversation)
+
+    redirect_to @conversation, notice: "Conversation resolved and memory saved."
+  end
+
+  def reject_summary
+    # Back to active for more discussion
+    @conversation.update!(status: :active)
+    @conversation.clear_responded_advisors
+
+    redirect_to @conversation, notice: "Conversation continued. You can finish again later."
   end
 
   private

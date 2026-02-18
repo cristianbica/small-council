@@ -6,29 +6,31 @@
     <div>
       <div class="flex items-center gap-2 mb-1">
         <h1 class="text-3xl font-bold"><%= @conversation.title %></h1>
-        <span class="badge <%= @conversation.active? ? 'badge-success' : 'badge-ghost' %> badge-sm">
+        <span id="conversation_status" class="badge <%= status_badge_class(@conversation) %> badge-sm">
           <%= @conversation.status %>
         </span>
 
-        <!-- RoE Dropdown -->
-        <div class="dropdown dropdown-end">
-          <label tabindex="0" class="btn btn-sm btn-outline">
-            <%= @conversation.rules_of_engagement.humanize %>
-            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-            </svg>
-          </label>
-          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
-            <% Conversation.rules_of_engagements.keys.each do |mode| %>
-              <li>
-                <%= button_to mode.humanize,
-                    conversation_path(@conversation, conversation: { rules_of_engagement: mode }),
-                    method: :patch,
-                    class: "#{@conversation.rules_of_engagement == mode ? 'active' : ''}" %>
-              </li>
-            <% end %>
-          </ul>
-        </div>
+        <!-- RoE Dropdown (only when active) -->
+        <% if @conversation.active? %>
+          <div class="dropdown dropdown-end">
+            <label tabindex="0" class="btn btn-sm btn-outline">
+              <%= @conversation.rules_of_engagement.humanize %>
+              <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </label>
+            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+              <% Conversation.rules_of_engagements.keys.each do |mode| %>
+                <li>
+                  <%= button_to mode.humanize,
+                      conversation_path(@conversation, conversation: { rules_of_engagement: mode }),
+                      method: :patch,
+                      class: "#{@conversation.rules_of_engagement == mode ? 'active' : ''}" %>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
       </div>
       <p class="text-sm text-base-content/60">
         in <%= @conversation.council.name %> ·
@@ -36,8 +38,31 @@
         <%= time_ago_in_words(@conversation.created_at) %> ago
       </p>
     </div>
-    <%= link_to "← Back to Conversations", council_conversations_path(@conversation.council), class: "btn btn-ghost btn-sm" %>
+    <div class="flex items-center gap-2">
+      <% if @conversation.active? && can_finish_conversation?(@conversation) %>
+        <%= button_to "Finish Conversation", finish_conversation_path(@conversation),
+            method: :post, class: "btn btn-primary btn-sm" %>
+      <% end %>
+      <%= link_to "← Back to Conversations", council_conversations_path(@conversation.council), class: "btn btn-ghost btn-sm" %>
+    </div>
   </div>
+
+  <!-- Status Alerts -->
+  <% if @conversation.concluding? %>
+    <div class="alert alert-info">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <span>Generating summary... Please wait.</span>
+    </div>
+  <% elsif @conversation.resolved? %>
+    <div class="alert alert-success">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+      <span>Conversation resolved.</span>
+    </div>
+  <% end %>
 
   <!-- Messages Area -->
   <section class="card bg-base-100 shadow">
@@ -56,32 +81,34 @@
     </div>
   </section>
 
-  <!-- Message Form -->
-  <section class="card bg-base-100 shadow">
-    <div class="card-body">
-      <%= form_with model: [@conversation, @new_message], class: "space-y-4" do |form| %>
-        <% if @new_message.errors.any? %>
-          <div class="alert alert-error">
-            <ul class="list-disc list-inside">
-              <% @new_message.errors.full_messages.each do |msg| %>
-                <li><%= msg %></li>
-              <% end %>
-            </ul>
+  <!-- Message Form (only when active) -->
+  <% if @conversation.active? %>
+    <section class="card bg-base-100 shadow">
+      <div class="card-body">
+        <%= form_with model: [@conversation, @new_message], class: "space-y-4" do |form| %>
+          <% if @new_message.errors.any? %>
+            <div class="alert alert-error">
+              <ul class="list-disc list-inside">
+                <% @new_message.errors.full_messages.each do |msg| %>
+                  <li><%= msg %></li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+
+          <div class="form-control">
+            <%= form.text_area :content,
+                class: "textarea textarea-bordered w-full",
+                placeholder: "Type your message...",
+                rows: 3,
+                required: true %>
+          </div>
+
+          <div class="card-actions justify-end">
+            <%= form.submit "Post Message", class: "btn btn-primary" %>
           </div>
         <% end %>
-
-        <div class="form-control">
-          <%= form.text_area :content,
-              class: "textarea textarea-bordered w-full",
-              placeholder: "Type your message...",
-              rows: 3,
-              required: true %>
-        </div>
-
-        <div class="card-actions justify-end">
-          <%= form.submit "Post Message", class: "btn btn-primary" %>
-        </div>
-      <% end %>
-    </div>
-  </section>
+      </div>
+    </section>
+  <% end %>
 </div>

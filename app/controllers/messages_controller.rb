@@ -3,37 +3,12 @@ class MessagesController < ApplicationController
   before_action :verify_conversation_in_current_space
 
   def create
-    @message = @conversation.messages.new(message_params)
-    @message.account = Current.account
-    @message.sender = Current.user
-    @message.role = "user"
-    @message.status = "complete"
+    @message = build_user_message
 
     if @message.save
-      # Trigger ScribeCoordinator to determine advisor responses
-      coordinator = ScribeCoordinator.new(@conversation)
-      responders = coordinator.determine_responders(last_message: @message)
-
-      # Create pending messages and enqueue jobs for each responder
-      responders.each do |advisor|
-        placeholder = @conversation.messages.create!(
-          account: Current.account,
-          sender: advisor,
-          role: "system",
-          content: "[#{advisor.name}] is thinking...",
-          status: "pending"
-        )
-
-        # Enqueue background job to generate actual response
-        GenerateAdvisorResponseJob.perform_later(
-          advisor_id: advisor.id,
-          conversation_id: @conversation.id,
-          message_id: placeholder.id
-        )
-
-        # Track for round robin
-        @conversation.mark_advisor_spoken(advisor.id)
-      end
+      # Delegate to ConversationLifecycle
+      lifecycle = ConversationLifecycle.new(@conversation)
+      lifecycle.user_posted_message(@message)
 
       redirect_to @conversation, notice: "Message posted successfully."
     else
@@ -44,6 +19,15 @@ class MessagesController < ApplicationController
   end
 
   private
+
+  def build_user_message
+    @conversation.messages.new(message_params).tap do |msg|
+      msg.account = Current.account
+      msg.sender = Current.user
+      msg.role = "user"
+      msg.status = "complete"
+    end
+  end
 
   def set_conversation
     @conversation = Current.account.conversations.find(params[:conversation_id])

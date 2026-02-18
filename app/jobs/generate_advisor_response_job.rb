@@ -19,18 +19,12 @@ class GenerateAdvisorResponseJob < ApplicationJob
       result = client.generate_response
 
       if result && result[:content].present?
-        # Update message with response
-        message.update!(
-          content: result[:content],
-          role: "advisor",
-          status: "complete"
-        )
+        # Delegate to ConversationLifecycle for state management
+        lifecycle = ConversationLifecycle.new(conversation)
+        lifecycle.advisor_responded(advisor, result[:content], message)
 
         # Record usage
         create_usage_record(message, advisor, result)
-
-        # Broadcast via Turbo Stream
-        broadcast_message(message, conversation)
       else
         handle_error(message, "Empty response from AI")
       end

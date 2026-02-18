@@ -8,6 +8,8 @@ class Conversation < ApplicationRecord
 
   enum :status, {
     active: "active",
+    concluding: "concluding",
+    resolved: "resolved",
     archived: "archived"
   }, default: "active"
 
@@ -35,5 +37,24 @@ class Conversation < ApplicationRecord
   # Updates context with the last advisor who spoke
   def mark_advisor_spoken(advisor_id)
     update_column(:context, context.merge("last_advisor_id" => advisor_id))
+  end
+
+  # Track which advisors have responded (for auto-conclusion)
+  def advisor_has_responded?(advisor_id)
+    context["responded_advisor_ids"]&.include?(advisor_id.to_s)
+  end
+
+  def mark_advisor_responded(advisor_id)
+    responded = context["responded_advisor_ids"] || []
+    update_column(:context, context.merge("responded_advisor_ids" => (responded + [ advisor_id.to_s ]).uniq))
+  end
+
+  def all_advisors_responded?
+    responded = context["responded_advisor_ids"] || []
+    council.advisors.count == responded.count
+  end
+
+  def clear_responded_advisors
+    update_column(:context, context.except("responded_advisor_ids"))
   end
 end

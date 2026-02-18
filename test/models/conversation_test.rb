@@ -104,8 +104,9 @@ class ConversationTest < ActiveSupport::TestCase
     end
   end
 
-  test "valid status values are active and archived" do
-    assert_equal({ "active" => "active", "archived" => "archived" }, Conversation.statuses)
+  test "valid status values are active, concluding, resolved, and archived" do
+    expected = { "active" => "active", "concluding" => "concluding", "resolved" => "resolved", "archived" => "archived" }
+    assert_equal(expected, Conversation.statuses)
   end
 
   # Scope tests

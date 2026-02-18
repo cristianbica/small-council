@@ -22,6 +22,9 @@ require_relative "../config/environment"
 require "rails/test_help"
 require "mocha/minitest"
 
+# Ensure RoE services are loaded
+require_relative "../app/services/roe"
+
 class ActiveSupport::TestCase
   parallelize(workers: :number_of_processors)
 
