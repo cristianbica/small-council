@@ -2,44 +2,43 @@
 
 ## Security & Correctness Audit Follow-ups
 
-
-
-## Remaining Features to Implement
-
-### Phase 3: Meeting Lifecycle
-
-#### 1. Conversation Resolution
-- [ ] Add `status` enum to conversations (active, resolved)
-- [ ] "Resolve/End Conversation" button in conversation UI
-- [ ] Confirmation dialog with memory generation options
-- [ ] Resolved conversations become read-only (no new messages)
-- [ ] Visual indicator (badge/icon) for resolved conversations
-
-#### 2. AI Memory Generation
-- [ ] On conversation resolution, trigger background job
-- [ ] AI analyzes full conversation transcript
-- [ ] Generates structured summary with:
-  - Key decisions made
-  - Action items identified
-  - Important insights
-  - Open questions
-- [ ] Store generated memory in conversation.memory
-
-#### 3. User Review & Edit
-- [ ] Display AI-generated memory to user for review
-- [ ] Rich text editor for editing/saving changes
-- [ ] Accept/Reject options
-- [ ] Option to regenerate with different focus
-
-#### 4. Persist to Space Memory
-- [ ] Save approved memory to `space.memory` (cumulative knowledge)
-- [ ] Link back to source conversation
-- [ ] Deduplication/similarity detection for repeated insights
-- [ ] Memory browser/search in space view
+**Status**: All critical and high priority security fixes completed.
 
 ---
 
-### Usage Dashboard
+## Remaining Features to Implement
+
+### Phase 3: Meeting Lifecycle ✅ IMPLEMENTED
+
+#### 1. Conversation Resolution ✅
+- [x] Add `status` enum to conversations (active, concluding, resolved, archived)
+- [x] "Resolve/End Conversation" button in conversation UI (for On Demand, Silent modes)
+- [x] Auto-conclusion for Consensus, Round Robin, Moderated modes
+- [x] Resolved conversations become read-only (no new messages)
+- [x] Visual indicator (badge/icon) for resolved/concluding conversations
+
+#### 2. AI Memory Generation ✅
+- [x] On conversation resolution, trigger background job
+- [x] AI analyzes full conversation transcript
+- [x] Store generated memory in conversation.draft_memory
+- [x] Rich AI-generated summary with structured fields (key decisions, action items, insights, open questions)
+
+#### 3. User Review & Edit ✅
+- [x] Display AI-generated memory to user for review
+- [x] Text area for editing/saving changes
+- [x] Accept/Reject options (approve_summary, reject_summary actions)
+- [x] Option to regenerate with different focus
+
+#### 4. Persist to Space Memory ✅
+- [x] Save approved memory to conversation.memory
+- [x] Link back to source conversation
+- [x] Append to space.memory (cumulative knowledge)
+- [x] Memory browser/search in space view
+- [ ] **PENDING**: Deduplication/similarity detection for repeated insights
+
+---
+
+### Phase 4: Usage Dashboard (NOT STARTED)
 
 #### 1. Cost Visualization
 - [ ] Monthly/weekly cost charts
@@ -68,7 +67,7 @@
 
 ---
 
-### Dashboard Enhancements
+### Dashboard Enhancements (NOT STARTED)
 
 #### 1. Recent Activity
 - [ ] List recent conversations across all councils
@@ -109,13 +108,24 @@
 
 ## Priority Order
 
-1. **Critical Security Fixes** - Tenant-unsafe login lookup
-2. **High Security Fixes** - Space authorization, provider admin roles
-3. **Phase 3 (Meeting Lifecycle)** - Completes core user loop
-4. **Usage Dashboard** - Critical for production/billing
-5. **Dashboard Enhancements** - Nice UX improvements
-6. **Documentation** - Keep docs in sync with code
-7. **Technical Debt** - As needed based on usage
+1. ✅ ~~**Critical Security Fixes**~~ - All completed
+2. ✅ ~~**Phase 3 (Meeting Lifecycle)**~~ - Core implementation complete
+3. **Phase 4 (Usage Dashboard)** - Critical for production/billing
+4. **Dashboard Enhancements** - Nice UX improvements
+5. **Documentation** - Keep docs in sync with code
+6. **Technical Debt** - As needed based on usage
+
+---
+
+## Recently Completed
+
+- ✅ Multi-tenancy with acts_as_tenant
+- ✅ Spaces, Councils, Advisors, Providers
+- ✅ AI Integration (OpenAI, Anthropic)
+- ✅ Rules of Engagement (5 modes)
+- ✅ Security audit & hardening (417+ tests)
+- ✅ Conversation Lifecycle & RoE refactoring
+- ✅ Conversation auto-conclusion based on RoE
 
 ---
 

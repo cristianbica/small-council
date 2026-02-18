@@ -1,6 +1,6 @@
 class ConversationsController < ApplicationController
   before_action :set_council, only: [ :index, :new, :create ]
-  before_action :set_conversation, only: [ :show, :update, :finish, :approve_summary, :reject_summary ]
+  before_action :set_conversation, only: [ :show, :update, :finish, :approve_summary, :reject_summary, :regenerate_summary ]
 
   def index
     @conversations = @council.conversations.recent
@@ -55,18 +55,26 @@ class ConversationsController < ApplicationController
   end
 
   def approve_summary
-    memory_content = params[:memory] || @conversation.context["draft_memory"]
+    # Build structured memory from form params
+    memory = {
+      "key_decisions" => params[:key_decisions],
+      "action_items" => params[:action_items],
+      "insights" => params[:insights],
+      "open_questions" => params[:open_questions],
+      "raw_summary" => params[:raw_summary],
+      "approved_at" => Time.current.iso8601,
+      "conversation_id" => @conversation.id
+    }
 
-    # Save approved memory
     @conversation.update!(
-      context: @conversation.context.merge("memory" => memory_content),
+      context: @conversation.context.merge("memory" => memory.to_json),
       status: :resolved
     )
 
-    # Persist to space memory (placeholder - future implementation)
-    # append_to_space_memory(@conversation)
+    # Append to space memory
+    @conversation.council.space.append_memory(memory)
 
-    redirect_to @conversation, notice: "Conversation resolved and memory saved."
+    redirect_to @conversation, notice: "Conversation resolved and memory saved to space."
   end
 
   def reject_summary
@@ -75,6 +83,17 @@ class ConversationsController < ApplicationController
     @conversation.clear_responded_advisors
 
     redirect_to @conversation, notice: "Conversation continued. You can finish again later."
+  end
+
+  def regenerate_summary
+    # Only allow if still in concluding state
+    if @conversation.concluding?
+      @conversation.update!(context: @conversation.context.except("draft_memory"))
+      GenerateConversationSummaryJob.perform_later(@conversation.id)
+      redirect_to @conversation, notice: "Regenerating summary..."
+    else
+      redirect_to @conversation, alert: "Can only regenerate while reviewing."
+    end
   end
 
   private

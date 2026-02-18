@@ -57,4 +57,24 @@ class Conversation < ApplicationRecord
   def clear_responded_advisors
     update_column(:context, context.except("responded_advisor_ids"))
   end
+
+  # Access the draft memory from context
+  def draft_memory
+    context["draft_memory"]
+  end
+
+  # Access the approved memory from context
+  def memory
+    context["memory"]
+  end
+
+  # Parsed memory data (returns hash)
+  def memory_data
+    memory = context["memory"]
+    return {} if memory.blank?
+
+    memory.is_a?(String) ? JSON.parse(memory) : memory
+  rescue JSON::ParserError
+    {}
+  end
 end

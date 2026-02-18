@@ -1,0 +1,83 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold">Memory: <%= @space.name %></h1>
+      <p class="text-sm text-base-content/60">
+        Cumulative knowledge from all resolved conversations
+      </p>
+    </div>
+    <%= link_to "← Back to Space", space_councils_path(@space), class: "btn btn-ghost btn-sm" %>
+  </div>
+
+  <!-- Search -->
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <%= form_with url: search_memory_space_path(@space), method: :get, class: "flex gap-2" do |f| %>
+        <%= f.text_field :q,
+            value: params[:q],
+            placeholder: "Search memory...",
+            class: "input input-bordered flex-1" %>
+        <%= f.submit "Search", class: "btn btn-primary" %>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Cumulative Space Memory -->
+    <div class="card bg-base-100 shadow">
+      <div class="card-body">
+        <h2 class="card-title">Cumulative Knowledge</h2>
+        <% if @space.memory.present? %>
+          <div class="prose max-w-none max-h-[60vh] overflow-y-auto">
+            <%= simple_format(@space.memory) %>
+          </div>
+        <% else %>
+          <p class="text-base-content/60">No memories yet. Finish conversations to build knowledge.</p>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Conversation Summaries -->
+    <div class="space-y-4">
+      <h2 class="text-xl font-bold">Conversation History</h2>
+
+      <% if @resolved_conversations.any? %>
+        <% @resolved_conversations.each do |conv| %>
+          <div class="card bg-base-200">
+            <div class="card-body">
+              <h3 class="card-title text-sm"><%= conv.title %></h3>
+              <p class="text-xs text-base-content/60"><%= conv.council_name %> · Resolved <%= time_ago_in_words(conv.updated_at) %> ago</p>
+
+              <% memory = conv.context["memory"] %>
+              <% memory_data = memory.is_a?(String) ? JSON.parse(memory) : memory %>
+
+              <% if memory_data.present? %>
+                <div class="mt-2 space-y-2 text-sm">
+                  <% if memory_data["key_decisions"].present? %>
+                    <div>
+                      <p class="font-semibold text-xs text-base-content/70">Key Decisions:</p>
+                      <p class="line-clamp-2"><%= memory_data["key_decisions"] %></p>
+                    </div>
+                  <% end %>
+
+                  <% if memory_data["action_items"].present? %>
+                    <div>
+                      <p class="font-semibold text-xs text-base-content/70">Action Items:</p>
+                      <p class="line-clamp-2"><%= memory_data["action_items"] %></p>
+                    </div>
+                  <% end %>
+                </div>
+
+                <%= link_to "View Full Summary", conversation_path(conv),
+                    class: "btn btn-xs btn-ghost mt-2" %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% else %>
+        <p class="text-base-content/60">No resolved conversations yet.</p>
+      <% end %>
+    </div>
+  </div>
+</div>

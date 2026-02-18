@@ -82,6 +82,7 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - 2026-02-18: RoE-based Conversation Auto-Conclusion - Conversations can auto-conclude based on Rules of Engagement mode (Consensus, Round Robin, Moderated) or manual finish (On Demand, Silent). Statuses: active → concluding → resolved → archived.
 - 2026-02-18: Active Record encryption uses deterministic test keys in test environment.
 - 2026-02-18: Security test audit added 37 new security tests covering tenant isolation, parameter tampering, mass assignment, and cross-account access. See `.ai/docs/patterns/security-testing.md` for patterns.
+- 2026-02-18: Conversation Memory Features - Structured AI-generated summaries with key decisions, action items, insights, and open questions. Space-level cumulative memory browser with search. Regenerate summary option available during review.
 
 ## Gems
 - `ruby-openai` (~> 7.0) - OpenAI API client

@@ -230,4 +230,57 @@ class SpacesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to space_councils_path(space2)
     assert_equal space2.id, session[:space_id]
   end
+
+  test "memory action shows space memory and resolved conversations" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    space = @account.spaces.create!(name: "Memory Test Space", memory: "Test memory content")
+    council = space.councils.create!(name: "Test Council", user: @user, account: @account)
+    conversation = council.conversations.create!(
+      title: "Resolved Conversation",
+      user: @user,
+      account: @account,
+      status: :resolved,
+      context: { "memory" => { "key_decisions" => "Decision 1" }.to_json }
+    )
+
+    get memory_space_url(space)
+    assert_response :success
+    assert_select "h1", /Memory: Memory Test Space/
+    assert_select ".prose", /Test memory content/
+    assert_select ".card-title", /Resolved Conversation/
+  end
+
+  test "search_memory action finds matching content" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    space = @account.spaces.create!(name: "Search Test Space", memory: "Line about Python\nLine about Ruby\nLine about Rails")
+
+    get search_memory_space_url(space), params: { q: "Python" }
+    assert_response :success
+    assert_select "h2", /1 matches found/
+  end
+
+  test "search_memory handles no matches" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    space = @account.spaces.create!(name: "Search Test Space", memory: "Some content")
+
+    get search_memory_space_url(space), params: { q: "nonexistent" }
+    assert_response :success
+    assert_select "p", /No matches found/
+  end
+
+  test "cannot access memory from different account" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    second_account = accounts(:two)
+    second_space = ActsAsTenant.without_tenant do
+      second_account.spaces.create!(name: "Other Account Space")
+    end
+
+    get memory_space_url(second_space)
+    assert_response :not_found
+  end
 end

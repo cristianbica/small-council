@@ -35,14 +35,118 @@ class GenerateConversationSummaryJob < ApplicationJob
   end
 
   def generate_summary(transcript)
-    # For now, simple placeholder
-    # Future: Call AI to generate structured summary
+    # Create a system advisor for summarization if one doesn't exist
+    scribe = find_or_create_scribe_advisor
+
+    client = AiClient.new(
+      advisor: scribe,
+      conversation: @conversation,
+      message: build_summary_prompt(transcript)
+    )
+
+    result = client.generate_response
+    parse_structured_summary(result[:content])
+  rescue => e
+    Rails.logger.error "[GenerateConversationSummaryJob] AI summary failed: #{e.message}"
+    # Fallback to template structure
     {
-      key_decisions: "- TBD\n",
-      action_items: "- TBD\n",
-      insights: "- TBD\n",
-      raw_summary: "Summary of #{transcript.length} characters"
+      key_decisions: "- [AI generation failed - please fill in manually]\n",
+      action_items: "- [AI generation failed - please fill in manually]\n",
+      insights: "- [AI generation failed - please fill in manually]\n",
+      open_questions: "- [AI generation failed - please fill in manually]\n",
+      raw_summary: "Summary generation failed. Please fill in the structured fields manually.\n\nTranscript length: #{transcript.length} characters"
     }
+  end
+
+  def find_or_create_scribe_advisor
+    # Look for existing scribe advisor or create a temporary one
+    advisor = @conversation.account.advisors.find_by(name: "Scribe")
+
+    return advisor if advisor.present?
+
+    # Create a basic scribe advisor with default model
+    llm_model = @conversation.account.llm_models.enabled.first
+
+    @conversation.account.advisors.create!(
+      name: "Scribe",
+      system_prompt: <<~PROMPT,
+        You are an expert conversation analyst and scribe. Your task is to analyze conversation transcripts and produce structured summaries.
+
+        Extract the following from the conversation:
+        1. Key Decisions - Any decisions made by the participants
+        2. Action Items - Tasks, follow-ups, or commitments mentioned
+        3. Insights - Important insights or conclusions reached
+        4. Open Questions - Unresolved questions or areas needing further exploration
+
+        Format your response as:
+        ## Key Decisions
+        - [decision 1]
+        - [decision 2]
+
+        ## Action Items
+        - [action 1]
+        - [action 2]
+
+        ## Insights
+        - [insight 1]
+        - [insight 2]
+
+        ## Open Questions
+        - [question 1]
+        - [question 2]
+      PROMPT
+      llm_model: llm_model,
+      global: true
+    )
+  end
+
+  def build_summary_prompt(transcript)
+    # Create a message object for the prompt (won't be saved)
+    Message.new(
+      content: <<~PROMPT,
+        Please analyze the following conversation transcript and produce a structured summary:
+
+        ---
+        #{transcript}
+        ---
+
+        Provide a structured summary with these sections:
+        1. Key Decisions made
+        2. Action Items identified
+        3. Important Insights
+        4. Open Questions
+
+        Use the format specified in your system prompt.
+      PROMPT
+      role: "user"
+    )
+  end
+
+  def parse_structured_summary(content)
+    sections = {
+      key_decisions: extract_section(content, "Key Decisions"),
+      action_items: extract_section(content, "Action Items"),
+      insights: extract_section(content, "Insights"),
+      open_questions: extract_section(content, "Open Questions"),
+      raw_summary: content
+    }
+
+    # Ensure each section has at least a placeholder if empty
+    sections.each do |key, value|
+      if value.blank? && key != :raw_summary
+        sections[key] = "- None identified\n"
+      end
+    end
+
+    sections
+  end
+
+  def extract_section(content, section_name)
+    # Match section header and capture content until next section or end
+    # Use negative lookahead to stop at any other section header
+    pattern = /##?\s*#{Regexp.escape(section_name)}[:\s]*\n?(.*?)(?=\n##?\s*(?:Key Decisions|Action Items|Insights|Open Questions)[:\s]*|\z)/mi
+    match = content.match(pattern)
+    match ? match[1].strip : ""
   end
 
   def broadcast_summary_ready(conversation)

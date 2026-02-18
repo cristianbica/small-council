@@ -6,17 +6,55 @@
     <% memory_data = draft_memory.is_a?(String) ? JSON.parse(draft_memory) : draft_memory %>
 
     <%= form_with url: approve_summary_conversation_path(conversation), method: :post do |f| %>
-      <div class="form-control mb-4">
-        <%= f.label :memory, "Memory/Summary", class: "label" %>
-        <%= f.text_area :memory,
-            value: memory_data&.dig("raw_summary") || "No summary available",
-            class: "textarea textarea-bordered w-full",
-            rows: 10 %>
+      <div class="space-y-4">
+        <div class="form-control">
+          <%= f.label :key_decisions, "Key Decisions", class: "label font-bold" %>
+          <%= f.text_area :key_decisions,
+              value: memory_data&.dig("key_decisions"),
+              class: "textarea textarea-bordered w-full",
+              rows: 3 %>
+        </div>
+
+        <div class="form-control">
+          <%= f.label :action_items, "Action Items", class: "label font-bold" %>
+          <%= f.text_area :action_items,
+              value: memory_data&.dig("action_items"),
+              class: "textarea textarea-bordered w-full",
+              rows: 3 %>
+        </div>
+
+        <div class="form-control">
+          <%= f.label :insights, "Insights", class: "label font-bold" %>
+          <%= f.text_area :insights,
+              value: memory_data&.dig("insights"),
+              class: "textarea textarea-bordered w-full",
+              rows: 3 %>
+        </div>
+
+        <div class="form-control">
+          <%= f.label :open_questions, "Open Questions", class: "label font-bold" %>
+          <%= f.text_area :open_questions,
+              value: memory_data&.dig("open_questions"),
+              class: "textarea textarea-bordered w-full",
+              rows: 3 %>
+        </div>
+
+        <div class="form-control">
+          <%= f.label :raw_summary, "Full Summary (Raw)", class: "label" %>
+          <%= f.text_area :raw_summary,
+              value: memory_data&.dig("raw_summary"),
+              class: "textarea textarea-bordered w-full text-sm",
+              rows: 5 %>
+        </div>
       </div>
 
-      <div class="card-actions justify-end">
-        <%= button_to "Continue Conversation", reject_summary_conversation_path(conversation),
-            method: :post, class: "btn btn-ghost" %>
+      <div class="card-actions justify-end mt-6 gap-2">
+        <%= link_to "Regenerate", regenerate_summary_conversation_path(conversation),
+            data: { turbo_method: :post },
+            class: "btn btn-ghost btn-sm" %>
+        <%= link_to "Continue Conversation", reject_summary_conversation_path(conversation),
+            data: { turbo_method: :post },
+            class: "btn btn-ghost" %>
         <%= f.submit "Approve & Save Memory", class: "btn btn-primary" %>
       </div>
     <% end %>

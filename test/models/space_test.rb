@@ -75,4 +75,62 @@ class SpaceTest < ActiveSupport::TestCase
     assert Space.where(name: "This Space").exists?
     assert_not Space.where(name: "Other Space").exists?
   end
+
+  test "append_memory should add memory entry to space" do
+    space = @account.spaces.create!(name: "Memory Test Space")
+    memory = {
+      "key_decisions" => "Decided to use AI",
+      "action_items" => "Set up LLM models",
+      "insights" => "AI is helpful",
+      "open_questions" => "Which model?"
+    }
+
+    space.append_memory(memory)
+
+    assert space.memory.include?("Decided to use AI")
+    assert space.memory.include?("Set up LLM models")
+    assert space.memory.include?("AI is helpful")
+    assert space.memory.include?("Which model?")
+    assert space.memory.include?("## Conversation Summary")
+  end
+
+  test "append_memory should preserve existing memory" do
+    space = @account.spaces.create!(name: "Memory Test Space", memory: "Existing memory")
+    memory = { "key_decisions" => "New decision" }
+
+    space.append_memory(memory)
+
+    assert space.memory.include?("Existing memory")
+    assert space.memory.include?("New decision")
+  end
+
+  test "search_memory should find matching lines" do
+    space = @account.spaces.create!(name: "Memory Test Space", memory: "Line one\nLine two about AI\nLine three")
+
+    results = space.search_memory("AI")
+
+    assert_equal 1, results.count
+    assert results.first.include?("about AI")
+  end
+
+  test "search_memory should be case insensitive" do
+    space = @account.spaces.create!(name: "Memory Test Space", memory: "Line with UPPERCASE")
+
+    results = space.search_memory("uppercase")
+
+    assert_equal 1, results.count
+  end
+
+  test "search_memory should return empty array for blank query" do
+    space = @account.spaces.create!(name: "Memory Test Space", memory: "Some content")
+
+    assert_empty space.search_memory("")
+    assert_empty space.search_memory(nil)
+  end
+
+  test "search_memory should return empty array for blank memory" do
+    space = @account.spaces.create!(name: "Memory Test Space", memory: nil)
+
+    assert_empty space.search_memory("query")
+  end
 end

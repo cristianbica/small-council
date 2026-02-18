@@ -362,4 +362,74 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to space_councils_path(@space)
     assert_equal "Council not found.", flash[:alert]
   end
+
+  test "approve_summary saves structured memory and appends to space" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    conversation = @account.conversations.create!(
+      council: council,
+      user: @user,
+      title: "Test",
+      status: :concluding,
+      context: { "draft_memory" => { "key_decisions" => "Decision 1" }.to_json }
+    )
+
+    post approve_summary_conversation_url(conversation), params: {
+      key_decisions: "Decision to proceed",
+      action_items: "Follow up on Monday",
+      insights: "AI is helpful",
+      open_questions: "What model to use?",
+      raw_summary: "Full summary text"
+    }
+
+    assert_redirected_to conversation_url(conversation)
+    assert_equal "resolved", conversation.reload.status
+
+    # Check memory was saved
+    memory = conversation.memory_data
+    assert_equal "Decision to proceed", memory["key_decisions"]
+    assert_equal "Follow up on Monday", memory["action_items"]
+    assert memory["approved_at"].present?
+
+    # Check space memory was updated
+    assert @space.reload.memory.include?("Decision to proceed")
+  end
+
+  test "regenerate_summary clears draft and restarts job" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    conversation = @account.conversations.create!(
+      council: council,
+      user: @user,
+      title: "Test",
+      status: :concluding,
+      context: { "draft_memory" => { "test" => "data" } }
+    )
+
+    assert_enqueued_with(job: GenerateConversationSummaryJob, args: [ conversation.id ]) do
+      post regenerate_summary_conversation_url(conversation)
+    end
+
+    assert_redirected_to conversation_url(conversation)
+    assert_nil conversation.reload.context["draft_memory"]
+  end
+
+  test "regenerate_summary fails when not in concluding state" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    conversation = @account.conversations.create!(
+      council: council,
+      user: @user,
+      title: "Test",
+      status: :resolved
+    )
+
+    post regenerate_summary_conversation_url(conversation)
+
+    assert_redirected_to conversation_url(conversation)
+    assert_equal "Can only regenerate while reviewing.", flash[:alert]
+  end
 end

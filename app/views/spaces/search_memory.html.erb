@@ -1,0 +1,47 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold">Search Memory: <%= @space.name %></h1>
+      <p class="text-sm text-base-content/60">
+        Search results for "<%= @query %>"
+      </p>
+    </div>
+    <%= link_to "← Back to Memory", memory_space_path(@space), class: "btn btn-ghost btn-sm" %>
+  </div>
+
+  <!-- Search Form -->
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <%= form_with url: search_memory_space_path(@space), method: :get, class: "flex gap-2" do |f| %>
+        <%= f.text_field :q,
+            value: @query,
+            placeholder: "Search memory...",
+            class: "input input-bordered flex-1" %>
+        <%= f.submit "Search", class: "btn btn-primary" %>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <% if @query.present? %>
+        <% if @results&.any? %>
+          <h2 class="card-title mb-4"><%= @results.count %> matches found</h2>
+          <div class="space-y-2">
+            <% @results.each do |line| %>
+              <div class="p-2 bg-base-200 rounded">
+                <%= highlight(line, @query) %>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="text-base-content/60">No matches found for "<%= @query %>".</p>
+        <% end %>
+      <% else %>
+        <p class="text-base-content/60">Enter a search term above.</p>
+      <% end %>
+    </div>
+  </div>
+</div>

@@ -18,6 +18,10 @@ Rails.application.routes.draw do
   # Spaces routes with nested councils
   resources :spaces do
     resources :councils, only: [ :index, :new, :create ]
+    member do
+      get :memory
+      get :search_memory
+    end
   end
 
   # Councils can still be accessed directly (redirects to current space context)
@@ -32,6 +36,7 @@ Rails.application.routes.draw do
       post :finish
       post :approve_summary
       post :reject_summary
+      post :regenerate_summary
     end
   end
 
