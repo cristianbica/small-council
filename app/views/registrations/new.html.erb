@@ -1,48 +1,76 @@
-<h1>Create your account</h1>
+<div class="flex min-h-[70vh] items-center justify-center">
+  <div class="card bg-base-100 shadow-xl w-full max-w-md">
+    <div class="card-body">
+      <h1 class="card-title text-2xl justify-center mb-4">Create your account</h1>
 
-<%= form_with model: @account, url: sign_up_path do |f| %>
-  <% if @account.errors.any? %>
-    <div style="color: red">
-      <h2><%= pluralize(@account.errors.count, "error") %> prohibited this account from being saved:</h2>
-      <ul>
-        <% @account.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
+      <%= form_with model: @account, url: sign_up_path, class: "space-y-4" do |f| %>
+        <% if @account.errors.any? %>
+          <div class="alert alert-error">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <h3 class="font-bold"><%= pluralize(@account.errors.count, "error") %> prohibited this account from being saved:</h3>
+              <ul class="list-disc list-inside text-sm">
+                <% @account.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            </div>
+          </div>
         <% end %>
-      </ul>
-    </div>
-  <% end %>
 
-  <div>
-    <%= f.label :name, "Company/Organization Name", style: "display: block" %>
-    <%= f.text_field :name, required: true, autofocus: true %>
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Company/Organization Name</span>
+          </label>
+          <%= f.text_field :name, required: true, autofocus: true, class: "input input-bordered w-full", placeholder: "Acme Inc." %>
+        </div>
+
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">URL Slug</span>
+          </label>
+          <%= f.text_field :slug, required: true, class: "input input-bordered w-full", placeholder: "acme-inc" %>
+          <label class="label">
+            <span class="label-text-alt text-base-content/60">Used for URLs: smallcouncil.app/<%= @account.slug || "your-slug" %></span>
+          </label>
+        </div>
+
+        <div class="divider">Your Details</div>
+
+        <%= f.fields_for :users do |uf| %>
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Email</span>
+            </label>
+            <%= uf.email_field :email, required: true, autocomplete: "email", class: "input input-bordered w-full", placeholder: "you@example.com" %>
+          </div>
+
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Password</span>
+            </label>
+            <%= uf.password_field :password, required: true, autocomplete: "new-password", class: "input input-bordered w-full", placeholder: "••••••••" %>
+          </div>
+
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Confirm Password</span>
+            </label>
+            <%= uf.password_field :password_confirmation, required: true, autocomplete: "new-password", class: "input input-bordered w-full", placeholder: "••••••••" %>
+          </div>
+        <% end %>
+
+        <div class="form-control mt-6">
+          <%= f.submit "Create Account", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+
+      <div class="text-center mt-4">
+        <span class="text-base-content/60">Already have an account?</span>
+        <%= link_to "Sign in", sign_in_path, class: "link link-primary ml-1" %>
+      </div>
+    </div>
   </div>
-
-  <div>
-    <%= f.label :slug, "URL Slug", style: "display: block" %>
-    <%= f.text_field :slug, required: true %>
-    <small>Used for URLs: smallcouncil.app/<%= @account.slug || "your-slug" %></small>
-  </div>
-
-  <%= f.fields_for :users do |uf| %>
-    <div>
-      <%= uf.label :email, style: "display: block" %>
-      <%= uf.email_field :email, required: true, autocomplete: "email" %>
-    </div>
-
-    <div>
-      <%= uf.label :password, style: "display: block" %>
-      <%= uf.password_field :password, required: true, autocomplete: "new-password" %>
-    </div>
-
-    <div>
-      <%= uf.label :password_confirmation, style: "display: block" %>
-      <%= uf.password_field :password_confirmation, required: true, autocomplete: "new-password" %>
-    </div>
-  <% end %>
-
-  <div>
-    <%= f.submit "Create Account" %>
-  </div>
-<% end %>
-
-<p>Already have an account? <%= link_to "Sign in", sign_in_path %></p>
+</div>

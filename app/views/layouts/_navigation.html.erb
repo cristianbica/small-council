@@ -1,11 +1,54 @@
-<nav style="padding: 1rem; border-bottom: 1px solid #ccc; margin-bottom: 1rem;">
-  <% if authenticated? %>
-    <span>Signed in as <%= Current.user.email %></span>
-    <%= link_to "Dashboard", dashboard_path %>
-    <%= link_to "Sessions", sessions_path %>
-    <%= button_to "Sign out", session_path(id: Current.session.id), method: :delete %>
-  <% else %>
-    <%= link_to "Sign in", sign_in_path %>
-    <%= link_to "Create account", sign_up_path %>
-  <% end %>
-</nav>
+<div class="navbar bg-base-200 shadow-sm">
+  <div class="navbar-start">
+    <%= link_to "Small Council", root_path, class: "btn btn-ghost text-xl" %>
+  </div>
+  
+  <div class="navbar-center hidden lg:flex">
+    <% if authenticated? %>
+      <ul class="menu menu-horizontal px-1">
+        <li><%= link_to "Dashboard", dashboard_path %></li>
+        <li><%= link_to "Sessions", sessions_path %></li>
+      </ul>
+    <% end %>
+  </div>
+  
+  <div class="navbar-end">
+    <% if authenticated? %>
+      <div class="dropdown dropdown-end">
+        <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar placeholder">
+          <div class="bg-neutral text-neutral-content rounded-full w-10">
+            <span class="text-xl"><%= Current.user.email.first.upcase %></span>
+          </div>
+        </div>
+        <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+          <li class="menu-title">
+            <span class="text-xs text-base-content/60">Signed in as</span>
+            <span class="text-sm font-normal truncate"><%= Current.user.email %></span>
+          </li>
+          <li><%= button_to "Sign out", session_path(id: Current.session.id), method: :delete, class: "btn btn-ghost btn-sm justify-start w-full" %></li>
+        </ul>
+      </div>
+    <% else %>
+      <%= link_to "Sign in", sign_in_path, class: "btn btn-ghost" %>
+      <%= link_to "Create account", sign_up_path, class: "btn btn-primary" %>
+    <% end %>
+  </div>
+</div>
+
+<% if authenticated? %>
+  <!-- Mobile navigation -->
+  <div class="lg:hidden navbar bg-base-200 border-t border-base-300">
+    <div class="flex-1 flex justify-center">
+      <%= link_to dashboard_path, class: "btn btn-ghost flex-1 rounded-none" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      <% end %>
+      <%= link_to sessions_path, class: "btn btn-ghost flex-1 rounded-none" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      <% end %>
+    </div>
+  </div>
+<% end %>

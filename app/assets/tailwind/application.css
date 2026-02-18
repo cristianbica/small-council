@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+/* Exclude DaisyUI files from content scanning */
+@source not "./daisyui{,*}.mjs";
+
+/* DaisyUI plugin - provides 50+ component classes */
+@plugin "./daisyui.mjs";

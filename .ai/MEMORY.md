@@ -6,9 +6,12 @@ Max ~200 lines. Prune oldest/least-used when full. One agent updates per session
 - Build: `bin/rails assets:precompile`
 - Test: `bin/rails test`
 - Run: `bin/rails server`
+- Dev server: `bin/dev` (runs web + CSS watch via foreman)
 - DB migrate: `bin/rails db:migrate`
 - DB reset: `bin/rails db:reset`
 - DB seed: `bin/rails db:seed` (creates demo user)
+- CSS build: `bin/rails tailwindcss:build`
+- CSS watch: `bin/rails tailwindcss:watch`
 
 ## URLs (development)
 - Sign in: http://localhost:3000/sign_in
@@ -58,3 +61,11 @@ Max ~200 lines. Prune oldest/least-used when full. One agent updates per session
 ## Discovered quirks
 - 2026-02-10: Initialized `.ai/` template structure and core roles/workflows.
 - 2026-02-18: Data layer implemented with scoped multi-tenancy ready for acts_as_tenant gem.
+
+## UI Framework (2026-02-18)
+- Tailwind CSS v4.1.18 via `tailwindcss-rails` gem (no Node.js)
+- DaisyUI v5.5.18 for component classes (downloaded as .mjs plugin)
+- Config: `app/assets/tailwind/application.css`
+- Output: `app/assets/builds/tailwind.css`
+- Theme: `data-theme="light"` on html tag
+- Key DaisyUI classes: btn, card, navbar, alert, form-control, input, menu
