@@ -25,8 +25,9 @@ Max ~200 lines. Prune oldest/least-used when full. One agent updates per session
 
 ## Conventions
 - File naming: snake_case for files, PascalCase for classes
-- Model comments indicate future acts_as_tenant activation
+- acts_as_tenant is active on all scoped models
 - JSONB columns use GIN indexes for queryability
+- NEVER edit Rails-owned files directly (use `.custom.rb` counterparts)
 
 ## Test helpers
 - `sign_in_as(user, password: "password123")` - authenticate in integration tests
@@ -51,30 +52,34 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 
 ## Business domains
 - Multi-tenant AI advisor platform
+- Spaces: contextual workspaces containing councils
 - Councils: groups of AI advisors that collaborate
 - Conversations: chat sessions with advisor participation
+- Advisors: AI personas with configurable LLM models
 - Usage tracking: per-account billing and observability
 - AI Providers: OpenAI, Anthropic, GitHub Models with encrypted API credentials
 - LlmModels: Per-account model configuration (GPT-4, Claude, etc.)
 
 ## Data Layer (2026-02-18)
-- 11 migrations, 10 models
-- Key tables: accounts, users, advisors, councils, council_advisors, conversations, messages, usage_records, providers, llm_models
+- 11 migrations, 11 models
+- Key tables: accounts, users, spaces, advisors, councils, council_advisors, conversations, messages, usage_records, providers, llm_models
 - acts_as_tenant gem is enabled and active (automatic tenant scoping on all queries)
 - JSONB columns: settings, preferences, model_config, metadata, configuration, content_blocks, context, custom_prompt_override, credentials
 - GIN indexes on all JSONB columns
 - Polymorphic sender on messages table (sender_type, sender_id)
 - Encrypted credentials: `Provider.credentials` uses Rails encrypted attributes for API keys
+- Current attributes: `Current.session`, `Current.user`, `Current.account`, `Current.space`
 
 ## Discovered quirks
 - 2026-02-10: Initialized `.ai/` template structure and core roles/workflows.
-- 2026-02-18: Data layer implemented with scoped multi-tenancy ready for acts_as_tenant gem.
-- 2026-02-18: Tenant setting uses `Current.user.account` pattern via `set_current_tenant` filter. Requires authenticated user.
-- 2026-02-18: Conversations Phase 1 - Basic chat UI with list, create, view, and post messages.
+- 2026-02-18: Data layer implemented with acts_as_tenant gem active (automatic query scoping).
+- 2026-02-18: Tenant setting uses `Current.user.account` pattern via `set_current_tenant` filter.
+- 2026-02-18: Spaces feature - Contextual workspaces containing councils, with session-based space switching.
+- 2026-02-18: Conversations Phase 1 - Chat UI with list, create, view, and post messages.
+- 2026-02-18: Conversations Phase 2 - Rules of Engagement (RoE) with 5 modes: round_robin, moderated, on_demand, silent, consensus.
 - 2026-02-18: AI Integration - Multi-provider LLM support (OpenAI, Anthropic, GitHub Models) with encrypted credentials, async job processing, Turbo Streams real-time updates, and usage tracking.
-- 2026-02-18: Active Record encryption uses deterministic test keys in test environment (see `config/initializers/active_record_encryption.rb`)
+- 2026-02-18: Active Record encryption uses deterministic test keys in test environment.
 - 2026-02-18: Security test audit added 37 new security tests covering tenant isolation, parameter tampering, mass assignment, and cross-account access. See `.ai/docs/patterns/security-testing.md` for patterns.
-- 2026-02-18: CRITICAL SECURITY GAP: `AdvisorsController` does not validate that `llm_model_id` belongs to `Current.account`, allowing potential use of other accounts' API keys. Fix documented in `.ai/plans/2026-02-18-security-test-audit.md`
 
 ## Gems
 - `ruby-openai` (~> 7.0) - OpenAI API client

@@ -6,9 +6,23 @@ Rules:
 - Keep each feature page short.
 - Prefer linking to code locations (in the app repo) over large copy/paste.
 
-Feature pages:
+## Core Platform
+
 - [Authentication](authentication.md) - Sign in, sign up, sessions, password reset
-- [Conversations](conversations.md) - Chat with AI advisors, Rules of Engagement, AI integration
+- [Multi-tenancy](multi-tenancy.md) - Account-scoped data isolation via acts_as_tenant
+- [UI Framework](ui-framework.md) - Tailwind CSS v4 + DaisyUI styling
+
+## Organization Features
+
+- [Spaces](spaces.md) - Contextual workspaces for organizing councils
+- [Councils](councils.md) - Groups of AI advisors that collaborate
+- [Advisors](advisors.md) - AI personas with configurable LLM models
+
+## Conversation Features
+
+- [Conversations](conversations.md) - Chat sessions with Rules of Engagement
+- [Providers](providers.md) - AI provider credentials and model configuration
+
+## Data Layer
+
 - [Data Model](data-model.md) - Database schema and model relationships
-- [Multi-tenancy](multi-tenancy.md) - Account-scoped data isolation
-- [UI Framework](ui-framework.md) - Tailwind CSS + DaisyUI styling

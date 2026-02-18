@@ -1,6 +1,6 @@
 # Multi-Tenancy
 
-Multi-tenancy architecture with account scoping. Enabled via `acts_as_tenant` gem.
+Multi-tenancy with automatic query scoping via `acts_as_tenant` gem.
 
 ## Architecture
 
@@ -34,10 +34,10 @@ Sessions belong to users, so access to account data is through:
 Current.user.account
 ```
 
-## Active: acts_as_tenant
+## acts_as_tenant Configuration
 
-### Tenant Setting Pattern
-Tenant is set in `ApplicationController#set_current_tenant`:
+### Automatic Tenant Setting
+Tenant is set in `ApplicationController`:
 
 ```ruby
 class ApplicationController < ActionController::Base
@@ -80,11 +80,29 @@ SELECT * FROM conversations WHERE account_id = X
 ```
 Account
 ├── Users
+├── Spaces
 ├── Advisors
 ├── Councils
 ├── Conversations
 ├── Messages
-└── UsageRecords
+├── UsageRecords
+├── Providers
+└── LlmModels
 ```
 
 All tables except `accounts` have `account_id` column for scoping.
+
+## Query Scoping
+
+All queries automatically include `WHERE account_id = X`:
+
+```ruby
+# Controller (implicit scoping)
+@spaces = Current.account.spaces
+
+# Model level (automatic)
+Space.all  # => SELECT * FROM spaces WHERE account_id = 1
+
+# Bypass for admin/migration tasks
+ActsAsTenant.without_tenant { Space.count }
+```
