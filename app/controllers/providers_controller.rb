@@ -24,7 +24,8 @@ class ProvidersController < ApplicationController
   def update
     @provider = Current.account.providers.find(params[:id])
 
-    if @provider.update(provider_params)
+    # provider_type is immutable - remove it from update params
+    if @provider.update(provider_params_without_type)
       redirect_to providers_path, notice: "Provider updated successfully."
     else
       render :edit, status: :unprocessable_entity
@@ -41,5 +42,9 @@ class ProvidersController < ApplicationController
 
   def provider_params
     params.require(:provider).permit(:name, :provider_type, :api_key, :organization_id, :enabled)
+  end
+
+  def provider_params_without_type
+    params.require(:provider).permit(:name, :api_key, :organization_id, :enabled)
   end
 end

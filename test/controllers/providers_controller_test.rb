@@ -237,4 +237,29 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
     assert_select "h2", text: /My Provider/
     assert_select "h2", { text: /Other Provider/, count: 0 }
   end
+
+  test "provider_type is immutable and cannot be changed on update" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "key"
+    )
+
+    # Attempt to change provider_type to anthropic
+    patch provider_url(provider), params: {
+      provider: {
+        name: "Updated Name",
+        provider_type: "anthropic"  # Should be ignored
+      }
+    }
+
+    assert_redirected_to providers_url
+
+    provider.reload
+    assert_equal "Updated Name", provider.name  # Name changed
+    assert_equal "openai", provider.provider_type  # Type unchanged
+  end
 end

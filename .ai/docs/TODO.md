@@ -23,7 +23,10 @@
   - Always redirects to sign_in_path with generic notice
   - Sends email only if user exists, but doesn't reveal this
   - Same response time (prevents timing attacks)
-- [ ] Align provider immutability behavior: either remove `provider_type` from update params or allow/communicate changes consistently (`app/controllers/providers_controller.rb`, `app/views/providers/edit.html.erb`).
+- [x] Align provider immutability behavior: remove `provider_type` from update params. **FIXED**:
+  - Added `provider_params_without_type` method for updates
+  - Edit form already shows `disabled: true` with note "Provider type cannot be changed"
+  - Added test to verify provider_type is immutable
 - [ ] Harden `GenerateAdvisorResponseJob` by verifying advisor/conversation/message belong to the same account/conversation before updating records.
 
 ### Low
