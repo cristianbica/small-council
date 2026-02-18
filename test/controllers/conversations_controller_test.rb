@@ -372,7 +372,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
       user: @user,
       title: "Test",
       status: :concluding,
-      context: { "draft_memory" => { "key_decisions" => "Decision 1" }.to_json }
+      draft_memory: { "key_decisions" => "Decision 1" }.to_json
     )
 
     post approve_summary_conversation_url(conversation), params: {
@@ -405,7 +405,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
       user: @user,
       title: "Test",
       status: :concluding,
-      context: { "draft_memory" => { "test" => "data" } }
+      draft_memory: { "test" => "data" }.to_json
     )
 
     assert_enqueued_with(job: GenerateConversationSummaryJob, args: [ conversation.id ]) do

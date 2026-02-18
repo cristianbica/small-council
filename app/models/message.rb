@@ -6,6 +6,9 @@ class Message < ApplicationRecord
 
   has_one :usage_record, dependent: :destroy
 
+  # Encrypt message content at rest
+  encrypts :content
+
   enum :role, {
     user: "user",
     advisor: "advisor",

@@ -8,6 +8,10 @@ class Advisor < ApplicationRecord
   has_many :councils, through: :council_advisors
   has_many :messages, as: :sender, dependent: :destroy
 
+  # Encrypt sensitive fields at rest
+  encrypts :system_prompt
+  encrypts :short_description
+
   validates :name, presence: true
   validates :account, presence: true
 

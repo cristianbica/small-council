@@ -74,3 +74,7 @@ coverage/assets/0.13.2/images/ui-icons_222222_256x240.png
 coverage/assets/0.13.2/images/ui-icons_454545_256x240.png
 coverage/assets/0.13.2/images/ui-icons_888888_256x240.png
 coverage/assets/0.13.2/images/ui-icons_cd0a0a_256x240.png
+
+# Ignore key files for decrypting credentials and more.
+/config/credentials/*.key
+

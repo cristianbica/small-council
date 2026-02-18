@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_18_212108) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_18_223817) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -48,7 +48,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_212108) do
     t.jsonb "context", default: {}
     t.bigint "council_id", null: false
     t.datetime "created_at", null: false
+    t.text "draft_memory"
     t.datetime "last_message_at"
+    t.text "memory"
     t.string "rules_of_engagement", default: "round_robin"
     t.string "status", default: "active"
     t.string "title"

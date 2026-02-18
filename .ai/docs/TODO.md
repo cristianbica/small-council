@@ -4,6 +4,12 @@
 
 **Status**: All critical and high priority security fixes completed.
 
+### Encryption at Rest ✅
+- [x] Messages content encrypted at rest
+- [x] Conversation memories encrypted at rest
+- [x] Advisor system prompts encrypted at rest
+- [x] Rails Active Record Encryption configured
+
 ---
 
 ## Remaining Features to Implement

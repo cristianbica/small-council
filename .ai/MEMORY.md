@@ -44,6 +44,7 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - Messages use polymorphic sender (User or Advisor)
 - Usage tracking records all AI API calls with tokens and cost
 - User emails are globally unique (database unique index on users.email)
+- **Encryption at rest**: All sensitive conversation data encrypted (messages.content, conversations.memory/draft_memory, advisors.system_prompt)
 
 ## Repo layout
 - Main code: `app/` (models, controllers, views, jobs)

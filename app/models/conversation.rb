@@ -6,6 +6,10 @@ class Conversation < ApplicationRecord
 
   has_many :messages, dependent: :destroy
 
+  # Encrypt memory fields at rest (stored in *_ciphertext columns)
+  encrypts :memory
+  encrypts :draft_memory
+
   enum :status, {
     active: "active",
     concluding: "concluding",
@@ -58,22 +62,12 @@ class Conversation < ApplicationRecord
     update_column(:context, context.except("responded_advisor_ids"))
   end
 
-  # Access the draft memory from context
-  def draft_memory
-    context["draft_memory"]
-  end
-
-  # Access the approved memory from context
-  def memory
-    context["memory"]
-  end
-
-  # Parsed memory data (returns hash)
+  # Parsed memory data (returns hash from JSON string or existing hash)
   def memory_data
-    memory = context["memory"]
-    return {} if memory.blank?
+    mem = memory
+    return {} if mem.blank?
 
-    memory.is_a?(String) ? JSON.parse(memory) : memory
+    mem.is_a?(String) ? JSON.parse(mem) : mem
   rescue JSON::ParserError
     {}
   end

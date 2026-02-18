@@ -14,10 +14,8 @@ class GenerateConversationSummaryJob < ApplicationJob
     # Generate summary
     summary = generate_summary(transcript)
 
-    # Store draft summary
-    conversation.update!(
-      context: conversation.context.merge("draft_memory" => summary.to_json)
-    )
+    # Store draft summary (encrypted at rest)
+    conversation.update!(draft_memory: summary.to_json)
 
     # Notify user via Turbo Stream that summary is ready for review
     broadcast_summary_ready(conversation)

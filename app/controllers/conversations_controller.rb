@@ -67,7 +67,7 @@ class ConversationsController < ApplicationController
     }
 
     @conversation.update!(
-      context: @conversation.context.merge("memory" => memory.to_json),
+      memory: memory.to_json,
       status: :resolved
     )
 
@@ -88,7 +88,7 @@ class ConversationsController < ApplicationController
   def regenerate_summary
     # Only allow if still in concluding state
     if @conversation.concluding?
-      @conversation.update!(context: @conversation.context.except("draft_memory"))
+      @conversation.update!(draft_memory: nil)
       GenerateConversationSummaryJob.perform_later(@conversation.id)
       redirect_to @conversation, notice: "Regenerating summary..."
     else
