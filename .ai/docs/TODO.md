@@ -12,7 +12,10 @@
 
 ### High
 
-- [ ] Enforce space authorization in `app/controllers/messages_controller.rb` so users cannot post to conversations outside `Current.space`.
+- [x] Enforce space authorization in `app/controllers/messages_controller.rb` so users cannot post to conversations outside `Current.space`. **FIXED**:
+  - Added `before_action :verify_conversation_in_current_space`
+  - Checks `@conversation.council.space == Current.space`
+  - Redirects with alert if conversation is in different space
 - [ ] Add role-based authorization for provider management in `app/controllers/providers_controller.rb` (restrict create/update/destroy to admins).
 
 ### Medium

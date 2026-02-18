@@ -1,5 +1,6 @@
 class MessagesController < ApplicationController
   before_action :set_conversation
+  before_action :verify_conversation_in_current_space
 
   def create
     @message = @conversation.messages.new(message_params)
@@ -46,6 +47,12 @@ class MessagesController < ApplicationController
 
   def set_conversation
     @conversation = Current.account.conversations.find(params[:conversation_id])
+  end
+
+  def verify_conversation_in_current_space
+    unless @conversation.council.space == Current.space
+      redirect_to conversations_path, alert: "You can only post to conversations in your current space."
+    end
   end
 
   def message_params

@@ -259,19 +259,17 @@ class SecurityControllerTest < ActionDispatch::IntegrationTest
       title: "Other Space Conv"
     )
 
-    # The MessagesController uses Current.account.conversations.find
-    # which will find the conversation since it's in the same account
-    # The space check only happens in ConversationsController#set_conversation
-    # So this request will succeed because the conversation exists in the account
+    # Try to post to conversation in other space while Current.space is @space
+    # The MessagesController now enforces space authorization
+    assert_no_difference "Message.count" do
+      post conversation_messages_url(other_conversation), params: {
+        message: { content: "Test message in other space" }
+      }
+    end
 
-    post conversation_messages_url(other_conversation), params: {
-      message: { content: "Test message in other space" }
-    }
-
-    # The message creation succeeds - verify the message was created
-    message = Message.last
-    assert_equal other_conversation, message.conversation
-    assert_equal "Test message in other space", message.content
+    # Should be redirected with alert
+    assert_redirected_to conversations_path
+    assert_equal "You can only post to conversations in your current space.", flash[:alert]
   end
 
   # ============================================================================
