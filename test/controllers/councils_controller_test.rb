@@ -102,4 +102,57 @@ class CouncilsControllerTest < ActionDispatch::IntegrationTest
     assert_equal other_space.id, council.space_id
     assert_redirected_to council_url(council)
   end
+
+  test "create renders new on validation failure" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    assert_no_difference("Council.count") do
+      post councils_url, params: { council: { name: "" } }
+    end
+    assert_response :unprocessable_entity
+  end
+
+  test "update renders edit on validation failure" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    council = @account.councils.create!(name: "Test", user: @user, space: @space)
+
+    patch council_url(council), params: { council: { name: "" } }
+    assert_response :unprocessable_entity
+  end
+
+  test "should redirect when non-creator tries to access edit" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    other_user = @account.users.create!(email: "other@example.com", password: "password123")
+    council = @account.councils.create!(name: "Test", user: other_user, space: @space)
+
+    get edit_council_url(council)
+    assert_redirected_to space_councils_path(@space)
+    assert_equal "Only the creator can modify this council.", flash[:alert]
+  end
+
+  test "should redirect when non-creator tries to update" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    other_user = @account.users.create!(email: "other@example.com", password: "password123")
+    council = @account.councils.create!(name: "Test", user: other_user, space: @space)
+
+    patch council_url(council), params: { council: { name: "Updated" } }
+    assert_redirected_to space_councils_path(@space)
+    assert_equal "Test", council.reload.name
+  end
+
+  test "should redirect when non-creator tries to destroy" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    other_user = @account.users.create!(email: "other@example.com", password: "password123")
+    council = @account.councils.create!(name: "Test", user: other_user, space: @space)
+
+    assert_no_difference("Council.count") do
+      delete council_url(council)
+    end
+    assert_redirected_to space_councils_path(@space)
+  end
 end

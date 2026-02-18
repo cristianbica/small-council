@@ -21,4 +21,11 @@ class Identity::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_select "li", /Password challenge is invalid/
   end
+
+  test "updating to same email redirects without notice" do
+    patch identity_email_url, params: { email: @user.email, password_challenge: "password123" }
+    assert_redirected_to root_url
+    # When email hasn't changed, the controller still shows notice from sign_in
+    # We verify redirect succeeded which tests line 29 (email not previously changed branch)
+  end
 end

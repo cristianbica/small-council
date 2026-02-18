@@ -133,4 +133,83 @@ class AdvisorsControllerTest < ActionDispatch::IntegrationTest
     }
     assert_response :unprocessable_entity
   end
+
+  test "should redirect when non-creator tries to access new" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    other_user = @account.users.create!(email: "other@example.com", password: "password123")
+    council = @account.councils.create!(name: "Test Council", user: other_user, space: @space)
+
+    get new_council_advisor_url(council)
+    assert_redirected_to council_url(council)
+    assert_equal "Only the creator can manage advisors.", flash[:alert]
+  end
+
+  test "should redirect when non-creator tries to create" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    other_user = @account.users.create!(email: "other@example.com", password: "password123")
+    council = @account.councils.create!(name: "Test Council", user: other_user, space: @space)
+
+    assert_no_difference("Advisor.count") do
+      post council_advisors_url(council), params: {
+        advisor: { name: "Test Advisor", system_prompt: "Test", llm_model_id: @llm_model.id }
+      }
+    end
+    assert_redirected_to council_url(council)
+  end
+
+  test "should redirect when non-creator tries to edit" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    other_user = @account.users.create!(email: "other@example.com", password: "password123")
+    council = @account.councils.create!(name: "Test Council", user: other_user, space: @space)
+    advisor = council.advisors.create!(
+      name: "Test",
+      system_prompt: "Test prompt",
+      account: @account,
+      council: council,
+      llm_model: @llm_model
+    )
+
+    get edit_council_advisor_url(council, advisor)
+    assert_redirected_to council_url(council)
+  end
+
+  test "should redirect when non-creator tries to update" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    other_user = @account.users.create!(email: "other@example.com", password: "password123")
+    council = @account.councils.create!(name: "Test Council", user: other_user, space: @space)
+    advisor = council.advisors.create!(
+      name: "Test",
+      system_prompt: "Test prompt",
+      account: @account,
+      council: council,
+      llm_model: @llm_model
+    )
+
+    patch council_advisor_url(council, advisor), params: { advisor: { name: "Updated" } }
+    assert_redirected_to council_url(council)
+    assert_equal "Test", advisor.reload.name
+  end
+
+  test "should redirect when non-creator tries to destroy" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    other_user = @account.users.create!(email: "other@example.com", password: "password123")
+    council = @account.councils.create!(name: "Test Council", user: other_user, space: @space)
+    advisor = council.advisors.create!(
+      name: "Test",
+      system_prompt: "Test prompt",
+      account: @account,
+      council: council,
+      llm_model: @llm_model
+    )
+
+    assert_no_difference("Advisor.count") do
+      delete council_advisor_url(council, advisor)
+    end
+    assert_redirected_to council_url(council)
+  end
 end

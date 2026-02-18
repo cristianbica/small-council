@@ -179,4 +179,82 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
 
     assert_nil ActsAsTenant.current_tenant
   end
+
+  test "marks message as error on unexpected error" do
+    AiClient.any_instance.stubs(:generate_response).raises(StandardError, "Unexpected failure")
+
+    GenerateAdvisorResponseJob.perform_now(
+      advisor_id: @advisor.id,
+      conversation_id: @conversation.id,
+      message_id: @message.id
+    )
+
+    @message.reload
+    assert @message.error?
+    assert_match(/Unexpected error/, @message.content)
+  end
+
+  test "calculates cost for anthropic provider" do
+    anthropic_provider = @account.providers.create!(
+      name: "Anthropic",
+      provider_type: "anthropic",
+      api_key: "anthropic-key"
+    )
+    anthropic_model = anthropic_provider.llm_models.create!(
+      account: @account,
+      name: "Claude",
+      identifier: "claude-3-sonnet"
+    )
+    advisor = @account.advisors.create!(
+      name: "Anthropic Advisor",
+      system_prompt: "You are helpful",
+      llm_model: anthropic_model
+    )
+    message = @conversation.messages.create!(
+      account: @account,
+      sender: advisor,
+      role: "system",
+      content: "Thinking...",
+      status: "pending"
+    )
+
+    mock_response = {
+      content: "Hello from Claude!",
+      input_tokens: 1000,
+      output_tokens: 500,
+      total_tokens: 1500
+    }
+
+    AiClient.any_instance.stubs(:generate_response).returns(mock_response)
+
+    assert_difference "UsageRecord.count", 1 do
+      GenerateAdvisorResponseJob.perform_now(
+        advisor_id: advisor.id,
+        conversation_id: @conversation.id,
+        message_id: message.id
+      )
+    end
+
+    usage = UsageRecord.last
+    assert_equal "anthropic", usage.provider
+    # Anthropic rates: $0.008/1K input, $0.024/1K output
+    # Cost = (1000 * 0.008/1000) + (500 * 0.024/1000) = 0.008 + 0.012 = 0.02 dollars = 2 cents
+    assert_equal 2, usage.cost_cents
+  end
+
+  test "logs error on unexpected exception" do
+    AiClient.any_instance.stubs(:generate_response).raises(StandardError, "Something went wrong")
+
+    # Just verify job completes without raising and logs the error
+    assert_nothing_raised do
+      GenerateAdvisorResponseJob.perform_now(
+        advisor_id: @advisor.id,
+        conversation_id: @conversation.id,
+        message_id: @message.id
+      )
+    end
+
+    @message.reload
+    assert @message.error?
+  end
 end

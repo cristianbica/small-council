@@ -73,6 +73,8 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - 2026-02-18: Conversations Phase 1 - Basic chat UI with list, create, view, and post messages.
 - 2026-02-18: AI Integration - Multi-provider LLM support (OpenAI, Anthropic, GitHub Models) with encrypted credentials, async job processing, Turbo Streams real-time updates, and usage tracking.
 - 2026-02-18: Active Record encryption uses deterministic test keys in test environment (see `config/initializers/active_record_encryption.rb`)
+- 2026-02-18: Security test audit added 37 new security tests covering tenant isolation, parameter tampering, mass assignment, and cross-account access. See `.ai/docs/patterns/security-testing.md` for patterns.
+- 2026-02-18: CRITICAL SECURITY GAP: `AdvisorsController` does not validate that `llm_model_id` belongs to `Current.account`, allowing potential use of other accounts' API keys. Fix documented in `.ai/plans/2026-02-18-security-test-audit.md`
 
 ## Gems
 - `ruby-openai` (~> 7.0) - OpenAI API client

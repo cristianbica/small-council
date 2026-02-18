@@ -4,3 +4,8 @@ one:
   name: Test Account
   slug: test-account
   settings: {}
+
+two:
+  name: Second Account
+  slug: second-account
+  settings: {}

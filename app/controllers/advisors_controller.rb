@@ -52,6 +52,10 @@ class AdvisorsController < ApplicationController
   end
 
   def advisor_params
-    params.require(:advisor).permit(:name, :system_prompt, :llm_model_id)
+    params.require(:advisor).permit(:name, :system_prompt, :llm_model_id).tap do |whitelisted|
+      if whitelisted[:llm_model_id].present?
+        whitelisted[:llm_model_id] = Current.account.llm_models.find_by(id: whitelisted[:llm_model_id])&.id
+      end
+    end
   end
 end
