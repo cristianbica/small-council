@@ -41,5 +41,8 @@ class ApplicationController < ActionController::Base
     else
       Current.account.spaces.first
     end
+
+    # Auto-create default space if none exists (for legacy accounts)
+    Current.space ||= Current.account.spaces.create!(name: "General", description: "Default space for your councils")
   end
 end
