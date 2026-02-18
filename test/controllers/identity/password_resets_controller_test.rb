@@ -25,12 +25,14 @@ class Identity::PasswordResetsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_in_url
   end
 
-  test "should not send a password reset email to a nonexistent email" do
+  test "should not reveal if email is not registered (prevents email enumeration)" do
     assert_no_enqueued_emails do
       post identity_password_reset_url, params: { email: "invalid_email@example.com" }
     end
 
-    assert_redirected_to new_identity_password_reset_url
+    # Same redirect as existing email to prevent enumeration attacks
+    assert_redirected_to sign_in_url
+    assert_equal "If an account exists with that email, you will receive password reset instructions", flash[:notice]
   end
 
   test "should update password" do

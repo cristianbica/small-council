@@ -10,12 +10,13 @@ class Identity::PasswordResetsController < ApplicationController
   end
 
   def create
+    # Always return the same response to prevent email enumeration attacks
+    # Send email only if user exists, but don't reveal whether email is registered
     if @user = User.find_by(email: params[:email])
       send_password_reset_email
-      redirect_to sign_in_path, notice: "Check your email for reset instructions"
-    else
-      redirect_to new_identity_password_reset_path, alert: "That email address is not registered"
     end
+
+    redirect_to sign_in_path, notice: "If an account exists with that email, you will receive password reset instructions"
   end
 
   def update

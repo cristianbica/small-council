@@ -4,8 +4,8 @@
 
 ### Critical
 
-- [x] Fix tenant-unsafe login lookup in `app/controllers/sessions_controller.rb` (use tenant-aware sign-in flow; avoid global `User.find_by(email: ...)` ambiguity). **FIXED**: 
-  - Enforced global email uniqueness in User model (`validates :email, uniqueness: true`)
+- [x] Fix tenant-unsafe login lookup in `app/controllers/sessions_controller.rb` (use tenant-aware sign-in flow; avoid global `User.find_by(email: ...)` ambiguity). **FIXED**:
+   - Enforced global email uniqueness in User model (`validates :email, uniqueness: true`)
   - Added database unique index on `users.email` (migration: `ChangeUserEmailIndexToGlobal`)
   - Removed scoped index on `[account_id, email]`
   - SessionsController lookup now finds user globally; tenant established via `user.account`
@@ -16,11 +16,13 @@
   - Added `before_action :verify_conversation_in_current_space`
   - Checks `@conversation.council.space == Current.space`
   - Redirects with alert if conversation is in different space
-- [ ] Add role-based authorization for provider management in `app/controllers/providers_controller.rb` (restrict create/update/destroy to admins).
 
 ### Medium
 
-- [ ] Prevent email enumeration in `app/controllers/identity/password_resets_controller.rb` by returning a generic response for both existing and non-existing emails.
+- [x] Prevent email enumeration in `app/controllers/identity/password_resets_controller.rb` by returning a generic response for both existing and non-existing emails. **FIXED**:
+  - Always redirects to sign_in_path with generic notice
+  - Sends email only if user exists, but doesn't reveal this
+  - Same response time (prevents timing attacks)
 - [ ] Align provider immutability behavior: either remove `provider_type` from update params or allow/communicate changes consistently (`app/controllers/providers_controller.rb`, `app/views/providers/edit.html.erb`).
 - [ ] Harden `GenerateAdvisorResponseJob` by verifying advisor/conversation/message belong to the same account/conversation before updating records.
 
