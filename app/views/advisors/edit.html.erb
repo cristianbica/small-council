@@ -1,0 +1,13 @@
+<div class="max-w-2xl mx-auto">
+  <div class="mb-6">
+    <%= link_to "← Back to #{@council.name}", @council, class: "text-sm text-base-content/60 hover:text-base-content" %>
+    <h1 class="text-3xl font-bold mt-2">Edit Advisor</h1>
+    <p class="text-base-content/70">Update <%= @advisor.name %> in <%= @council.name %></p>
+  </div>
+
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <%= render "form", council: @council, advisor: @advisor %>
+    </div>
+  </div>
+</div>

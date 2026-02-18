@@ -1,0 +1,77 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-start justify-between">
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <h1 class="text-3xl font-bold"><%= @council.name %></h1>
+      </div>
+      <p class="text-base-content/70"><%= @council.description.presence || "No description" %></p>
+      <p class="text-sm text-base-content/50 mt-1">
+        Created by <%= @council.user.email %> · <%= time_ago_in_words(@council.created_at) %> ago
+      </p>
+    </div>
+
+    <div class="flex gap-2">
+      <% if @council.user_id == Current.user.id %>
+        <%= link_to "Edit Council", edit_council_path(@council), class: "btn btn-ghost btn-sm" %>
+        <%= button_to "Delete", @council, method: :delete,
+            class: "btn btn-error btn-sm",
+            data: { turbo_confirm: "Are you sure? This will delete the council and all its advisors." } %>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Advisors Section -->
+  <section class="card bg-base-100 shadow">
+    <div class="card-body">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="card-title">Advisors</h2>
+        <% if @council.user_id == Current.user.id %>
+          <%= link_to "Add Advisor", new_council_advisor_path(@council), class: "btn btn-primary btn-sm" %>
+        <% end %>
+      </div>
+
+      <% if @advisors.any? %>
+        <div class="grid gap-4 md:grid-cols-2">
+          <% @advisors.each do |advisor| %>
+            <div class="card bg-base-200">
+              <div class="card-body p-4">
+                <h3 class="font-semibold"><%= advisor.name %></h3>
+                <p class="text-sm text-base-content/70 line-clamp-2">
+                  <% if advisor.system_prompt.present? %>
+                    <%= advisor.system_prompt.length > 100 ? "#{advisor.system_prompt[0...100]}..." : advisor.system_prompt %>
+                  <% else %>
+                    No prompt set
+                  <% end %>
+                </p>
+
+                <% if @council.user_id == Current.user.id %>
+                  <div class="card-actions justify-end mt-2">
+                    <%= link_to "Edit", edit_council_advisor_path(@council, advisor), class: "btn btn-xs btn-ghost" %>
+                    <%= button_to "Remove", council_advisor_path(@council, advisor),
+                        method: :delete,
+                        class: "btn btn-xs btn-ghost text-error",
+                        data: { turbo_confirm: "Remove this advisor?" } %>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center py-8">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          <p class="text-base-content/60 mb-4">No advisors in this council yet.</p>
+          <% if @council.user_id == Current.user.id %>
+            <%= link_to "Add First Advisor", new_council_advisor_path(@council), class: "btn btn-primary" %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <!-- Back link -->
+  <%= link_to "← Back to Councils", councils_path, class: "btn btn-ghost" %>
+</div>

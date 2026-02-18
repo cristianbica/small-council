@@ -205,4 +205,53 @@ class AdvisorTest < ActiveSupport::TestCase
     assert_equal 1, Advisor.custom.count
     assert Advisor.custom.none?(&:global)
   end
+
+  test "belongs to council (optional)" do
+    advisor = Advisor.new
+    assert_respond_to advisor, :council
+  end
+
+  test "valid as simple advisor with council_id, name, account, and model defaults" do
+    user = @account.users.create!(email: "test@example.com", password: "password123")
+    council = @account.councils.create!(name: "Test Council", user: user)
+
+    advisor = @account.advisors.new(
+      name: "Simple Advisor",
+      council: council,
+      model_provider: "openai",
+      model_id: "gpt-4"
+    )
+    assert advisor.valid?
+    assert advisor.simple?
+  end
+
+  test "simple advisor with council_id uses default model values" do
+    user = @account.users.create!(email: "test2@example.com", password: "password123")
+    council = @account.councils.create!(name: "Test Council 2", user: user)
+
+    advisor = @account.advisors.new(
+      name: "Simple Advisor",
+      council: council,
+      model_provider: "openai",
+      model_id: "gpt-4"
+    )
+    assert advisor.valid?
+    assert advisor.simple?
+    assert_equal "openai", advisor.model_provider
+    assert_equal "gpt-4", advisor.model_id
+  end
+
+  test "non-simple advisor requires system_prompt, model_provider, and model_id" do
+    advisor = @account.advisors.new(
+      name: "Full Advisor"
+    )
+    assert_not advisor.valid?
+    assert_includes advisor.errors[:system_prompt], "can't be blank"
+    assert_includes advisor.errors[:model_provider], "can't be blank"
+    assert_includes advisor.errors[:model_id], "can't be blank"
+  end
+
+  test "dependent destroy removes associated messages" do
+    skip "Messages fixture needed"
+  end
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_18_101302) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_18_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -27,6 +27,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_101302) do
 
   create_table "advisors", force: :cascade do |t|
     t.bigint "account_id", null: false
+    t.bigint "council_id"
     t.datetime "created_at", null: false
     t.boolean "global", default: false
     t.jsonb "metadata", default: {}
@@ -37,6 +38,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_101302) do
     t.text "system_prompt", null: false
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_advisors_on_account_id"
+    t.index ["council_id"], name: "index_advisors_on_council_id"
     t.index ["metadata"], name: "index_advisors_on_metadata", using: :gin
     t.index ["model_config"], name: "index_advisors_on_model_config", using: :gin
   end
@@ -142,6 +144,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_101302) do
   end
 
   add_foreign_key "advisors", "accounts"
+  add_foreign_key "advisors", "councils"
   add_foreign_key "conversations", "accounts"
   add_foreign_key "conversations", "councils"
   add_foreign_key "conversations", "users"

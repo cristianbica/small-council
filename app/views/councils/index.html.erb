@@ -1,0 +1,43 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <h1 class="text-3xl font-bold">Councils</h1>
+    <%= link_to "New Council", new_council_path, class: "btn btn-primary" %>
+  </div>
+
+  <% if @councils.any? %>
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <% @councils.each do |council| %>
+        <div class="card bg-base-100 shadow hover:shadow-lg transition-shadow">
+          <div class="card-body">
+            <h2 class="card-title"><%= council.name %></h2>
+            <p class="text-sm text-base-content/70 line-clamp-2">
+              <%= council.description.presence || "No description" %>
+            </p>
+
+            <div class="flex items-center gap-2 mt-2">
+              <span class="text-xs text-base-content/50">
+                <%= pluralize(council.advisors.where.not(council_id: nil).count, "advisor") %>
+              </span>
+            </div>
+
+            <div class="card-actions justify-end mt-4">
+              <%= link_to "View", council, class: "btn btn-sm btn-ghost" %>
+              <% if council.user_id == Current.user.id %>
+                <%= link_to "Edit", edit_council_path(council), class: "btn btn-sm btn-ghost" %>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="text-center py-12">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+      <h3 class="text-xl font-semibold mb-2">No councils yet</h3>
+      <p class="text-base-content/60 mb-4">Create your first council to start collaborating with AI advisors.</p>
+      <%= link_to "Create Council", new_council_path, class: "btn btn-primary" %>
+    </div>
+  <% end %>
+</div>

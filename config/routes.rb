@@ -15,6 +15,10 @@ Rails.application.routes.draw do
   # Protected app routes
   get "dashboard", to: "dashboard#index"
 
+  resources :councils do
+    resources :advisors, only: [ :new, :create, :edit, :update, :destroy ]
+  end
+
   # Health check
   get "up" => "rails/health#show", as: :rails_health_check
 
