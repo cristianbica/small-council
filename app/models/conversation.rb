@@ -14,6 +14,7 @@ class Conversation < ApplicationRecord
   validates :account, presence: true
   validates :council, presence: true
   validates :user, presence: true
+  validates :title, presence: true
 
   scope :recent, -> { order(last_message_at: :desc) }
   scope :active, -> { where(status: "active") }

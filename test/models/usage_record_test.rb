@@ -6,7 +6,7 @@ class UsageRecordTest < ActiveSupport::TestCase
     set_tenant(@account)
     @user = @account.users.create!(email: "user@example.com", password: "password123")
     @council = @account.councils.create!(name: "Test Council", user: @user)
-    @conversation = @account.conversations.create!(council: @council, user: @user)
+    @conversation = @account.conversations.create!(council: @council, user: @user, title: "Test Conversation")
   end
 
   # Validation tests

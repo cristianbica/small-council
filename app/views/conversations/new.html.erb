@@ -1,0 +1,38 @@
+<div class="max-w-md mx-auto">
+  <h1 class="text-3xl font-bold mb-6">Start New Conversation</h1>
+
+  <section class="card bg-base-100 shadow">
+    <div class="card-body">
+      <%= form_with model: [@council, @conversation], class: "space-y-4" do |form| %>
+        <% if @conversation.errors.any? %>
+          <div class="alert alert-error">
+            <ul class="list-disc list-inside">
+              <% @conversation.errors.full_messages.each do |msg| %>
+                <li><%= msg %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <div class="form-control">
+          <%= form.label :title, class: "label" do %>
+            <span class="label-text">Topic</span>
+          <% end %>
+          <%= form.text_field :title,
+              class: "input input-bordered w-full",
+              placeholder: "What would you like to discuss?",
+              required: true,
+              autofocus: true %>
+          <label class="label">
+            <span class="label-text-alt">This will be your first message.</span>
+          </label>
+        </div>
+
+        <div class="card-actions justify-end mt-4">
+          <%= link_to "Cancel", council_conversations_path(@council), class: "btn btn-ghost" %>
+          <%= form.submit "Start Conversation", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </section>
+</div>

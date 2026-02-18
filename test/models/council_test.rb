@@ -75,7 +75,7 @@ class CouncilTest < ActiveSupport::TestCase
 
   test "dependent destroy removes associated conversations" do
     council = @account.councils.create!(name: "Test Council", user: @user)
-    council.conversations.create!(user: @user, account: @account)
+    council.conversations.create!(user: @user, account: @account, title: "Test Conversation")
     assert_difference("Conversation.count", -1) do
       council.destroy
     end

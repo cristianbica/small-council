@@ -1,0 +1,75 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <h1 class="text-3xl font-bold"><%= @conversation.title %></h1>
+        <span class="badge <%= @conversation.active? ? 'badge-success' : 'badge-ghost' %> badge-sm">
+          <%= @conversation.status %>
+        </span>
+      </div>
+      <p class="text-sm text-base-content/60">
+        in <%= @conversation.council.name %> ·
+        Started by <%= @conversation.user.email %> ·
+        <%= time_ago_in_words(@conversation.created_at) %> ago
+      </p>
+    </div>
+    <%= link_to "← Back to Conversations", council_conversations_path(@conversation.council), class: "btn btn-ghost btn-sm" %>
+  </div>
+
+  <!-- Messages Area -->
+  <section class="card bg-base-100 shadow">
+    <div class="card-body">
+      <% if @messages.any? %>
+        <div class="space-y-4 max-h-[60vh] overflow-y-auto p-2">
+          <% @messages.each do |message| %>
+            <% is_current_user = message.sender == Current.user %>
+            <div class="flex <%= is_current_user ? 'justify-end' : 'justify-start' %>">
+              <div class="max-w-[80%] <%= is_current_user ? 'bg-primary text-primary-content' : 'bg-base-300' %> rounded-lg p-3">
+                <div class="text-xs <%= is_current_user ? 'text-primary-content/70' : 'text-base-content/60' %> mb-1">
+                  <%= message.sender.email %>
+                  <span class="mx-1">·</span>
+                  <%= time_ago_in_words(message.created_at) %> ago
+                </div>
+                <div class="whitespace-pre-wrap"><%= message.content %></div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center py-8">
+          <p class="text-base-content/60">No messages yet. Start the conversation!</p>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <!-- Message Form -->
+  <section class="card bg-base-100 shadow">
+    <div class="card-body">
+      <%= form_with model: [@conversation, @new_message], class: "space-y-4" do |form| %>
+        <% if @new_message.errors.any? %>
+          <div class="alert alert-error">
+            <ul class="list-disc list-inside">
+              <% @new_message.errors.full_messages.each do |msg| %>
+                <li><%= msg %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <div class="form-control">
+          <%= form.text_area :content,
+              class: "textarea textarea-bordered w-full",
+              placeholder: "Type your message...",
+              rows: 3,
+              required: true %>
+        </div>
+
+        <div class="card-actions justify-end">
+          <%= form.submit "Post Message", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </section>
+</div>

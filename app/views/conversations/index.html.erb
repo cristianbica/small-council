@@ -1,0 +1,55 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold">Conversations</h1>
+      <p class="text-base-content/70">in <%= @council.name %></p>
+    </div>
+    <%= link_to "New Conversation", new_council_conversation_path(@council), class: "btn btn-primary" %>
+  </div>
+
+  <!-- Conversations List -->
+  <section class="card bg-base-100 shadow">
+    <div class="card-body">
+      <% if @conversations.any? %>
+        <div class="space-y-4">
+          <% @conversations.each do |conversation| %>
+            <div class="flex items-center justify-between p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors">
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <h3 class="font-semibold"><%= link_to conversation.title, conversation, class: "hover:underline" %></h3>
+                  <span class="badge <%= conversation.active? ? 'badge-success' : 'badge-ghost' %> badge-sm">
+                    <%= conversation.status %>
+                  </span>
+                </div>
+                <p class="text-sm text-base-content/60">
+                  <%= conversation.messages.count %> messages ·
+                  <%= conversation.user.email %> ·
+                  <% if conversation.last_message_at %>
+                    Last activity <%= time_ago_in_words(conversation.last_message_at) %> ago
+                  <% else %>
+                    Created <%= time_ago_in_words(conversation.created_at) %> ago
+                  <% end %>
+                </p>
+              </div>
+              <div>
+                <%= link_to "View →", conversation, class: "btn btn-ghost btn-sm" %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center py-12">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          <p class="text-base-content/60 mb-4">No conversations yet.</p>
+          <%= link_to "Start First Conversation", new_council_conversation_path(@council), class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <!-- Back link -->
+  <%= link_to "← Back to Council", @council, class: "btn btn-ghost" %>
+</div>

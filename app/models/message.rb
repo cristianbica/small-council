@@ -22,6 +22,7 @@ class Message < ApplicationRecord
   validates :conversation, presence: true
   validates :sender, presence: true
   validates :role, presence: true
+  validates :content, presence: true
 
   scope :by_role, ->(role) { where(role: role) }
   scope :chronological, -> { order(created_at: :asc) }

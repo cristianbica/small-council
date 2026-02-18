@@ -6,7 +6,7 @@ class MessageTest < ActiveSupport::TestCase
     set_tenant(@account)
     @user = @account.users.create!(email: "user@example.com", password: "password123")
     @council = @account.councils.create!(name: "Test Council", user: @user)
-    @conversation = @account.conversations.create!(council: @council, user: @user)
+    @conversation = @account.conversations.create!(council: @council, user: @user, title: "Test Conversation")
   end
 
   # Validation tests
@@ -61,6 +61,17 @@ class MessageTest < ActiveSupport::TestCase
     )
     assert_not message.valid?
     assert_includes message.errors[:role], "can't be blank"
+  end
+
+  test "invalid without content" do
+    message = @account.messages.new(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: ""
+    )
+    assert_not message.valid?
+    assert_includes message.errors[:content], "can't be blank"
   end
 
   # Association tests

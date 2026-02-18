@@ -72,6 +72,49 @@
     </div>
   </section>
 
+  <!-- Conversations Section -->
+  <section class="card bg-base-100 shadow">
+    <div class="card-body">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="card-title">Conversations</h2>
+        <%= link_to "New Conversation", new_council_conversation_path(@council), class: "btn btn-primary btn-sm" %>
+      </div>
+
+      <% if @council.conversations.any? %>
+        <div class="space-y-3">
+          <% @council.conversations.recent.limit(5).each do |conversation| %>
+            <div class="flex items-center justify-between p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors">
+              <div>
+                <h3 class="font-semibold"><%= link_to conversation.title, conversation, class: "hover:underline" %></h3>
+                <p class="text-sm text-base-content/60">
+                  <%= conversation.messages.count %> messages ·
+                  <% if conversation.last_message_at %>
+                    Last activity <%= time_ago_in_words(conversation.last_message_at) %> ago
+                  <% else %>
+                    Created <%= time_ago_in_words(conversation.created_at) %> ago
+                  <% end %>
+                </p>
+              </div>
+              <span class="badge <%= conversation.active? ? 'badge-success' : 'badge-ghost' %> badge-sm">
+                <%= conversation.status %>
+              </span>
+            </div>
+          <% end %>
+          <% if @council.conversations.count > 5 %>
+            <div class="text-center mt-4">
+              <%= link_to "View all #{@council.conversations.count} conversations →", council_conversations_path(@council), class: "link link-primary" %>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center py-6">
+          <p class="text-base-content/60 mb-4">No conversations yet.</p>
+          <%= link_to "Start First Conversation", new_council_conversation_path(@council), class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
   <!-- Back link -->
   <%= link_to "← Back to Councils", councils_path, class: "btn btn-ghost" %>
 </div>

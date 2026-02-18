@@ -17,6 +17,11 @@ Rails.application.routes.draw do
 
   resources :councils do
     resources :advisors, only: [ :new, :create, :edit, :update, :destroy ]
+    resources :conversations, only: [ :index, :show, :new, :create ]
+  end
+
+  resources :conversations do
+    resources :messages, only: [ :create ]
   end
 
   # Health check

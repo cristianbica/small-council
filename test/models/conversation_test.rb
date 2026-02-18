@@ -9,27 +9,33 @@ class ConversationTest < ActiveSupport::TestCase
   end
 
   # Validation tests
-  test "valid with account, council, and user" do
-    conversation = @account.conversations.new(council: @council, user: @user)
+  test "valid with account, council, user, and title" do
+    conversation = @account.conversations.new(council: @council, user: @user, title: "Test")
     assert conversation.valid?
+  end
+
+  test "invalid without title" do
+    conversation = @account.conversations.new(council: @council, user: @user)
+    assert_not conversation.valid?
+    assert_includes conversation.errors[:title], "can't be blank"
   end
 
   test "invalid without account" do
     ActsAsTenant.without_tenant do
-      conversation = Conversation.new(council: @council, user: @user)
+      conversation = Conversation.new(council: @council, user: @user, title: "Test")
       assert_not conversation.valid?
       assert_includes conversation.errors[:account], "can't be blank"
     end
   end
 
   test "invalid without council" do
-    conversation = @account.conversations.new(user: @user)
+    conversation = @account.conversations.new(user: @user, title: "Test")
     assert_not conversation.valid?
     assert_includes conversation.errors[:council], "can't be blank"
   end
 
   test "invalid without user" do
-    conversation = @account.conversations.new(council: @council)
+    conversation = @account.conversations.new(council: @council, title: "Test")
     assert_not conversation.valid?
     assert_includes conversation.errors[:user], "can't be blank"
   end
@@ -56,7 +62,7 @@ class ConversationTest < ActiveSupport::TestCase
   end
 
   test "dependent destroy removes associated messages" do
-    conversation = @account.conversations.create!(council: @council, user: @user)
+    conversation = @account.conversations.create!(council: @council, user: @user, title: "Test")
     conversation.messages.create!(
       sender: @user,
       role: "user",
@@ -70,19 +76,19 @@ class ConversationTest < ActiveSupport::TestCase
 
   # Enum tests
   test "defaults to active status" do
-    conversation = @account.conversations.create!(council: @council, user: @user)
+    conversation = @account.conversations.create!(council: @council, user: @user, title: "Test")
     assert_equal "active", conversation.status
     assert conversation.active?
   end
 
   test "can be set to archived status" do
-    conversation = @account.conversations.create!(council: @council, user: @user, status: "archived")
+    conversation = @account.conversations.create!(council: @council, user: @user, title: "Test", status: "archived")
     assert_equal "archived", conversation.status
     assert conversation.archived?
   end
 
   test "status enum methods work" do
-    conversation = @account.conversations.create!(council: @council, user: @user)
+    conversation = @account.conversations.create!(council: @council, user: @user, title: "Test")
     assert conversation.active?
     assert_not conversation.archived?
 
@@ -93,7 +99,7 @@ class ConversationTest < ActiveSupport::TestCase
 
   test "invalid status raises ArgumentError" do
     assert_raises(ArgumentError) do
-      @account.conversations.create!(council: @council, user: @user, status: "deleted")
+      @account.conversations.create!(council: @council, user: @user, title: "Test", status: "deleted")
     end
   end
 
@@ -103,17 +109,17 @@ class ConversationTest < ActiveSupport::TestCase
 
   # Scope tests
   test "recent scope orders by last_message_at descending" do
-    conv1 = @account.conversations.create!(council: @council, user: @user, last_message_at: 1.hour.ago)
-    conv2 = @account.conversations.create!(council: @council, user: @user, last_message_at: 1.minute.ago)
-    conv3 = @account.conversations.create!(council: @council, user: @user, last_message_at: 1.day.ago)
+    conv1 = @account.conversations.create!(council: @council, user: @user, title: "Conv 1", last_message_at: 1.hour.ago)
+    conv2 = @account.conversations.create!(council: @council, user: @user, title: "Conv 2", last_message_at: 1.minute.ago)
+    conv3 = @account.conversations.create!(council: @council, user: @user, title: "Conv 3", last_message_at: 1.day.ago)
 
     ordered = Conversation.recent.to_a
     assert_equal [ conv2, conv1, conv3 ], ordered
   end
 
   test "recent scope handles nil last_message_at" do
-    conv1 = @account.conversations.create!(council: @council, user: @user, last_message_at: 1.hour.ago)
-    conv2 = @account.conversations.create!(council: @council, user: @user, last_message_at: nil)
+    conv1 = @account.conversations.create!(council: @council, user: @user, title: "Conv 1", last_message_at: 1.hour.ago)
+    conv2 = @account.conversations.create!(council: @council, user: @user, title: "Conv 2", last_message_at: nil)
 
     ordered = Conversation.recent.to_a
     # nil values typically sort last in descending order in PostgreSQL
@@ -122,8 +128,8 @@ class ConversationTest < ActiveSupport::TestCase
   end
 
   test "active scope returns only active conversations" do
-    active_conv = @account.conversations.create!(council: @council, user: @user, status: "active")
-    archived_conv = @account.conversations.create!(council: @council, user: @user, status: "archived")
+    active_conv = @account.conversations.create!(council: @council, user: @user, title: "Active", status: "active")
+    archived_conv = @account.conversations.create!(council: @council, user: @user, title: "Archived", status: "archived")
 
     actives = Conversation.active.to_a
     assert_includes actives, active_conv
@@ -131,7 +137,7 @@ class ConversationTest < ActiveSupport::TestCase
   end
 
   test "active scope excludes archived conversations" do
-    @account.conversations.create!(council: @council, user: @user, status: "archived")
+    @account.conversations.create!(council: @council, user: @user, title: "Archived", status: "archived")
     assert_empty Conversation.active
   end
 end

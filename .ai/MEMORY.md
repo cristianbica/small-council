@@ -33,6 +33,7 @@ Max ~200 lines. Prune oldest/least-used when full. One agent updates per session
 - `sign_out` - destroy current session in tests
 - `host! ENV["APP_HOST"]` if present - set test request host to match APP_HOST config
 - Demo user fixtures: `users(:one)`, `users(:admin)`
+- `set_tenant(account)` - set ActsAsTenant current_tenant in model tests
 
 Note: Rails integration tests default to `www.example.com` which may not be in allowed hosts. Using `host!` ensures tests use a host that matches config (required with acts_as_tenant).
 
@@ -66,6 +67,7 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - 2026-02-10: Initialized `.ai/` template structure and core roles/workflows.
 - 2026-02-18: Data layer implemented with scoped multi-tenancy ready for acts_as_tenant gem.
 - 2026-02-18: Tenant setting uses `Current.user.account` pattern via `set_current_tenant` filter. Requires authenticated user.
+- 2026-02-18: Conversations Phase 1 - Basic chat UI with list, create, view, and post messages.
 
 ## UI Framework (2026-02-18)
 - Tailwind CSS v4.1.18 via `tailwindcss-rails` gem (no Node.js)
