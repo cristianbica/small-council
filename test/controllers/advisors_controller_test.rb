@@ -104,4 +104,33 @@ class AdvisorsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to council_url(council)
   end
+
+  test "create renders new on validation failure" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+
+    post council_advisors_url(council), params: {
+      advisor: { name: "", system_prompt: "" }
+    }
+    assert_response :unprocessable_entity
+  end
+
+  test "update renders edit on validation failure" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    advisor = council.advisors.create!(
+      name: "Test",
+      system_prompt: "Test prompt",
+      account: @account,
+      council: council,
+      llm_model: @llm_model
+    )
+
+    patch council_advisor_url(council, advisor), params: {
+      advisor: { name: "" }
+    }
+    assert_response :unprocessable_entity
+  end
 end

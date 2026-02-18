@@ -79,6 +79,7 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - `anthropic` (~> 0.3) - Anthropic API client
 - `mocha` - Test mocking (for service/job tests with any_instance/stubs)
 - `acts_as_tenant` - Multi-tenancy (automatic account scoping)
+- `simplecov` - Code coverage analysis (test group only, configured in test_helper.rb)
 
 ## UI Framework (2026-02-18)
 - Tailwind CSS v4.1.18 via `tailwindcss-rails` gem (no Node.js)
@@ -96,3 +97,5 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - `.example` files are tracked in git as templates
 - Load order: application.rb → application.custom.rb → environment.rb → environment.custom.rb
 - Test helpers should set `host!` to match APP_HOST pattern
+- dotenv-rails: dev/test only (production uses system ENV vars)
+- Required ENV vars for production: APP_HOST (optional), RAILS_LOG_LEVEL (optional, defaults to info)

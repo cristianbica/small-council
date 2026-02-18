@@ -50,4 +50,13 @@ class Identity::PasswordResetsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_identity_password_reset_url
     assert_equal "That password reset link is invalid", flash[:alert]
   end
+
+  test "should not update password with invalid password confirmation" do
+    sid = @user.generate_token_for(:password_reset)
+
+    patch identity_password_reset_url, params: { sid: sid, password: "newpassword123", password_confirmation: "differentpassword" }
+
+    # Controller renders edit on failure with unprocessable_entity
+    assert_response :unprocessable_entity
+  end
 end

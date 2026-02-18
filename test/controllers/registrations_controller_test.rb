@@ -24,4 +24,20 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     user = User.find_by(email: "test@example.com")
     assert user.admin?
   end
+
+  test "failed sign up renders new" do
+    assert_no_difference([ "Account.count", "User.count" ]) do
+      post sign_up_url, params: {
+        account: {
+          name: "",
+          slug: "",
+          users_attributes: [
+            { email: "", password: "", password_confirmation: "" }
+          ]
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+  end
 end

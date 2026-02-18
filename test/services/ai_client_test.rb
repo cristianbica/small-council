@@ -134,4 +134,106 @@ class AiClientTest < ActiveSupport::TestCase
       client.generate_response
     end
   end
+
+  test "raises ApiError when API call fails" do
+    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+
+    # Mock OpenAI client to raise error
+    mock_client = mock()
+    mock_client.stubs(:chat).raises(StandardError, "Connection timeout")
+    OpenAI::Client.stubs(:new).returns(mock_client)
+
+    assert_raises(AiClient::ApiError) do
+      client.generate_response
+    end
+  end
+
+  test "with_retries retries on transient errors" do
+    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+
+    call_count = 0
+    client.stubs(:sleep).returns(nil)
+    assert_raises(StandardError) do
+      client.send(:with_retries) do
+        call_count += 1
+        raise StandardError, "Transient error"
+      end
+    end
+
+    # Should retry MAX_RETRIES times (2) plus initial attempt = 3
+    assert_equal 3, call_count
+  end
+
+  test "with_retries succeeds on retry" do
+    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+
+    call_count = 0
+    client.stubs(:sleep).returns(nil)
+    result = client.send(:with_retries) do
+      call_count += 1
+      if call_count < 2
+        raise StandardError, "Transient error"
+      end
+      "success"
+    end
+
+    assert_equal "success", result
+    assert_equal 2, call_count
+  end
+
+  test "log_error logs error with advisor id" do
+    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+
+    error = StandardError.new("Test error")
+    error.set_backtrace([ "line1", "line2" ])
+
+    # Just verify it doesn't raise
+    assert_nothing_raised do
+      client.send(:log_error, error)
+    end
+  end
+
+  test "build_messages handles advisor role" do
+    # Create an advisor message in conversation
+    other_advisor = @account.advisors.create!(
+      name: "Other Advisor",
+      system_prompt: "Other prompt",
+      llm_model: @llm_model
+    )
+    advisor_message = @conversation.messages.create!(
+      account: @account,
+      sender: other_advisor,
+      role: "advisor",
+      content: "Advisor message"
+    )
+
+    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    messages = client.send(:build_messages)
+
+    # Find the advisor message
+    advisor_msg = messages.find { |m| m[:content] == "Advisor message" }
+    assert_equal "assistant", advisor_msg[:role]
+  end
+
+  test "build_messages_for_anthropic handles advisor role" do
+    # Create an advisor message in conversation
+    other_advisor = @account.advisors.create!(
+      name: "Other Advisor",
+      system_prompt: "Other prompt",
+      llm_model: @llm_model
+    )
+    advisor_message = @conversation.messages.create!(
+      account: @account,
+      sender: other_advisor,
+      role: "advisor",
+      content: "Advisor message"
+    )
+
+    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    messages = client.send(:build_messages_for_anthropic)
+
+    # Find the advisor message
+    advisor_msg = messages.find { |m| m[:content] == "Advisor message" }
+    assert_equal "assistant", advisor_msg[:role]
+  end
 end

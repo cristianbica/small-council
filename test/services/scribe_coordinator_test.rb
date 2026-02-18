@@ -183,4 +183,45 @@ class ScribeCoordinatorTest < ActiveSupport::TestCase
 
     assert_empty responders
   end
+
+  test "round_robin handles invalid last_advisor_id" do
+    # Set invalid last_advisor_id that doesn't match any advisor using mark_advisor_spoken
+    @conversation.mark_advisor_spoken(999999)
+
+    coordinator = ScribeCoordinator.new(@conversation)
+    responders = coordinator.determine_responders
+
+    # Should return first advisor when last_id is invalid
+    assert_equal [ @advisor1 ], responders
+  end
+
+  test "moderated returns empty when no advisors" do
+    @conversation.update!(rules_of_engagement: :moderated)
+
+    # Create new council without advisors
+    empty_council = @account.councils.create!(name: "Empty Council 2", user: @user, space: @space)
+    empty_conversation = @account.conversations.create!(
+      council: empty_council,
+      user: @user,
+      title: "Empty Moderated Conversation",
+      rules_of_engagement: :moderated
+    )
+
+    coordinator = ScribeCoordinator.new(empty_conversation)
+    responders = coordinator.determine_responders
+
+    assert_empty responders
+  end
+
+  test "handles empty message content in parse_mentions" do
+    coordinator = ScribeCoordinator.new(@conversation)
+
+    # Test with nil content
+    result = coordinator.send(:parse_mentions, nil)
+    assert_empty result
+
+    # Test with blank content
+    result = coordinator.send(:parse_mentions, "   ")
+    assert_empty result
+  end
 end

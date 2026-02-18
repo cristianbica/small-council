@@ -126,4 +126,46 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_select "h1", "Start New Conversation"
   end
+
+  test "update redirects on success" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Old Title")
+
+    patch conversation_url(conversation), params: {
+      conversation: { title: "Updated Title" }
+    }
+    assert_redirected_to conversation_url(conversation)
+    assert_equal "Updated Title", conversation.reload.title
+  end
+
+  test "update redirects on failure" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Old Title")
+
+    patch conversation_url(conversation), params: {
+      conversation: { title: "" }
+    }
+    # Controller redirects on failure with alert
+    assert_redirected_to conversation_url(conversation)
+    assert_equal "Old Title", conversation.reload.title
+  end
+
+  test "redirects when conversation belongs to different account" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    # Create another account and conversation
+    other_account = Account.create!(name: "Other Account", slug: "other-account")
+    other_user = other_account.users.create!(email: "other@example.com", password: "password123")
+    other_council = other_account.councils.create!(name: "Other Council", user: other_user, space: other_account.spaces.create!(name: "Other Space"))
+    other_conversation = other_account.conversations.create!(council: other_council, user: other_user, title: "Other Conversation")
+
+    get conversation_url(other_conversation)
+    # Controller redirects when RecordNotFound or wrong space
+    assert_redirected_to space_councils_path(@account.spaces.first)
+  end
 end

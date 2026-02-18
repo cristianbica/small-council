@@ -43,9 +43,6 @@ gem "image_processing", "~> 1.2"
 # Multi-tenancy support
 gem "acts_as_tenant", "~> 1.0"
 
-# Load environment variables from .env files
-gem "dotenv-rails"
-
 # AI/LLM API clients
 gem "ruby-openai", "~> 7.0"
 gem "anthropic", "~> 0.3"
@@ -62,6 +59,9 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  # Load environment variables from .env files (dev/test only)
+  gem "dotenv-rails"
 end
 
 group :development do
@@ -80,6 +80,9 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
   gem "mocha"
+
+  # Code coverage analysis
+  gem "simplecov", require: false
 end
 
 gem "tailwindcss-rails", "~> 4.4"
