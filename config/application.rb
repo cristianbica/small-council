@@ -25,3 +25,7 @@ module SmallCouncil
     # config.eager_load_paths << Rails.root.join("extras")
   end
 end
+
+# Load custom application configuration if it exists
+# This allows app-specific overrides without modifying Rails-generated files
+require_relative "application.custom" if File.exist?(Rails.root.join("config/application.custom.rb"))

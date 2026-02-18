@@ -69,3 +69,10 @@ Max ~200 lines. Prune oldest/least-used when full. One agent updates per session
 - Output: `app/assets/builds/tailwind.css`
 - Theme: `data-theme="light"` on html tag
 - Key DaisyUI classes: btn, card, navbar, alert, form-control, input, menu
+
+## Configuration Pattern (2026-02-18)
+- `.custom.rb` files for app-specific overrides that survive Rails upgrades
+- `config/application.custom.rb` - global hooks (gitignored, copy from .example)
+- `config/environments/*.custom.rb` - environment overrides (gitignored)
+- `.example` files are tracked in git as templates
+- Load order: application.rb → application.custom.rb → environment.rb → environment.custom.rb
