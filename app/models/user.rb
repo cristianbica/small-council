@@ -1,5 +1,5 @@
 class User < ApplicationRecord
-  # acts_as_tenant :account will be enabled when gem is installed
+  acts_as_tenant :account
   belongs_to :account
 
   has_many :councils, dependent: :destroy

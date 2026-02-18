@@ -3,6 +3,7 @@ require "test_helper"
 class UserTest < ActiveSupport::TestCase
   def setup
     @account = Account.create!(name: "Test Account", slug: "test-account-users")
+    set_tenant(@account)
   end
 
   test "valid with email, account, and password" do
@@ -17,9 +18,11 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "invalid without account" do
-    user = User.new(email: "orphan@example.com", password: "password123")
-    assert_not user.valid?
-    assert_includes user.errors[:account], "can't be blank"
+    ActsAsTenant.without_tenant do
+      user = User.new(email: "orphan@example.com", password: "password123")
+      assert_not user.valid?
+      assert_includes user.errors[:account], "can't be blank"
+    end
   end
 
   test "invalid without password" do
@@ -44,8 +47,10 @@ class UserTest < ActiveSupport::TestCase
   test "valid with same email in different accounts" do
     @account.users.create!(email: "shared@example.com", password: "password123")
     other_account = Account.create!(name: "Other", slug: "other-account")
-    user = other_account.users.new(email: "shared@example.com", password: "password123")
-    assert user.valid?
+    ActsAsTenant.without_tenant do
+      user = other_account.users.new(email: "shared@example.com", password: "password123")
+      assert user.valid?
+    end
   end
 
   # Association tests

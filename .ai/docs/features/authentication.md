@@ -31,7 +31,19 @@ Built with [authentication-zero](https://github.com/lazaronixon/authentication-z
 Access via `Current`:
 - `Current.session` - the active session record
 - `Current.user` - delegated from session (authenticated user)
+- `Current.account` - tenant account (set automatically after sign-in)
 - `Current.user_agent`, `Current.ip_address` - request metadata
+
+### Tenant Integration
+
+Authentication automatically sets the tenant for multi-tenancy:
+
+```ruby
+# After sign-in, the tenant is set via:
+set_current_tenant(Current.user.account)
+```
+
+All queries are automatically scoped to `Current.account`.
 
 ## Session Management
 

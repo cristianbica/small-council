@@ -3,7 +3,8 @@ require "test_helper"
 class UsageRecordTest < ActiveSupport::TestCase
   def setup
     @account = Account.create!(name: "Test Account", slug: "test-account-usage")
-    @user = @account.users.create!(email: "user@example.com")
+    set_tenant(@account)
+    @user = @account.users.create!(email: "user@example.com", password: "password123")
     @council = @account.councils.create!(name: "Test Council", user: @user)
     @conversation = @account.conversations.create!(council: @council, user: @user)
   end
@@ -21,15 +22,17 @@ class UsageRecordTest < ActiveSupport::TestCase
   end
 
   test "invalid without account" do
-    usage_record = UsageRecord.new(
-      provider: "openai",
-      model: "gpt-4",
-      input_tokens: 100,
-      output_tokens: 50,
-      cost_cents: 25
-    )
-    assert_not usage_record.valid?
-    assert_includes usage_record.errors[:account], "can't be blank"
+    ActsAsTenant.without_tenant do
+      usage_record = UsageRecord.new(
+        provider: "openai",
+        model: "gpt-4",
+        input_tokens: 100,
+        output_tokens: 50,
+        cost_cents: 25
+      )
+      assert_not usage_record.valid?
+      assert_includes usage_record.errors[:account], "can't be blank"
+    end
   end
 
   test "invalid without provider" do

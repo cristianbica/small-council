@@ -3,7 +3,8 @@ require "test_helper"
 class CouncilAdvisorTest < ActiveSupport::TestCase
   def setup
     @account = Account.create!(name: "Test Account", slug: "test-account-council-advisors")
-    @user = @account.users.create!(email: "user@example.com")
+    set_tenant(@account)
+    @user = @account.users.create!(email: "user@example.com", password: "password123")
     @council = @account.councils.create!(name: "Test Council", user: @user)
     @advisor = @account.advisors.create!(
       name: "Test Advisor",

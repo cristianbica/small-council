@@ -3,7 +3,8 @@ require "test_helper"
 class CouncilTest < ActiveSupport::TestCase
   def setup
     @account = Account.create!(name: "Test Account", slug: "test-account-councils")
-    @user = @account.users.create!(email: "user@example.com")
+    set_tenant(@account)
+    @user = @account.users.create!(email: "user@example.com", password: "password123")
   end
 
   # Validation tests
@@ -19,9 +20,11 @@ class CouncilTest < ActiveSupport::TestCase
   end
 
   test "invalid without account" do
-    council = Council.new(name: "Orphan Council", user: @user)
-    assert_not council.valid?
-    assert_includes council.errors[:account], "can't be blank"
+    ActsAsTenant.without_tenant do
+      council = Council.new(name: "Orphan Council", user: @user)
+      assert_not council.valid?
+      assert_includes council.errors[:account], "can't be blank"
+    end
   end
 
   test "invalid without user" do

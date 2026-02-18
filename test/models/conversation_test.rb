@@ -3,7 +3,8 @@ require "test_helper"
 class ConversationTest < ActiveSupport::TestCase
   def setup
     @account = Account.create!(name: "Test Account", slug: "test-account-conversations")
-    @user = @account.users.create!(email: "user@example.com")
+    set_tenant(@account)
+    @user = @account.users.create!(email: "user@example.com", password: "password123")
     @council = @account.councils.create!(name: "Test Council", user: @user)
   end
 
@@ -14,9 +15,11 @@ class ConversationTest < ActiveSupport::TestCase
   end
 
   test "invalid without account" do
-    conversation = Conversation.new(council: @council, user: @user)
-    assert_not conversation.valid?
-    assert_includes conversation.errors[:account], "can't be blank"
+    ActsAsTenant.without_tenant do
+      conversation = Conversation.new(council: @council, user: @user)
+      assert_not conversation.valid?
+      assert_includes conversation.errors[:account], "can't be blank"
+    end
   end
 
   test "invalid without council" do

@@ -10,9 +10,23 @@ class ActiveSupport::TestCase
   fixtures :all
 
   # Add more helper methods to be used by all tests here...
+
+  # Helper to set tenant in model tests
+  def set_tenant(account)
+    ActsAsTenant.current_tenant = account
+  end
+
+  # Reset tenant after each test
+  teardown do
+    ActsAsTenant.current_tenant = nil
+  end
 end
 
 class ActionDispatch::IntegrationTest
+  setup do
+    host! ENV["APP_HOST"] if ENV["APP_HOST"].present?
+  end
+
   def sign_in_as(user, password: "password123")
     post sign_in_url, params: { email: user.email, password: password }
     assert_response :redirect
@@ -21,5 +35,12 @@ class ActionDispatch::IntegrationTest
 
   def sign_out
     delete session_url(Current.session)
+  end
+end
+
+class ActionController::TestCase
+  # Ensure tenant is reset between controller tests
+  teardown do
+    ActsAsTenant.current_tenant = nil
   end
 end

@@ -1,13 +1,13 @@
 # Multi-Tenancy
 
-Multi-tenancy architecture with account scoping.
+Multi-tenancy architecture with account scoping. Enabled via `acts_as_tenant` gem.
 
 ## Architecture
 
 **Account** is the root tenant entity:
 - All data belongs to an account
 - Users are scoped to accounts (email uniqueness per account)
-- Future: `acts_as_tenant` gem will enforce scoping
+- `acts_as_tenant` gem enforces automatic query scoping
 
 ## Integration with Authentication
 
@@ -34,17 +34,46 @@ Sessions belong to users, so access to account data is through:
 Current.user.account
 ```
 
-## Future: acts_as_tenant
+## Active: acts_as_tenant
 
-Models have comments ready for activation:
+### Tenant Setting Pattern
+Tenant is set in `ApplicationController#set_current_tenant`:
+
 ```ruby
-# acts_as_tenant :account will be enabled when gem is installed
+class ApplicationController < ActionController::Base
+  set_current_tenant_through_filter
+  before_action :set_current_tenant
+
+  private
+
+  def set_current_tenant
+    if Current.user
+      Current.account = Current.user.account
+      set_current_tenant(Current.account)
+    end
+  end
+end
 ```
 
-When enabled:
-- Automatic scoping on all queries
-- Account ID required for all records
-- Set tenant via subdomain or session
+### Current.account Attribute
+After sign-in, `Current.account` is available:
+
+```ruby
+# In controllers/views
+Current.account  # => Account record for the signed-in user
+```
+
+### Automatic Query Scoping
+All queries are automatically scoped to the current account:
+
+```sql
+-- Queries include automatic WHERE clause
+SELECT * FROM users WHERE account_id = X
+SELECT * FROM conversations WHERE account_id = X
+```
+
+- Account ID required for all records (enforced by gem)
+- No manual scoping needed in application code
 
 ## Data Model
 

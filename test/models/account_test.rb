@@ -2,7 +2,7 @@ require "test_helper"
 
 class AccountTest < ActiveSupport::TestCase
   test "valid with name and slug" do
-    account = Account.new(name: "Test Account", slug: "test-account")
+    account = Account.new(name: "Test Account", slug: "new-test-account")
     assert account.valid?
   end
 
@@ -58,7 +58,7 @@ class AccountTest < ActiveSupport::TestCase
 
   test "dependent destroy removes associated users" do
     account = Account.create!(name: "Test", slug: "test-destroy-users")
-    account.users.create!(email: "test@example.com")
+    account.users.create!(email: "test@example.com", password: "password123")
     assert_difference("User.count", -1) do
       account.destroy
     end
@@ -79,7 +79,7 @@ class AccountTest < ActiveSupport::TestCase
 
   test "dependent destroy removes associated councils" do
     account = Account.create!(name: "Test", slug: "test-destroy-councils")
-    user = account.users.create!(email: "test@example.com")
+    user = account.users.create!(email: "test@example.com", password: "password123")
     account.councils.create!(name: "Test Council", user: user)
     assert_difference("Council.count", -1) do
       account.destroy

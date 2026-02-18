@@ -4,6 +4,7 @@ class ApplicationController < ActionController::Base
 
   before_action :set_current_request_details
   before_action :authenticate
+  before_action :set_current_tenant
 
   helper_method :authenticated?
 
@@ -24,5 +25,10 @@ class ApplicationController < ActionController::Base
   def set_current_request_details
     Current.user_agent = request.user_agent
     Current.ip_address = request.ip
+  end
+
+  def set_current_tenant
+    Current.account = Current.user&.account
+    ActsAsTenant.current_tenant = Current.account
   end
 end

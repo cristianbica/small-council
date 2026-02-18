@@ -1,5 +1,5 @@
 class CouncilAdvisor < ApplicationRecord
-  # acts_as_tenant :account will be enabled when gem is installed
+  # No acts_as_tenant needed - join table, scoped through council/advisor
   belongs_to :council
   belongs_to :advisor
 

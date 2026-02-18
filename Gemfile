@@ -40,6 +40,9 @@ gem "thruster", require: false
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 gem "image_processing", "~> 1.2"
 
+# Multi-tenancy support
+gem "acts_as_tenant", "~> 1.0"
+
 # Load environment variables from .env files
 gem "dotenv-rails"
 

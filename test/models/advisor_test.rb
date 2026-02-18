@@ -3,6 +3,7 @@ require "test_helper"
 class AdvisorTest < ActiveSupport::TestCase
   def setup
     @account = Account.create!(name: "Test Account", slug: "test-account-advisors")
+    set_tenant(@account)
   end
 
   # Validation tests
@@ -57,14 +58,16 @@ class AdvisorTest < ActiveSupport::TestCase
   end
 
   test "invalid without account" do
-    advisor = Advisor.new(
-      name: "Orphan Advisor",
-      system_prompt: "You are a test advisor",
-      model_provider: "openai",
-      model_id: "gpt-4"
-    )
-    assert_not advisor.valid?
-    assert_includes advisor.errors[:account], "can't be blank"
+    ActsAsTenant.without_tenant do
+      advisor = Advisor.new(
+        name: "Orphan Advisor",
+        system_prompt: "You are a test advisor",
+        model_provider: "openai",
+        model_id: "gpt-4"
+      )
+      assert_not advisor.valid?
+      assert_includes advisor.errors[:account], "can't be blank"
+    end
   end
 
   # Association tests
@@ -95,7 +98,7 @@ class AdvisorTest < ActiveSupport::TestCase
       model_provider: "openai",
       model_id: "gpt-4"
     )
-    user = @account.users.create!(email: "test@example.com")
+    user = @account.users.create!(email: "test@example.com", password: "password123")
     council = @account.councils.create!(name: "Test Council", user: user)
     advisor.council_advisors.create!(council: council, position: 0)
     assert_difference("CouncilAdvisor.count", -1) do

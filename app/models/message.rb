@@ -1,5 +1,5 @@
 class Message < ApplicationRecord
-  # acts_as_tenant :account will be enabled when gem is installed
+  acts_as_tenant :account
   belongs_to :account
   belongs_to :conversation
   belongs_to :sender, polymorphic: true
