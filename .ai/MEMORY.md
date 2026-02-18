@@ -54,20 +54,31 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - Councils: groups of AI advisors that collaborate
 - Conversations: chat sessions with advisor participation
 - Usage tracking: per-account billing and observability
+- AI Providers: OpenAI, Anthropic, GitHub Models with encrypted API credentials
+- LlmModels: Per-account model configuration (GPT-4, Claude, etc.)
 
 ## Data Layer (2026-02-18)
-- 8 migrations, 8 models
-- Key tables: accounts, users, advisors, councils, council_advisors, conversations, messages, usage_records
+- 11 migrations, 10 models
+- Key tables: accounts, users, advisors, councils, council_advisors, conversations, messages, usage_records, providers, llm_models
 - acts_as_tenant gem is enabled and active (automatic tenant scoping on all queries)
-- JSONB columns: settings, preferences, model_config, metadata, configuration, content_blocks, context, custom_prompt_override
+- JSONB columns: settings, preferences, model_config, metadata, configuration, content_blocks, context, custom_prompt_override, credentials
 - GIN indexes on all JSONB columns
 - Polymorphic sender on messages table (sender_type, sender_id)
+- Encrypted credentials: `Provider.credentials` uses Rails encrypted attributes for API keys
 
 ## Discovered quirks
 - 2026-02-10: Initialized `.ai/` template structure and core roles/workflows.
 - 2026-02-18: Data layer implemented with scoped multi-tenancy ready for acts_as_tenant gem.
 - 2026-02-18: Tenant setting uses `Current.user.account` pattern via `set_current_tenant` filter. Requires authenticated user.
 - 2026-02-18: Conversations Phase 1 - Basic chat UI with list, create, view, and post messages.
+- 2026-02-18: AI Integration - Multi-provider LLM support (OpenAI, Anthropic, GitHub Models) with encrypted credentials, async job processing, Turbo Streams real-time updates, and usage tracking.
+- 2026-02-18: Active Record encryption uses deterministic test keys in test environment (see `config/initializers/active_record_encryption.rb`)
+
+## Gems
+- `ruby-openai` (~> 7.0) - OpenAI API client
+- `anthropic` (~> 0.3) - Anthropic API client
+- `mocha` - Test mocking (for service/job tests with any_instance/stubs)
+- `acts_as_tenant` - Multi-tenancy (automatic account scoping)
 
 ## UI Framework (2026-02-18)
 - Tailwind CSS v4.1.18 via `tailwindcss-rails` gem (no Node.js)

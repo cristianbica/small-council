@@ -7,14 +7,25 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
     set_tenant(@account)
     sign_in_as(@user)
 
+    # Create provider and model for advisors
+    @provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "test-key"
+    )
+    @llm_model = @provider.llm_models.create!(
+      account: @account,
+      name: "GPT-4",
+      identifier: "gpt-4"
+    )
+
     # Create a space and council with an advisor
     @space = @account.spaces.first || @account.spaces.create!(name: "General")
     @council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     @advisor = @account.advisors.create!(
       name: "Helper Bot",
       system_prompt: "You are a helper bot",
-      model_provider: "openai",
-      model_id: "gpt-4"
+      llm_model: @llm_model
     )
     @council.advisors << @advisor
 
@@ -83,8 +94,7 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
     advisor2 = @account.advisors.create!(
       name: "Second Advisor",
       system_prompt: "You are advisor 2",
-      model_provider: "openai",
-      model_id: "gpt-4"
+      llm_model: @llm_model
     )
     @council.advisors << advisor2
     @conversation.update!(rules_of_engagement: :consensus)

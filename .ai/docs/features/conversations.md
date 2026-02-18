@@ -4,7 +4,7 @@ Users can start conversations with AI advisors in their councils.
 
 ## Overview
 
-Conversations are chat sessions tied to a specific council. Each conversation has a title and can have multiple messages. Users can post messages and advisors respond based on the Rules of Engagement (RoE) mode. When advisors are triggered, placeholder "thinking..." messages appear until AI responses are generated (Phase 3).
+Conversations are chat sessions tied to a specific council. Each conversation has a title and can have multiple messages. Users can post messages and advisors respond based on the Rules of Engagement (RoE) mode. When advisors are triggered, placeholder "thinking..." messages appear immediately, and AI responses are generated asynchronously via background jobs.
 
 ## Usage
 
@@ -19,6 +19,7 @@ Conversations are chat sessions tied to a specific council. Each conversation ha
 2. Type message in the text area at bottom
 3. Click "Post Message"
 4. Message appears in the chat area (user messages on right, others on left)
+5. AI advisors generate responses asynchronously; placeholders show "thinking..."
 
 ## Technical
 
@@ -32,22 +33,31 @@ Conversations are chat sessions tied to a specific council. Each conversation ha
 ### Models
 - `Conversation`: title, status (active/archived), rules_of_engagement, context (jsonb), council_id, user_id
 - `Message`: content, role (user/advisor/system), status (pending/complete/error), sender (polymorphic User/Advisor)
+- `Provider`: AI provider credentials (OpenAI, Anthropic, GitHub Models)
+- `LlmModel`: Available models per provider (GPT-4, Claude, etc.)
 
 ### Controllers
 - `ConversationsController`: index, show, new, create, update
-- `MessagesController`: create
+- `MessagesController`: create (enqueues AI response jobs)
+- `ProvidersController`: manage AI provider credentials
 
 ### Services
 - `ScribeCoordinator`: Determines which advisors should respond based on RoE mode and @mentions
+- `AiClient`: Calls LLM APIs (OpenAI, Anthropic, GitHub Models) with conversation context
+
+### Jobs
+- `GenerateAdvisorResponseJob`: Async AI response generation, usage tracking, Turbo Stream broadcasts
 
 ### Access Control
 - All authenticated account users can view all conversations in their councils
 - Any account user can post to any conversation in their councils
-- No creator-only restrictions (Phase 1)
+- Provider management available to all account users (Phase 1)
 
 ### Styling
 - DaisyUI card, btn, badge classes
 - Chat bubbles: user messages (primary color, right), others (neutral, left)
+- Pending messages show pulse animation and "thinking..." badge
+- Error messages show red background with error badge
 - Scrollable message area with max-height
 
 ## Rules of Engagement
@@ -75,13 +85,24 @@ Use `@Advisor_Name` in messages to trigger specific advisors:
 - Names are case-insensitive and use underscores for spaces
 - Example: `@Helper_Bot` mentions advisor named "Helper Bot"
 
-### Placeholder Messages
+### AI Response Flow
 
-When advisors are triggered to respond, a placeholder message appears:
-- Content: "[Advisor Name] is thinking..."
-- Status: `pending`
-- Role: `system`
-- Will be replaced with actual AI response in Phase 3
+1. User posts message
+2. `MessagesController` calls `ScribeCoordinator` to determine responders
+3. Placeholder messages created with `pending` status and "thinking..." content
+4. `GenerateAdvisorResponseJob` enqueued for each responder
+5. Background job:
+   - Calls LLM API via `AiClient`
+   - Updates placeholder with AI response and `complete` status
+   - Creates `UsageRecord` with token count and cost
+   - Broadcasts via Turbo Streams to update UI in real-time
+6. User sees live message replacement without page refresh
+
+### Error Handling
+
+- API errors: Message updated with error content and `error` status
+- Empty responses: Marked as error with appropriate message
+- All errors broadcast via Turbo Streams
 
 ### Implementation
 
@@ -89,8 +110,34 @@ When advisors are triggered to respond, a placeholder message appears:
 - Default: `round_robin`
 - State tracking (round robin position) in `conversations.context` jsonb
 - `ScribeCoordinator` service determines responders
+- `AiClient` handles OpenAI, Anthropic, and GitHub Models APIs
+- Credentials encrypted with Rails encrypted attributes
+- Turbo Streams provide real-time UI updates
 
-## Phase 3 (Deferred)
-- Turbo Streams for real-time updates
-- AI API integration for actual advisor responses
-- Conversation status changes (resolve/close)
+## AI Provider Setup
+
+### Adding a Provider
+1. Navigate to "AI Providers" in navigation
+2. Click "Add Provider"
+3. Enter provider name, type (OpenAI, Anthropic, GitHub Models), and API key
+4. Save (API key is encrypted at rest)
+
+### Adding Models
+Providers are created with models via console/seeds (UI coming in Phase 2):
+```ruby
+provider = account.providers.create!(name: "OpenAI", provider_type: "openai", api_key: "sk-...")
+provider.llm_models.create!(account: account, name: "GPT-4", identifier: "gpt-4")
+```
+
+### Cost Tracking
+Usage records capture:
+- Input/output token counts
+- Provider and model used
+- Calculated cost (placeholder rates; per-model pricing in Phase 2)
+- Associated message and conversation
+
+## Deferred to Future Phases
+- Streaming responses (currently full response only)
+- Rate limiting per account
+- Provider health checks and automatic failover
+- Message editing/regeneration

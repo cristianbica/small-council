@@ -7,6 +7,7 @@
         "docker", "run",
         "-i", "--rm", "--init",
         "--ipc=host",
+        "-v", "/root/p/small-council/tmp/playwright:/tmp",
         "mcr.microsoft.com/playwright/mcp"
       ],
       "enabled": true

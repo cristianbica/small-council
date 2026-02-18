@@ -1,0 +1,34 @@
+<%= turbo_frame_tag "message_#{message.id}" do %>
+  <% is_current_user = message.sender == current_user %>
+  <% is_pending = message.pending? %>
+  <% is_error = message.error? %>
+
+  <div class="flex <%= is_current_user ? 'justify-end' : 'justify-start' %>">
+    <div class="max-w-[80%] <%= 
+      if is_current_user 
+        'bg-primary text-primary-content' 
+      elsif is_error
+        'bg-error text-error-content'
+      elsif is_pending 
+        'bg-base-200 italic opacity-70' 
+      else 
+        'bg-base-300' 
+      end %> rounded-lg p-3">
+
+      <div class="text-xs <%= is_current_user ? 'text-primary-content/70' : 'text-base-content/60' %> mb-1">
+        <%= message.sender.is_a?(Advisor) ? "Advisor: #{message.sender.name}" : message.sender.email %>
+        <span class="mx-1">·</span>
+        <%= time_ago_in_words(message.created_at) %> ago
+        <% if is_pending %>
+          <span class="badge badge-xs badge-warning ml-2">thinking...</span>
+        <% elsif is_error %>
+          <span class="badge badge-xs badge-error ml-2">error</span>
+        <% end %>
+      </div>
+
+      <div class="whitespace-pre-wrap <%= is_pending ? 'animate-pulse' : '' %>">
+        <%= message.content %>
+      </div>
+    </div>
+  </div>
+<% end %>

@@ -1,0 +1,54 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <h1 class="text-3xl font-bold">AI Providers</h1>
+    <%= link_to "Add Provider", new_provider_path, class: "btn btn-primary" %>
+  </div>
+
+  <% if @providers.any? %>
+    <div class="grid gap-4">
+      <% @providers.each do |provider| %>
+        <div class="card bg-base-100 shadow">
+          <div class="card-body">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="card-title"><%= provider.name %></h2>
+                <p class="text-sm text-base-content/60">
+                  Type: <%= provider.provider_type.humanize %>
+                  <span class="mx-1">·</span>
+                  Status: <%= provider.enabled? ? "Enabled" : "Disabled" %>
+                  <span class="mx-1">·</span>
+                  <%= provider.llm_models.count %> models
+                </p>
+              </div>
+              <div class="card-actions">
+                <%= link_to "Edit", edit_provider_path(provider), class: "btn btn-sm btn-outline" %>
+                <%= button_to "Remove", provider_path(provider), method: :delete, 
+                    class: "btn btn-sm btn-error btn-outline",
+                    data: { turbo_confirm: "Are you sure? This will remove all associated models." } %>
+              </div>
+            </div>
+
+            <% if provider.llm_models.enabled.any? %>
+              <div class="divider"></div>
+              <div>
+                <h3 class="text-sm font-semibold mb-2">Active Models:</h3>
+                <div class="flex flex-wrap gap-2">
+                  <% provider.llm_models.enabled.each do |model| %>
+                    <span class="badge badge-outline"><%= model.name %></span>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="card bg-base-100 shadow">
+      <div class="card-body text-center">
+        <p class="text-base-content/60">No providers configured yet.</p>
+        <%= link_to "Add your first provider", new_provider_path, class: "btn btn-primary mt-4" %>
+      </div>
+    </div>
+  <% end %>
+</div>

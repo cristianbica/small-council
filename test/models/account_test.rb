@@ -1,6 +1,15 @@
 require "test_helper"
 
 class AccountTest < ActiveSupport::TestCase
+  def setup
+    # Create provider and model that can be reused in tests
+    @provider_attributes = {
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "test-key"
+    }
+  end
+
   test "valid with name and slug" do
     account = Account.new(name: "Test Account", slug: "new-test-account")
     assert account.valid?
@@ -56,6 +65,16 @@ class AccountTest < ActiveSupport::TestCase
     assert_respond_to account, :usage_records
   end
 
+  test "has many providers" do
+    account = Account.new
+    assert_respond_to account, :providers
+  end
+
+  test "has many llm_models" do
+    account = Account.new
+    assert_respond_to account, :llm_models
+  end
+
   test "dependent destroy removes associated users" do
     account = Account.create!(name: "Test", slug: "test-destroy-users")
     account.users.create!(email: "test@example.com", password: "password123")
@@ -66,11 +85,12 @@ class AccountTest < ActiveSupport::TestCase
 
   test "dependent destroy removes associated advisors" do
     account = Account.create!(name: "Test", slug: "test-destroy-advisors")
+    provider = account.providers.create!(@provider_attributes)
+    llm_model = provider.llm_models.create!(account: account, name: "GPT-4", identifier: "gpt-4")
     account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      model_provider: "openai",
-      model_id: "gpt-4"
+      llm_model: llm_model
     )
     assert_difference("Advisor.count", -1) do
       account.destroy
@@ -87,14 +107,32 @@ class AccountTest < ActiveSupport::TestCase
     end
   end
 
+  test "dependent destroy removes associated providers" do
+    account = Account.create!(name: "Test", slug: "test-destroy-providers")
+    account.providers.create!(@provider_attributes)
+    assert_difference("Provider.count", -1) do
+      account.destroy
+    end
+  end
+
+  test "dependent destroy removes associated llm_models" do
+    account = Account.create!(name: "Test", slug: "test-destroy-models")
+    provider = account.providers.create!(@provider_attributes)
+    provider.llm_models.create!(account: account, name: "GPT-4", identifier: "gpt-4")
+    assert_difference("LlmModel.count", -1) do
+      account.destroy
+    end
+  end
+
   # Scope tests
   test "with_global_advisors scope returns accounts with global advisors" do
     account = Account.create!(name: "Test", slug: "test-global-scope")
+    provider = account.providers.create!(@provider_attributes)
+    llm_model = provider.llm_models.create!(account: account, name: "GPT-4", identifier: "gpt-4")
     account.advisors.create!(
       name: "Global Advisor",
       system_prompt: "You are global",
-      model_provider: "openai",
-      model_id: "gpt-4",
+      llm_model: llm_model,
       global: true
     )
     assert_includes Account.with_global_advisors, account

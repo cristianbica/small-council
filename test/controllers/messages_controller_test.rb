@@ -5,6 +5,18 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     @account = accounts(:one)
     @user = users(:one)
     @space = @account.spaces.first || @account.spaces.create!(name: "General")
+
+    # Create provider and model for advisors
+    @provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "test-key"
+    )
+    @llm_model = @provider.llm_models.create!(
+      account: @account,
+      name: "GPT-4",
+      identifier: "gpt-4"
+    )
   end
 
   test "should redirect to sign in when not authenticated" do
@@ -60,5 +72,49 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :unprocessable_entity
+  end
+
+  test "create enqueues jobs for responding advisors" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    advisor = @account.advisors.create!(
+      name: "Test Advisor",
+      system_prompt: "You are a test advisor",
+      llm_model: @llm_model
+    )
+    council.advisors << advisor
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+
+    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
+      post conversation_messages_url(conversation), params: {
+        message: { content: "Hello advisor" }
+      }
+    end
+  end
+
+  test "create adds pending message for each responder" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    advisor = @account.advisors.create!(
+      name: "Test Advisor",
+      system_prompt: "You are a test advisor",
+      llm_model: @llm_model
+    )
+    council.advisors << advisor
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+
+    # 1 user message + 1 pending advisor message
+    assert_difference("Message.count", 2) do
+      post conversation_messages_url(conversation), params: {
+        message: { content: "Hello advisor" }
+      }
+    end
+
+    pending = conversation.messages.last
+    assert_equal "pending", pending.status
+    assert_equal advisor, pending.sender
+    assert_match(/thinking/, pending.content)
   end
 end

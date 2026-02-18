@@ -6,6 +6,18 @@ class CouncilTest < ActiveSupport::TestCase
     set_tenant(@account)
     @user = @account.users.create!(email: "user@example.com", password: "password123")
     @space = @account.spaces.create!(name: "Test Space")
+
+    # Create provider and model for advisors
+    @provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "test-key"
+    )
+    @llm_model = @provider.llm_models.create!(
+      account: @account,
+      name: "GPT-4",
+      identifier: "gpt-4"
+    )
   end
 
   # Validation tests
@@ -76,8 +88,7 @@ class CouncilTest < ActiveSupport::TestCase
     advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      model_provider: "openai",
-      model_id: "gpt-4"
+      llm_model: @llm_model
     )
     council.council_advisors.create!(advisor: advisor, position: 0)
     assert_difference("CouncilAdvisor.count", -1) do
@@ -98,8 +109,7 @@ class CouncilTest < ActiveSupport::TestCase
     advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      model_provider: "openai",
-      model_id: "gpt-4"
+      llm_model: @llm_model
     )
     council.council_advisors.create!(advisor: advisor, position: 0)
     assert_includes council.advisors, advisor

@@ -31,6 +31,21 @@
     </label>
   </div>
 
+  <div class="form-control">
+    <%= f.label :llm_model_id, "AI Model", class: "label" %>
+    <%= f.select :llm_model_id, 
+        Current.account.llm_models.enabled.map { |m| [m.display_name, m.id] },
+        { include_blank: "Select a model..." },
+        class: "select select-bordered",
+        required: true %>
+    <label class="label">
+      <span class="label-text-alt text-base-content/60">
+        Choose the AI model that will power this advisor. 
+        <%= link_to "Manage models", providers_path, class: "link" %>
+      </span>
+    </label>
+  </div>
+
   <div class="card-actions justify-end mt-6">
     <%= link_to "Cancel", @council, class: "btn btn-ghost" %>
     <%= f.submit class: "btn btn-primary" %>

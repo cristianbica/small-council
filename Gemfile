@@ -46,6 +46,10 @@ gem "acts_as_tenant", "~> 1.0"
 # Load environment variables from .env files
 gem "dotenv-rails"
 
+# AI/LLM API clients
+gem "ruby-openai", "~> 7.0"
+gem "anthropic", "~> 0.3"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
@@ -75,6 +79,7 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
+  gem "mocha"
 end
 
 gem "tailwindcss-rails", "~> 4.4"

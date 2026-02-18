@@ -13,15 +13,23 @@ class MessagesController < ApplicationController
       coordinator = ScribeCoordinator.new(@conversation)
       responders = coordinator.determine_responders(last_message: @message)
 
-      # Create placeholder messages for each responder
+      # Create pending messages and enqueue jobs for each responder
       responders.each do |advisor|
-        @conversation.messages.create!(
+        placeholder = @conversation.messages.create!(
           account: Current.account,
           sender: advisor,
           role: "system",
           content: "[#{advisor.name}] is thinking...",
           status: "pending"
         )
+
+        # Enqueue background job to generate actual response
+        GenerateAdvisorResponseJob.perform_later(
+          advisor_id: advisor.id,
+          conversation_id: @conversation.id,
+          message_id: placeholder.id
+        )
+
         # Track for round robin
         @conversation.mark_advisor_spoken(advisor.id)
       end

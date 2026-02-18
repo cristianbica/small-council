@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_18_163756) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_18_180002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -30,15 +30,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_163756) do
     t.bigint "council_id"
     t.datetime "created_at", null: false
     t.boolean "global", default: false
+    t.bigint "llm_model_id"
     t.jsonb "metadata", default: {}
     t.jsonb "model_config", default: {}
-    t.string "model_id", null: false
-    t.string "model_provider", null: false
     t.string "name", null: false
     t.text "system_prompt", null: false
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_advisors_on_account_id"
     t.index ["council_id"], name: "index_advisors_on_council_id"
+    t.index ["llm_model_id"], name: "index_advisors_on_llm_model_id"
     t.index ["metadata"], name: "index_advisors_on_metadata", using: :gin
     t.index ["model_config"], name: "index_advisors_on_model_config", using: :gin
   end
@@ -92,6 +92,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_163756) do
     t.index ["user_id"], name: "index_councils_on_user_id"
   end
 
+  create_table "llm_models", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "deleted_at"
+    t.boolean "deprecated", default: false
+    t.boolean "enabled", default: true
+    t.string "identifier", null: false
+    t.string "name", null: false
+    t.bigint "provider_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_llm_models_on_account_id"
+    t.index ["deleted_at"], name: "index_llm_models_on_deleted_at"
+    t.index ["provider_id", "identifier"], name: "index_llm_models_on_provider_id_and_identifier", unique: true
+    t.index ["provider_id"], name: "index_llm_models_on_provider_id"
+  end
+
   create_table "messages", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.text "content"
@@ -109,6 +125,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_163756) do
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
     t.index ["metadata"], name: "index_messages_on_metadata", using: :gin
     t.index ["sender_type", "sender_id"], name: "index_messages_on_sender"
+  end
+
+  create_table "providers", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.datetime "created_at", null: false
+    t.jsonb "credentials", default: {}
+    t.boolean "enabled", default: true
+    t.string "name", null: false
+    t.string "provider_type", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "name"], name: "index_providers_on_account_id_and_name", unique: true
+    t.index ["account_id"], name: "index_providers_on_account_id"
+    t.index ["credentials"], name: "index_providers_on_credentials", using: :gin
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -161,6 +190,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_163756) do
 
   add_foreign_key "advisors", "accounts"
   add_foreign_key "advisors", "councils"
+  add_foreign_key "advisors", "llm_models"
   add_foreign_key "conversations", "accounts"
   add_foreign_key "conversations", "councils"
   add_foreign_key "conversations", "users"
@@ -169,8 +199,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_163756) do
   add_foreign_key "councils", "accounts"
   add_foreign_key "councils", "spaces"
   add_foreign_key "councils", "users"
+  add_foreign_key "llm_models", "accounts"
+  add_foreign_key "llm_models", "providers"
   add_foreign_key "messages", "accounts"
   add_foreign_key "messages", "conversations"
+  add_foreign_key "providers", "accounts"
   add_foreign_key "sessions", "users"
   add_foreign_key "spaces", "accounts"
   add_foreign_key "usage_records", "accounts"

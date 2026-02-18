@@ -9,6 +9,8 @@ class Account < ApplicationRecord
   has_many :conversations, dependent: :destroy
   has_many :messages, dependent: :destroy
   has_many :usage_records, dependent: :destroy
+  has_many :providers, dependent: :destroy
+  has_many :llm_models, dependent: :destroy
 
   accepts_nested_attributes_for :users, limit: 1
 

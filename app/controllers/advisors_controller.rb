@@ -12,10 +12,6 @@ class AdvisorsController < ApplicationController
     @advisor.account = Current.account
     @advisor.council = @council
 
-    # Set default model values for simple advisors
-    @advisor.model_provider ||= "openai"
-    @advisor.model_id ||= "gpt-4"
-
     if @advisor.save
       redirect_to @council, notice: "Advisor added successfully."
     else
@@ -56,6 +52,6 @@ class AdvisorsController < ApplicationController
   end
 
   def advisor_params
-    params.require(:advisor).permit(:name, :system_prompt)
+    params.require(:advisor).permit(:name, :system_prompt, :llm_model_id)
   end
 end

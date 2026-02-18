@@ -8,6 +8,18 @@ class MessageTest < ActiveSupport::TestCase
     @space = @account.spaces.create!(name: "Test Space")
     @council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     @conversation = @account.conversations.create!(council: @council, user: @user, title: "Test Conversation")
+
+    # Create provider and model for advisors
+    @provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "test-key"
+    )
+    @llm_model = @provider.llm_models.create!(
+      account: @account,
+      name: "GPT-4",
+      identifier: "gpt-4"
+    )
   end
 
   # Validation tests
@@ -108,8 +120,7 @@ class MessageTest < ActiveSupport::TestCase
     advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      model_provider: "openai",
-      model_id: "gpt-4"
+      llm_model: @llm_model
     )
     message = @account.messages.create!(
       conversation: @conversation,
@@ -165,8 +176,7 @@ class MessageTest < ActiveSupport::TestCase
     advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      model_provider: "openai",
-      model_id: "gpt-4"
+      llm_model: @llm_model
     )
     message = @account.messages.create!(
       conversation: @conversation,

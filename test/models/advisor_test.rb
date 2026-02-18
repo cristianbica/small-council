@@ -4,6 +4,18 @@ class AdvisorTest < ActiveSupport::TestCase
   def setup
     @account = Account.create!(name: "Test Account", slug: "test-account-advisors")
     set_tenant(@account)
+
+    # Create a provider and model for testing
+    @provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "test-key"
+    )
+    @llm_model = @provider.llm_models.create!(
+      account: @account,
+      name: "GPT-4",
+      identifier: "gpt-4"
+    )
   end
 
   # Validation tests
@@ -11,8 +23,7 @@ class AdvisorTest < ActiveSupport::TestCase
     advisor = @account.advisors.new(
       name: "Test Advisor",
       system_prompt: "You are a helpful test advisor",
-      model_provider: "openai",
-      model_id: "gpt-4"
+      llm_model: @llm_model
     )
     assert advisor.valid?
   end
@@ -20,41 +31,28 @@ class AdvisorTest < ActiveSupport::TestCase
   test "invalid without name" do
     advisor = @account.advisors.new(
       system_prompt: "You are a test advisor",
-      model_provider: "openai",
-      model_id: "gpt-4"
+      llm_model: @llm_model
     )
     assert_not advisor.valid?
     assert_includes advisor.errors[:name], "can't be blank"
   end
 
-  test "invalid without system_prompt" do
+  test "invalid without system_prompt for non-simple advisor" do
     advisor = @account.advisors.new(
       name: "Test Advisor",
-      model_provider: "openai",
-      model_id: "gpt-4"
+      llm_model: @llm_model
     )
     assert_not advisor.valid?
     assert_includes advisor.errors[:system_prompt], "can't be blank"
   end
 
-  test "invalid without model_provider" do
+  test "invalid without llm_model for non-simple advisor" do
     advisor = @account.advisors.new(
       name: "Test Advisor",
-      system_prompt: "You are a test advisor",
-      model_id: "gpt-4"
+      system_prompt: "You are a test advisor"
     )
     assert_not advisor.valid?
-    assert_includes advisor.errors[:model_provider], "can't be blank"
-  end
-
-  test "invalid without model_id" do
-    advisor = @account.advisors.new(
-      name: "Test Advisor",
-      system_prompt: "You are a test advisor",
-      model_provider: "openai"
-    )
-    assert_not advisor.valid?
-    assert_includes advisor.errors[:model_id], "can't be blank"
+    assert_includes advisor.errors[:llm_model], "can't be blank"
   end
 
   test "invalid without account" do
@@ -62,8 +60,7 @@ class AdvisorTest < ActiveSupport::TestCase
       advisor = Advisor.new(
         name: "Orphan Advisor",
         system_prompt: "You are a test advisor",
-        model_provider: "openai",
-        model_id: "gpt-4"
+        llm_model: @llm_model
       )
       assert_not advisor.valid?
       assert_includes advisor.errors[:account], "can't be blank"
@@ -74,6 +71,11 @@ class AdvisorTest < ActiveSupport::TestCase
   test "belongs to account" do
     advisor = Advisor.new
     assert_respond_to advisor, :account
+  end
+
+  test "belongs to llm_model" do
+    advisor = Advisor.new
+    assert_respond_to advisor, :llm_model
   end
 
   test "has many council_advisors" do
@@ -95,8 +97,7 @@ class AdvisorTest < ActiveSupport::TestCase
     advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      model_provider: "openai",
-      model_id: "gpt-4"
+      llm_model: @llm_model
     )
     user = @account.users.create!(email: "test@example.com", password: "password123")
     space = @account.spaces.create!(name: "Test Space")
@@ -107,81 +108,18 @@ class AdvisorTest < ActiveSupport::TestCase
     end
   end
 
-  # Enum tests
-  test "model_provider enum values" do
-    assert_equal({ "openai" => "openai", "anthropic" => "anthropic", "gemini" => "gemini" }, Advisor.model_providers)
-  end
-
-  test "can set model_provider to openai" do
-    advisor = @account.advisors.create!(
-      name: "OpenAI Advisor",
-      system_prompt: "You are an OpenAI advisor",
-      model_provider: "openai",
-      model_id: "gpt-4"
-    )
-    assert advisor.openai?
-  end
-
-  test "can set model_provider to anthropic" do
-    advisor = @account.advisors.create!(
-      name: "Anthropic Advisor",
-      system_prompt: "You are an Anthropic advisor",
-      model_provider: "anthropic",
-      model_id: "claude-3"
-    )
-    assert advisor.anthropic?
-  end
-
-  test "can set model_provider to gemini" do
-    advisor = @account.advisors.create!(
-      name: "Gemini Advisor",
-      system_prompt: "You are a Gemini advisor",
-      model_provider: "gemini",
-      model_id: "gemini-pro"
-    )
-    assert advisor.gemini?
-  end
-
-  test "model_provider enum methods work" do
-    advisor = @account.advisors.create!(
-      name: "Test Advisor",
-      system_prompt: "You are a test advisor",
-      model_provider: "openai",
-      model_id: "gpt-4"
-    )
-    assert advisor.openai?
-    assert_not advisor.anthropic?
-
-    advisor.anthropic!
-    assert advisor.anthropic?
-    assert_not advisor.openai?
-  end
-
-  test "invalid model_provider raises ArgumentError" do
-    assert_raises(ArgumentError) do
-      @account.advisors.create!(
-        name: "Invalid Provider Advisor",
-        system_prompt: "You are a test advisor",
-        model_provider: "invalid_provider",
-        model_id: "gpt-4"
-      )
-    end
-  end
-
   # Scope tests
   test "global scope returns only global advisors" do
     @account.advisors.create!(
       name: "Global Advisor",
       system_prompt: "You are global",
-      model_provider: "openai",
-      model_id: "gpt-4",
+      llm_model: @llm_model,
       global: true
     )
     @account.advisors.create!(
       name: "Custom Advisor",
       system_prompt: "You are custom",
-      model_provider: "openai",
-      model_id: "gpt-4",
+      llm_model: @llm_model,
       global: false
     )
     assert_equal 1, Advisor.global.count
@@ -192,15 +130,13 @@ class AdvisorTest < ActiveSupport::TestCase
     @account.advisors.create!(
       name: "Global Advisor",
       system_prompt: "You are global",
-      model_provider: "openai",
-      model_id: "gpt-4",
+      llm_model: @llm_model,
       global: true
     )
     @account.advisors.create!(
       name: "Custom Advisor",
       system_prompt: "You are custom",
-      model_provider: "openai",
-      model_id: "gpt-4",
+      llm_model: @llm_model,
       global: false
     )
     assert_equal 1, Advisor.custom.count
@@ -212,7 +148,7 @@ class AdvisorTest < ActiveSupport::TestCase
     assert_respond_to advisor, :council
   end
 
-  test "valid as simple advisor with council_id, name, account, and model defaults" do
+  test "valid as simple advisor with council_id, name, account, and model" do
     user = @account.users.create!(email: "test@example.com", password: "password123")
     space = @account.spaces.create!(name: "Test Space")
     council = @account.councils.create!(name: "Test Council", user: user, space: space)
@@ -220,41 +156,37 @@ class AdvisorTest < ActiveSupport::TestCase
     advisor = @account.advisors.new(
       name: "Simple Advisor",
       council: council,
-      model_provider: "openai",
-      model_id: "gpt-4"
+      llm_model: @llm_model,
+      system_prompt: "You are a simple advisor"
     )
     assert advisor.valid?
     assert advisor.simple?
   end
 
-  test "simple advisor with council_id uses default model values" do
-    user = @account.users.create!(email: "test2@example.com", password: "password123")
-    space = @account.spaces.create!(name: "Test Space 2")
-    council = @account.councils.create!(name: "Test Council 2", user: user, space: space)
-
-    advisor = @account.advisors.new(
-      name: "Simple Advisor",
-      council: council,
-      model_provider: "openai",
-      model_id: "gpt-4"
-    )
-    assert advisor.valid?
-    assert advisor.simple?
-    assert_equal "openai", advisor.model_provider
-    assert_equal "gpt-4", advisor.model_id
-  end
-
-  test "non-simple advisor requires system_prompt, model_provider, and model_id" do
+  test "non-simple advisor requires system_prompt and llm_model" do
     advisor = @account.advisors.new(
       name: "Full Advisor"
     )
     assert_not advisor.valid?
     assert_includes advisor.errors[:system_prompt], "can't be blank"
-    assert_includes advisor.errors[:model_provider], "can't be blank"
-    assert_includes advisor.errors[:model_id], "can't be blank"
+    assert_includes advisor.errors[:llm_model], "can't be blank"
   end
 
-  test "dependent destroy removes associated messages" do
-    skip "Messages fixture needed"
+  test "delegates provider to llm_model" do
+    advisor = @account.advisors.create!(
+      name: "Test Advisor",
+      system_prompt: "You are a test advisor",
+      llm_model: @llm_model
+    )
+    assert_equal @provider, advisor.provider
+  end
+
+  test "delegates provider_type to llm_model" do
+    advisor = @account.advisors.create!(
+      name: "Test Advisor",
+      system_prompt: "You are a test advisor",
+      llm_model: @llm_model
+    )
+    assert_equal "openai", advisor.provider_type
   end
 end

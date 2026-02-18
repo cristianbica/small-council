@@ -7,11 +7,23 @@ class CouncilAdvisorTest < ActiveSupport::TestCase
     @user = @account.users.create!(email: "user@example.com", password: "password123")
     @space = @account.spaces.create!(name: "Test Space")
     @council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+
+    # Create provider and model for advisors
+    @provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "test-key"
+    )
+    @llm_model = @provider.llm_models.create!(
+      account: @account,
+      name: "GPT-4",
+      identifier: "gpt-4"
+    )
+
     @advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      model_provider: "openai",
-      model_id: "gpt-4"
+      llm_model: @llm_model
     )
   end
 
@@ -53,8 +65,7 @@ class CouncilAdvisorTest < ActiveSupport::TestCase
     other_advisor = @account.advisors.create!(
       name: "Other Advisor",
       system_prompt: "You are another advisor",
-      model_provider: "anthropic",
-      model_id: "claude-3"
+      llm_model: @llm_model
     )
     council_advisor = CouncilAdvisor.new(council: @council, advisor: other_advisor, position: 1)
     assert council_advisor.valid?

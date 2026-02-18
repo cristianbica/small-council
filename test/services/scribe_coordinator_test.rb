@@ -10,18 +10,28 @@ class ScribeCoordinatorTest < ActiveSupport::TestCase
     @space = @account.spaces.first || @account.spaces.create!(name: "General")
     @council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
 
+    # Create provider and model for advisors
+    @provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "test-key"
+    )
+    @llm_model = @provider.llm_models.create!(
+      account: @account,
+      name: "GPT-4",
+      identifier: "gpt-4"
+    )
+
     # Create advisors for the council (add through join table)
     @advisor1 = @account.advisors.create!(
       name: "Test Advisor One",
       system_prompt: "You are advisor one",
-      model_provider: "openai",
-      model_id: "gpt-4"
+      llm_model: @llm_model
     )
     @advisor2 = @account.advisors.create!(
       name: "Test Advisor Two",
       system_prompt: "You are advisor two",
-      model_provider: "openai",
-      model_id: "gpt-4"
+      llm_model: @llm_model
     )
     @council.advisors << [ @advisor1, @advisor2 ]
 
