@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_18_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_18_161040) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -49,6 +49,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_120000) do
     t.bigint "council_id", null: false
     t.datetime "created_at", null: false
     t.datetime "last_message_at"
+    t.string "rules_of_engagement", default: "round_robin"
     t.string "status", default: "active"
     t.string "title"
     t.datetime "updated_at", null: false
@@ -57,6 +58,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_120000) do
     t.index ["account_id"], name: "index_conversations_on_account_id"
     t.index ["context"], name: "index_conversations_on_context", using: :gin
     t.index ["council_id"], name: "index_conversations_on_council_id"
+    t.index ["rules_of_engagement"], name: "index_conversations_on_rules_of_engagement"
     t.index ["user_id"], name: "index_conversations_on_user_id"
   end
 

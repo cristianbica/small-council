@@ -7,6 +7,26 @@
         <span class="badge <%= @conversation.active? ? 'badge-success' : 'badge-ghost' %> badge-sm">
           <%= @conversation.status %>
         </span>
+
+        <!-- RoE Dropdown -->
+        <div class="dropdown dropdown-end">
+          <label tabindex="0" class="btn btn-sm btn-outline">
+            <%= @conversation.rules_of_engagement.humanize %>
+            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </label>
+          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+            <% Conversation.rules_of_engagements.keys.each do |mode| %>
+              <li>
+                <%= button_to mode.humanize,
+                    conversation_path(@conversation, conversation: { rules_of_engagement: mode }),
+                    method: :patch,
+                    class: "#{@conversation.rules_of_engagement == mode ? 'active' : ''}" %>
+              </li>
+            <% end %>
+          </ul>
+        </div>
       </div>
       <p class="text-sm text-base-content/60">
         in <%= @conversation.council.name %> ·
@@ -24,14 +44,22 @@
         <div class="space-y-4 max-h-[60vh] overflow-y-auto p-2">
           <% @messages.each do |message| %>
             <% is_current_user = message.sender == Current.user %>
+            <% is_pending = message.pending? %>
+            <% is_advisor = message.sender.is_a?(Advisor) %>
+
             <div class="flex <%= is_current_user ? 'justify-end' : 'justify-start' %>">
-              <div class="max-w-[80%] <%= is_current_user ? 'bg-primary text-primary-content' : 'bg-base-300' %> rounded-lg p-3">
+              <div class="max-w-[80%] <%= is_current_user ? 'bg-primary text-primary-content' : is_pending ? 'bg-base-200 italic opacity-70' : 'bg-base-300' %> rounded-lg p-3">
                 <div class="text-xs <%= is_current_user ? 'text-primary-content/70' : 'text-base-content/60' %> mb-1">
-                  <%= message.sender.email %>
+                  <%= is_advisor ? "Advisor: #{message.sender.name}" : message.sender.email %>
                   <span class="mx-1">·</span>
                   <%= time_ago_in_words(message.created_at) %> ago
+                  <% if is_pending %>
+                    <span class="badge badge-xs badge-warning ml-2">pending</span>
+                  <% end %>
                 </div>
-                <div class="whitespace-pre-wrap"><%= message.content %></div>
+                <div class="whitespace-pre-wrap <%= is_pending ? 'animate-pulse' : '' %>">
+                  <%= message.content %>
+                </div>
               </div>
             </div>
           <% end %>

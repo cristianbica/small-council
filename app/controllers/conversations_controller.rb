@@ -1,6 +1,6 @@
 class ConversationsController < ApplicationController
   before_action :set_council, only: [ :index, :new, :create ]
-  before_action :set_conversation, only: [ :show ]
+  before_action :set_conversation, only: [ :show, :update ]
 
   def index
     @conversations = @council.conversations.recent
@@ -35,6 +35,14 @@ class ConversationsController < ApplicationController
     end
   end
 
+  def update
+    if @conversation.update(conversation_params)
+      redirect_to @conversation, notice: "Rules of Engagement updated to #{@conversation.rules_of_engagement.humanize}."
+    else
+      redirect_to @conversation, alert: "Failed to update Rules of Engagement."
+    end
+  end
+
   private
 
   def set_council
@@ -46,6 +54,6 @@ class ConversationsController < ApplicationController
   end
 
   def conversation_params
-    params.require(:conversation).permit(:title)
+    params.require(:conversation).permit(:title, :rules_of_engagement)
   end
 end

@@ -140,4 +140,34 @@ class ConversationTest < ActiveSupport::TestCase
     @account.conversations.create!(council: @council, user: @user, title: "Archived", status: "archived")
     assert_empty Conversation.active
   end
+
+  # Rules of Engagement tests
+  test "has rules_of_engagement enum with default round_robin" do
+    conversation = @account.conversations.create!(council: @council, user: @user, title: "Test")
+    assert_equal "round_robin", conversation.rules_of_engagement
+    assert conversation.round_robin?
+  end
+
+  test "can change rules_of_engagement" do
+    conversation = @account.conversations.create!(council: @council, user: @user, title: "Test")
+    conversation.update!(rules_of_engagement: :silent)
+    assert conversation.silent?
+  end
+
+  test "rules_of_engagement includes all expected values" do
+    expected = %w[round_robin moderated on_demand silent consensus]
+    assert_equal expected.sort, Conversation.rules_of_engagements.keys.sort
+  end
+
+  test "last_advisor_id reads from context" do
+    conversation = @account.conversations.create!(council: @council, user: @user, title: "Test")
+    conversation.update!(context: { "last_advisor_id" => 42 })
+    assert_equal 42, conversation.last_advisor_id
+  end
+
+  test "mark_advisor_spoken updates context" do
+    conversation = @account.conversations.create!(council: @council, user: @user, title: "Test")
+    conversation.mark_advisor_spoken(99)
+    assert_equal 99, conversation.reload.context["last_advisor_id"]
+  end
 end

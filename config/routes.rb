@@ -17,7 +17,7 @@ Rails.application.routes.draw do
 
   resources :councils do
     resources :advisors, only: [ :new, :create, :edit, :update, :destroy ]
-    resources :conversations, only: [ :index, :show, :new, :create ]
+    resources :conversations, only: [ :index, :show, :new, :create, :update ]
   end
 
   resources :conversations do

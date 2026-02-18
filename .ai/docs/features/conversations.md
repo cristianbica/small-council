@@ -4,7 +4,7 @@ Users can start conversations with AI advisors in their councils.
 
 ## Overview
 
-Conversations are chat sessions tied to a specific council. Each conversation has a title and can have multiple messages. Currently, only users can post messages (advisor responses are Phase 2).
+Conversations are chat sessions tied to a specific council. Each conversation has a title and can have multiple messages. Users can post messages and advisors respond based on the Rules of Engagement (RoE) mode. When advisors are triggered, placeholder "thinking..." messages appear until AI responses are generated (Phase 3).
 
 ## Usage
 
@@ -25,17 +25,20 @@ Conversations are chat sessions tied to a specific council. Each conversation ha
 ### Routes
 ```
 /councils/:council_id/conversations     # index, new, create
-/conversations/:id                        # show
+/conversations/:id                        # show, update (PATCH for RoE)
 /conversations/:conversation_id/messages  # create
 ```
 
 ### Models
-- `Conversation`: title, status (active/archived), council_id, user_id
-- `Message`: content, role (user/advisor/system), sender (polymorphic User/Advisor)
+- `Conversation`: title, status (active/archived), rules_of_engagement, context (jsonb), council_id, user_id
+- `Message`: content, role (user/advisor/system), status (pending/complete/error), sender (polymorphic User/Advisor)
 
 ### Controllers
-- `ConversationsController`: index, show, new, create
+- `ConversationsController`: index, show, new, create, update
 - `MessagesController`: create
+
+### Services
+- `ScribeCoordinator`: Determines which advisors should respond based on RoE mode and @mentions
 
 ### Access Control
 - All authenticated account users can view all conversations in their councils
@@ -47,7 +50,47 @@ Conversations are chat sessions tied to a specific council. Each conversation ha
 - Chat bubbles: user messages (primary color, right), others (neutral, left)
 - Scrollable message area with max-height
 
-## Phase 2 (Deferred)
+## Rules of Engagement
+
+Rules of Engagement (RoE) control how advisors respond to user messages.
+
+### Modes
+
+| Mode | Behavior |
+|------|----------|
+| **Round Robin** | Advisors take turns responding in sequence |
+| **Moderated** | System selects advisor with fewest messages in conversation |
+| **On Demand** | Only @mentioned advisors respond |
+| **Silent** | No advisor responses (user-to-user mode) |
+| **Consensus** | All advisors respond (internal debate mode) |
+
+### Changing RoE
+
+Users can change RoE at any time during a conversation using the dropdown in the conversation header.
+
+### @Mentions
+
+Use `@Advisor_Name` in messages to trigger specific advisors:
+- Works in all modes (overrides normal RoE behavior)
+- Names are case-insensitive and use underscores for spaces
+- Example: `@Helper_Bot` mentions advisor named "Helper Bot"
+
+### Placeholder Messages
+
+When advisors are triggered to respond, a placeholder message appears:
+- Content: "[Advisor Name] is thinking..."
+- Status: `pending`
+- Role: `system`
+- Will be replaced with actual AI response in Phase 3
+
+### Implementation
+
+- Stored in `conversations.rules_of_engagement` (string enum)
+- Default: `round_robin`
+- State tracking (round robin position) in `conversations.context` jsonb
+- `ScribeCoordinator` service determines responders
+
+## Phase 3 (Deferred)
 - Turbo Streams for real-time updates
-- Advisor AI responses
+- AI API integration for actual advisor responses
 - Conversation status changes (resolve/close)
