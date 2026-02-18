@@ -6,8 +6,9 @@ class ScribeCoordinatorTest < ActiveSupport::TestCase
     @user = users(:one)
     set_tenant(@account)
 
-    # Create a council with advisors
-    @council = @account.councils.create!(name: "Test Council", user: @user)
+    # Ensure there's a space and create a council with advisors
+    @space = @account.spaces.first || @account.spaces.create!(name: "General")
+    @council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
 
     # Create advisors for the council (add through join table)
     @advisor1 = @account.advisors.create!(
@@ -160,7 +161,7 @@ class ScribeCoordinatorTest < ActiveSupport::TestCase
 
   test "returns empty when council has no advisors" do
     # Create new council without advisors
-    empty_council = @account.councils.create!(name: "Empty Council", user: @user)
+    empty_council = @account.councils.create!(name: "Empty Council", user: @user, space: @space)
     empty_conversation = @account.conversations.create!(
       council: empty_council,
       user: @user,

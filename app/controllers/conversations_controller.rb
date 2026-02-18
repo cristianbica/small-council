@@ -46,11 +46,18 @@ class ConversationsController < ApplicationController
   private
 
   def set_council
-    @council = Current.account.councils.find(params[:council_id])
+    # Ensure council belongs to current space
+    @council = Current.space.councils.find(params[:council_id])
+  rescue ActiveRecord::RecordNotFound
+    redirect_to space_councils_path(Current.space), alert: "Council not found."
   end
 
   def set_conversation
     @conversation = Current.account.conversations.find(params[:id])
+    # Verify conversation belongs to a council in current space
+    unless @conversation.council.space_id == Current.space.id
+      redirect_to space_councils_path(Current.space), alert: "Conversation not found."
+    end
   end
 
   def conversation_params

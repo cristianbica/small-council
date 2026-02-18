@@ -1,7 +1,13 @@
 <div class="space-y-6">
   <div class="flex items-center justify-between">
-    <h1 class="text-3xl font-bold">Councils</h1>
-    <%= link_to "New Council", new_council_path, class: "btn btn-primary" %>
+    <div>
+      <h1 class="text-3xl font-bold">Councils</h1>
+      <p class="text-base-content/60 text-sm mt-1">
+        in <%= Current.space.name %>
+        <%= link_to "(switch)", spaces_path, class: "link link-primary text-xs" %>
+      </p>
+    </div>
+    <%= link_to "New Council", new_space_council_path(Current.space), class: "btn btn-primary" %>
   </div>
 
   <% if @councils.any? %>

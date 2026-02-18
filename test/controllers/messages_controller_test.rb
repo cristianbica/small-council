@@ -4,11 +4,12 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
   def setup
     @account = accounts(:one)
     @user = users(:one)
+    @space = @account.spaces.first || @account.spaces.create!(name: "General")
   end
 
   test "should redirect to sign in when not authenticated" do
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
 
     post conversation_messages_url(conversation), params: { message: { content: "Test" } }
@@ -18,7 +19,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
   test "create adds message to conversation" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
 
     assert_difference("Message.count", 1) do
@@ -37,7 +38,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
   test "create redirects to conversation" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
 
     post conversation_messages_url(conversation), params: {
@@ -49,7 +50,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
   test "create fails with invalid content" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
 
     assert_no_difference("Message.count") do

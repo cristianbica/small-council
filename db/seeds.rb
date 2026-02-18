@@ -11,5 +11,10 @@ demo_user = demo_account.users.find_or_create_by!(email: "demo@example.com") do 
   user.role = :admin
 end
 
+# Ensure demo account has General space
+unless demo_account.spaces.exists?(name: "General")
+  Spaces::CreationService.create_default_for_account(demo_account)
+end
+
 puts "Created demo account: #{demo_account.name}"
 puts "Demo user: #{demo_user.email} / password: password123"

@@ -5,6 +5,7 @@ class ApplicationController < ActionController::Base
   before_action :set_current_request_details
   before_action :authenticate
   before_action :set_current_tenant
+  before_action :set_current_space
 
   helper_method :authenticated?
 
@@ -30,5 +31,15 @@ class ApplicationController < ActionController::Base
   def set_current_tenant
     Current.account = Current.user&.account
     ActsAsTenant.current_tenant = Current.account
+  end
+
+  def set_current_space
+    return unless Current.account
+
+    Current.space = if session[:space_id]
+      Current.account.spaces.find_by(id: session[:space_id])
+    else
+      Current.account.spaces.first
+    end
   end
 end

@@ -80,7 +80,8 @@ class AccountTest < ActiveSupport::TestCase
   test "dependent destroy removes associated councils" do
     account = Account.create!(name: "Test", slug: "test-destroy-councils")
     user = account.users.create!(email: "test@example.com", password: "password123")
-    account.councils.create!(name: "Test Council", user: user)
+    space = account.spaces.create!(name: "Test Space")
+    account.councils.create!(name: "Test Council", user: user, space: space)
     assert_difference("Council.count", -1) do
       account.destroy
     end

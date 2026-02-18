@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_18_161040) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_18_163756) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -80,12 +80,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_161040) do
     t.datetime "created_at", null: false
     t.text "description"
     t.string "name", null: false
+    t.bigint "space_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.string "visibility", default: "private"
     t.index ["account_id", "name"], name: "index_councils_on_account_id_and_name"
     t.index ["account_id"], name: "index_councils_on_account_id"
     t.index ["configuration"], name: "index_councils_on_configuration", using: :gin
+    t.index ["space_id", "created_at"], name: "index_councils_on_space_id_and_created_at"
+    t.index ["space_id"], name: "index_councils_on_space_id"
     t.index ["user_id"], name: "index_councils_on_user_id"
   end
 
@@ -115,6 +118,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_161040) do
     t.string "user_agent"
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
+  create_table "spaces", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.text "memory"
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "name"], name: "index_spaces_on_account_id_and_name", unique: true
+    t.index ["account_id"], name: "index_spaces_on_account_id"
   end
 
   create_table "usage_records", force: :cascade do |t|
@@ -153,10 +167,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_161040) do
   add_foreign_key "council_advisors", "advisors"
   add_foreign_key "council_advisors", "councils"
   add_foreign_key "councils", "accounts"
+  add_foreign_key "councils", "spaces"
   add_foreign_key "councils", "users"
   add_foreign_key "messages", "accounts"
   add_foreign_key "messages", "conversations"
   add_foreign_key "sessions", "users"
+  add_foreign_key "spaces", "accounts"
   add_foreign_key "usage_records", "accounts"
   add_foreign_key "usage_records", "messages"
   add_foreign_key "users", "accounts"

@@ -1,0 +1,27 @@
+<% if authenticated? && Current.space %>
+  <div class="dropdown dropdown-end">
+    <label tabindex="0" class="btn btn-ghost btn-sm normal-case gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      </svg>
+      <%= Current.space.name %>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+      </svg>
+    </label>
+    <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 mt-4">
+      <li class="menu-title">
+        <span>Switch Space</span>
+      </li>
+      <% Current.account.spaces.where.not(id: Current.space.id).each do |space| %>
+        <li>
+          <%= link_to space_path(space) do %>
+            <%= space.name %>
+          <% end %>
+        </li>
+      <% end %>
+      <li class="divider"></li>
+      <li><%= link_to "Manage Spaces", spaces_path %></li>
+    </ul>
+  </div>
+<% end %>

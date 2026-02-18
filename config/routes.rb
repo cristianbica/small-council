@@ -15,6 +15,12 @@ Rails.application.routes.draw do
   # Protected app routes
   get "dashboard", to: "dashboard#index"
 
+  # Spaces routes with nested councils
+  resources :spaces do
+    resources :councils, only: [ :index, :new, :create ]
+  end
+
+  # Councils can still be accessed directly (redirects to current space context)
   resources :councils do
     resources :advisors, only: [ :new, :create, :edit, :update, :destroy ]
     resources :conversations, only: [ :index, :show, :new, :create, :update ]

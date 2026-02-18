@@ -3,6 +3,7 @@ class Account < ApplicationRecord
   # This is the root tenant model
 
   has_many :users, dependent: :destroy
+  has_many :spaces, dependent: :destroy
   has_many :advisors, dependent: :destroy
   has_many :councils, dependent: :destroy
   has_many :conversations, dependent: :destroy

@@ -7,8 +7,9 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
     set_tenant(@account)
     sign_in_as(@user)
 
-    # Create a council with an advisor
-    @council = @account.councils.create!(name: "Test Council", user: @user)
+    # Create a space and council with an advisor
+    @space = @account.spaces.first || @account.spaces.create!(name: "General")
+    @council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     @advisor = @account.advisors.create!(
       name: "Helper Bot",
       system_prompt: "You are a helper bot",

@@ -5,7 +5,8 @@ class ConversationTest < ActiveSupport::TestCase
     @account = Account.create!(name: "Test Account", slug: "test-account-conversations")
     set_tenant(@account)
     @user = @account.users.create!(email: "user@example.com", password: "password123")
-    @council = @account.councils.create!(name: "Test Council", user: @user)
+    @space = @account.spaces.create!(name: "Test Space")
+    @council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
   end
 
   # Validation tests

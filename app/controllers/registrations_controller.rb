@@ -13,6 +13,9 @@ class RegistrationsController < ApplicationController
       user = @account.users.first
       user.update!(role: :admin)
 
+      # Create default space for new account
+      Spaces::CreationService.create_default_for_account(@account)
+
       session_record = user.sessions.create!
       cookies.signed.permanent[:session_token] = { value: session_record.id, httponly: true }
 

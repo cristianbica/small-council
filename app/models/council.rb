@@ -2,6 +2,7 @@ class Council < ApplicationRecord
   acts_as_tenant :account
   belongs_to :account
   belongs_to :user
+  belongs_to :space
 
   has_many :council_advisors, dependent: :destroy
   has_many :advisors, through: :council_advisors
@@ -15,4 +16,5 @@ class Council < ApplicationRecord
   validates :name, presence: true
   validates :account, presence: true
   validates :user, presence: true
+  validates :space, presence: true
 end

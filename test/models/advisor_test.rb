@@ -99,7 +99,8 @@ class AdvisorTest < ActiveSupport::TestCase
       model_id: "gpt-4"
     )
     user = @account.users.create!(email: "test@example.com", password: "password123")
-    council = @account.councils.create!(name: "Test Council", user: user)
+    space = @account.spaces.create!(name: "Test Space")
+    council = @account.councils.create!(name: "Test Council", user: user, space: space)
     advisor.council_advisors.create!(council: council, position: 0)
     assert_difference("CouncilAdvisor.count", -1) do
       advisor.destroy
@@ -213,7 +214,8 @@ class AdvisorTest < ActiveSupport::TestCase
 
   test "valid as simple advisor with council_id, name, account, and model defaults" do
     user = @account.users.create!(email: "test@example.com", password: "password123")
-    council = @account.councils.create!(name: "Test Council", user: user)
+    space = @account.spaces.create!(name: "Test Space")
+    council = @account.councils.create!(name: "Test Council", user: user, space: space)
 
     advisor = @account.advisors.new(
       name: "Simple Advisor",
@@ -227,7 +229,8 @@ class AdvisorTest < ActiveSupport::TestCase
 
   test "simple advisor with council_id uses default model values" do
     user = @account.users.create!(email: "test2@example.com", password: "password123")
-    council = @account.councils.create!(name: "Test Council 2", user: user)
+    space = @account.spaces.create!(name: "Test Space 2")
+    council = @account.councils.create!(name: "Test Council 2", user: user, space: space)
 
     advisor = @account.advisors.new(
       name: "Simple Advisor",

@@ -4,11 +4,12 @@ class AdvisorsControllerTest < ActionDispatch::IntegrationTest
   def setup
     @account = accounts(:one)
     @user = users(:one)
+    @space = @account.spaces.first || @account.spaces.create!(name: "General")
   end
 
   test "should redirect to sign in when not authenticated" do
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     get new_council_advisor_url(council)
     assert_redirected_to sign_in_url
   end
@@ -16,7 +17,7 @@ class AdvisorsControllerTest < ActionDispatch::IntegrationTest
   test "should get new when authenticated" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     get new_council_advisor_url(council)
     assert_response :success
   end
@@ -24,7 +25,7 @@ class AdvisorsControllerTest < ActionDispatch::IntegrationTest
   test "should create advisor when authenticated" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     assert_difference("Advisor.count") do
       post council_advisors_url(council), params: {
         advisor: { name: "Test Advisor", system_prompt: "You are helpful" }
@@ -36,7 +37,7 @@ class AdvisorsControllerTest < ActionDispatch::IntegrationTest
   test "should get edit for creator" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     advisor = council.advisors.create!(
       name: "Test",
       system_prompt: "Test prompt",
@@ -52,7 +53,7 @@ class AdvisorsControllerTest < ActionDispatch::IntegrationTest
   test "should update advisor for creator" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     advisor = council.advisors.create!(
       name: "Test",
       system_prompt: "Test prompt",
@@ -70,7 +71,7 @@ class AdvisorsControllerTest < ActionDispatch::IntegrationTest
   test "should destroy advisor for creator" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     advisor = council.advisors.create!(
       name: "Test",
       system_prompt: "Test prompt",

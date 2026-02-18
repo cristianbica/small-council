@@ -5,7 +5,8 @@ class CouncilAdvisorTest < ActiveSupport::TestCase
     @account = Account.create!(name: "Test Account", slug: "test-account-council-advisors")
     set_tenant(@account)
     @user = @account.users.create!(email: "user@example.com", password: "password123")
-    @council = @account.councils.create!(name: "Test Council", user: @user)
+    @space = @account.spaces.create!(name: "Test Space")
+    @council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     @advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
@@ -40,10 +41,11 @@ class CouncilAdvisorTest < ActiveSupport::TestCase
   end
 
   test "valid with same advisor in different councils" do
+    other_space = @account.spaces.create!(name: "Other Space")
+    other_council = @account.councils.create!(name: "Other Council", user: @user, space: other_space)
     CouncilAdvisor.create!(council: @council, advisor: @advisor, position: 0)
-    other_council = @account.councils.create!(name: "Other Council", user: @user)
-    council_advisor = CouncilAdvisor.new(council: other_council, advisor: @advisor, position: 0)
-    assert council_advisor.valid?
+    council_advisor2 = CouncilAdvisor.new(council: other_council, advisor: @advisor, position: 1)
+    assert council_advisor2.valid?
   end
 
   test "valid with different advisors in same council" do

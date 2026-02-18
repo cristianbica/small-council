@@ -4,18 +4,19 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
   def setup
     @account = accounts(:one)
     @user = users(:one)
+    @space = @account.spaces.first || @account.spaces.create!(name: "General")
   end
 
   test "should redirect to sign in when not authenticated for index" do
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     get council_conversations_url(council)
     assert_redirected_to sign_in_url
   end
 
   test "should redirect to sign in when not authenticated for show" do
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
     get conversation_url(conversation)
     assert_redirected_to sign_in_url
@@ -23,14 +24,14 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
 
   test "should redirect to sign in when not authenticated for new" do
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     get new_council_conversation_url(council)
     assert_redirected_to sign_in_url
   end
 
   test "should redirect to sign in when not authenticated for create" do
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     post council_conversations_url(council), params: { conversation: { title: "Test" } }
     assert_redirected_to sign_in_url
   end
@@ -38,7 +39,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
   test "index shows conversations for council" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     conversation = @account.conversations.create!(council: council, user: @user, title: "Test Conversation")
 
     get council_conversations_url(council)
@@ -50,7 +51,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
   test "show displays conversation with messages" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     conversation = @account.conversations.create!(council: council, user: @user, title: "Test Conversation")
     message = @account.messages.create!(
       conversation: conversation,
@@ -68,7 +69,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
   test "new renders form" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
 
     get new_council_conversation_url(council)
     assert_response :success
@@ -79,7 +80,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
   test "create makes conversation with first message" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
 
     assert_difference("Conversation.count", 1) do
       assert_difference("Message.count", 1) do
@@ -106,7 +107,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
   test "create redirects to conversation on success" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
 
     post council_conversations_url(council), params: {
       conversation: { title: "Test" }
@@ -117,7 +118,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
   test "create renders new on failure" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
 
     post council_conversations_url(council), params: {
       conversation: { title: "" }

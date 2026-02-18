@@ -76,7 +76,8 @@ class UserTest < ActiveSupport::TestCase
 
   test "dependent destroy removes associated councils" do
     user = @account.users.create!(email: "council-owner@example.com", password: "password123")
-    user.councils.create!(name: "User Council", account: @account)
+    space = @account.spaces.create!(name: "Test Space")
+    user.councils.create!(name: "User Council", account: @account, space: space)
     assert_difference("Council.count", -1) do
       user.destroy
     end
@@ -84,7 +85,8 @@ class UserTest < ActiveSupport::TestCase
 
   test "dependent destroy removes associated conversations" do
     user = @account.users.create!(email: "conv-owner@example.com", password: "password123")
-    council = @account.councils.create!(name: "Test Council", user: user)
+    space = @account.spaces.create!(name: "Test Space")
+    council = @account.councils.create!(name: "Test Council", user: user, space: space)
     user.conversations.create!(council: council, account: @account, title: "Test Conversation")
     assert_difference("Conversation.count", -1) do
       user.destroy

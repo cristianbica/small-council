@@ -5,30 +5,37 @@ class CouncilTest < ActiveSupport::TestCase
     @account = Account.create!(name: "Test Account", slug: "test-account-councils")
     set_tenant(@account)
     @user = @account.users.create!(email: "user@example.com", password: "password123")
+    @space = @account.spaces.create!(name: "Test Space")
   end
 
   # Validation tests
-  test "valid with name, account, and user" do
-    council = @account.councils.new(name: "Test Council", user: @user)
+  test "valid with name, account, user, and space" do
+    council = @account.councils.new(name: "Test Council", user: @user, space: @space)
     assert council.valid?
   end
 
+  test "invalid without space" do
+    council = @account.councils.new(name: "Test Council", user: @user)
+    assert_not council.valid?
+    assert_includes council.errors[:space], "must exist"
+  end
+
   test "invalid without name" do
-    council = @account.councils.new(user: @user)
+    council = @account.councils.new(user: @user, space: @space)
     assert_not council.valid?
     assert_includes council.errors[:name], "can't be blank"
   end
 
   test "invalid without account" do
     ActsAsTenant.without_tenant do
-      council = Council.new(name: "Orphan Council", user: @user)
+      council = Council.new(name: "Orphan Council", user: @user, space: @space)
       assert_not council.valid?
       assert_includes council.errors[:account], "can't be blank"
     end
   end
 
   test "invalid without user" do
-    council = @account.councils.new(name: "No User Council")
+    council = @account.councils.new(name: "No User Council", space: @space)
     assert_not council.valid?
     assert_includes council.errors[:user], "can't be blank"
   end
@@ -42,6 +49,11 @@ class CouncilTest < ActiveSupport::TestCase
   test "belongs to user" do
     council = Council.new
     assert_respond_to council, :user
+  end
+
+  test "belongs to space" do
+    council = Council.new
+    assert_respond_to council, :space
   end
 
   test "has many council_advisors" do
@@ -60,7 +72,7 @@ class CouncilTest < ActiveSupport::TestCase
   end
 
   test "dependent destroy removes associated council_advisors" do
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
@@ -74,7 +86,7 @@ class CouncilTest < ActiveSupport::TestCase
   end
 
   test "dependent destroy removes associated conversations" do
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     council.conversations.create!(user: @user, account: @account, title: "Test Conversation")
     assert_difference("Conversation.count", -1) do
       council.destroy
@@ -82,7 +94,7 @@ class CouncilTest < ActiveSupport::TestCase
   end
 
   test "advisors through association works" do
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
@@ -95,19 +107,19 @@ class CouncilTest < ActiveSupport::TestCase
 
   # Enum tests
   test "defaults to private visibility" do
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     assert_equal "private_visibility", council.visibility
     assert council.visibility_private_visibility?
   end
 
   test "can be set to shared visibility" do
-    council = @account.councils.create!(name: "Shared Council", user: @user, visibility: "shared")
+    council = @account.councils.create!(name: "Shared Council", user: @user, space: @space, visibility: "shared")
     assert_equal "shared", council.visibility
     assert council.visibility_shared?
   end
 
   test "visibility enum with prefix works correctly" do
-    council = @account.councils.create!(name: "Test Council", user: @user)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     assert council.visibility_private_visibility?
     assert_not council.visibility_shared?
 
@@ -118,7 +130,7 @@ class CouncilTest < ActiveSupport::TestCase
 
   test "invalid visibility raises ArgumentError" do
     assert_raises(ArgumentError) do
-      @account.councils.create!(name: "Invalid Council", user: @user, visibility: "public")
+      @account.councils.create!(name: "Invalid Council", user: @user, space: @space, visibility: "public")
     end
   end
 
