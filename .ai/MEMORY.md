@@ -43,6 +43,7 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - Tenant scoping is active via acts_as_tenant gem (all queries automatically scoped)
 - Messages use polymorphic sender (User or Advisor)
 - Usage tracking records all AI API calls with tokens and cost
+- User emails are globally unique (database unique index on users.email)
 
 ## Repo layout
 - Main code: `app/` (models, controllers, views, jobs)

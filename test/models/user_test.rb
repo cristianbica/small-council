@@ -44,12 +44,13 @@ class UserTest < ActiveSupport::TestCase
     assert_includes user.errors[:email], "has already been taken"
   end
 
-  test "valid with same email in different accounts" do
+  test "invalid with same email in different accounts (global uniqueness)" do
     @account.users.create!(email: "shared@example.com", password: "password123")
     other_account = Account.create!(name: "Other", slug: "other-account")
     ActsAsTenant.without_tenant do
       user = other_account.users.new(email: "shared@example.com", password: "password123")
-      assert user.valid?
+      assert_not user.valid?
+      assert_includes user.errors[:email], "has already been taken"
     end
   end
 

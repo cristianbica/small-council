@@ -4,7 +4,11 @@
 
 ### Critical
 
-- [ ] Fix tenant-unsafe login lookup in `app/controllers/sessions_controller.rb` (use tenant-aware sign-in flow; avoid global `User.find_by(email: ...)` ambiguity).
+- [x] Fix tenant-unsafe login lookup in `app/controllers/sessions_controller.rb` (use tenant-aware sign-in flow; avoid global `User.find_by(email: ...)` ambiguity). **FIXED**: 
+  - Enforced global email uniqueness in User model (`validates :email, uniqueness: true`)
+  - Added database unique index on `users.email` (migration: `ChangeUserEmailIndexToGlobal`)
+  - Removed scoped index on `[account_id, email]`
+  - SessionsController lookup now finds user globally; tenant established via `user.account`
 
 ### High
 
