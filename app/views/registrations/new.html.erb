@@ -1,0 +1,48 @@
+<h1>Create your account</h1>
+
+<%= form_with model: @account, url: sign_up_path do |f| %>
+  <% if @account.errors.any? %>
+    <div style="color: red">
+      <h2><%= pluralize(@account.errors.count, "error") %> prohibited this account from being saved:</h2>
+      <ul>
+        <% @account.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.label :name, "Company/Organization Name", style: "display: block" %>
+    <%= f.text_field :name, required: true, autofocus: true %>
+  </div>
+
+  <div>
+    <%= f.label :slug, "URL Slug", style: "display: block" %>
+    <%= f.text_field :slug, required: true %>
+    <small>Used for URLs: smallcouncil.app/<%= @account.slug || "your-slug" %></small>
+  </div>
+
+  <%= f.fields_for :users do |uf| %>
+    <div>
+      <%= uf.label :email, style: "display: block" %>
+      <%= uf.email_field :email, required: true, autocomplete: "email" %>
+    </div>
+
+    <div>
+      <%= uf.label :password, style: "display: block" %>
+      <%= uf.password_field :password, required: true, autocomplete: "new-password" %>
+    </div>
+
+    <div>
+      <%= uf.label :password_confirmation, style: "display: block" %>
+      <%= uf.password_field :password_confirmation, required: true, autocomplete: "new-password" %>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.submit "Create Account" %>
+  </div>
+<% end %>
+
+<p>Already have an account? <%= link_to "Sign in", sign_in_path %></p>

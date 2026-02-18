@@ -1,0 +1,11 @@
+<nav style="padding: 1rem; border-bottom: 1px solid #ccc; margin-bottom: 1rem;">
+  <% if authenticated? %>
+    <span>Signed in as <%= Current.user.email %></span>
+    <%= link_to "Dashboard", dashboard_path %>
+    <%= link_to "Sessions", sessions_path %>
+    <%= button_to "Sign out", session_path(id: Current.session.id), method: :delete %>
+  <% else %>
+    <%= link_to "Sign in", sign_in_path %>
+    <%= link_to "Create account", sign_up_path %>
+  <% end %>
+</nav>

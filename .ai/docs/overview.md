@@ -8,18 +8,19 @@ It is used by staff to run day-to-day operations, and by administrators to confi
 
 ## Tech stack
 
-- Backend: <fill in> (e.g. Rails 7.x, Django, Node)
-- Database: <fill in> (e.g. Postgres)
-- Frontend: <fill in> (e.g. server-rendered + Hotwire / React)
-- Background jobs: <fill in> (e.g. Sidekiq)
-- Tests: <fill in> (e.g. Minitest/RSpec)
-- Deployment/CI: <fill in>
+- Backend: Rails 8.1.2
+- Database: PostgreSQL
+- Frontend: Hotwire/Turbo (planned)
+- Background jobs: Solid Queue
+- Tests: Minitest
+- Authentication: authentication-zero (47 tests passing)
+- Multi-tenancy: acts_as_tenant (ready, not yet enabled)
 
 ## Repo landmarks
 
-- Primary app code: <fill in path>
-- Tests: <fill in path>
-- CI config: <fill in path>
+- Primary app code: `app/`
+- Tests: `test/`
+- CI config: `.github/workflows/`
 
 Rules:
 - Keep this file to a few paragraphs + bullet lists.

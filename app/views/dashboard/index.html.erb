@@ -1,0 +1,23 @@
+<h1>Dashboard</h1>
+
+<h2>Your Councils</h2>
+<% if @councils.any? %>
+  <ul>
+    <% @councils.each do |council| %>
+      <li><%= council.name %></li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>No councils yet. Create your first council!</p>
+<% end %>
+
+<h2>Recent Conversations</h2>
+<% if @conversations.any? %>
+  <ul>
+    <% @conversations.each do |conversation| %>
+      <li><%= conversation.title || "Untitled conversation" %></li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>No conversations yet.</p>
+<% end %>
