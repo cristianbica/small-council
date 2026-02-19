@@ -23,7 +23,7 @@
       </span>
     </label>
     <%= f.text_field :name,
-        class: "input input-bordered #{'input-error' if council.errors[:name].any?}",
+        class: "input input-bordered w-full #{'input-error' if council.errors[:name].any?}",
         placeholder: "e.g., Engineering Leadership Council",
         required: true %>
     <% if council.errors[:name].any? %>
@@ -41,10 +41,9 @@
   <div class="form-control">
     <label class="label">
       <span class="label-text">Description</span>
-      <span class="label-text-alt text-base-content/60">Optional</span>
     </label>
     <%= f.text_area :description,
-        class: "textarea textarea-bordered #{'textarea-error' if council.errors[:description].any?}",
+        class: "textarea textarea-bordered w-full #{'textarea-error' if council.errors[:description].any?}",
         rows: 3,
         placeholder: "What is this council for?" %>
     <% if council.errors[:description].any? %>

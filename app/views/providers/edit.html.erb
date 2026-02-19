@@ -27,7 +27,7 @@
           </span>
         </label>
         <%= form.text_field :name,
-            class: "input input-bordered #{'input-error' if form.object.errors[:name].any?}",
+            class: "input input-bordered w-full #{'input-error' if form.object.errors[:name].any?}",
             required: true %>
         <% if form.object.errors[:name].any? %>
           <label class="label">
@@ -48,7 +48,7 @@
         <%= form.select :provider_type,
             Provider.provider_types.keys.map { |t| [t.humanize, t] },
             {},
-            class: "select select-bordered",
+            class: "select select-bordered w-full",
             disabled: true %>
         <label class="label">
           <span class="label-text-alt text-base-content/60">Provider type cannot be changed</span>
@@ -61,7 +61,7 @@
           <span class="label-text-alt text-base-content/60">Leave blank to keep existing</span>
         </label>
         <%= form.password_field :api_key,
-            class: "input input-bordered #{'input-error' if form.object.errors[:api_key].any?}",
+            class: "input input-bordered w-full #{'input-error' if form.object.errors[:api_key].any?}",
             placeholder: "Leave blank to keep current" %>
         <label class="label">
           <span class="label-text-alt text-base-content/60">Your API key is encrypted at rest</span>
@@ -81,10 +81,9 @@
       <div class="form-control">
         <label class="label">
           <span class="label-text">Organization ID</span>
-          <span class="label-text-alt text-base-content/60">Optional</span>
         </label>
         <%= form.text_field :organization_id,
-            class: "input input-bordered #{'input-error' if form.object.errors[:organization_id].any?}" %>
+            class: "input input-bordered w-full #{'input-error' if form.object.errors[:organization_id].any?}" %>
         <% if form.object.errors[:organization_id].any? %>
           <label class="label">
             <span class="label-text-alt text-error flex items-center gap-1">

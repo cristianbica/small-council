@@ -11,6 +11,7 @@ Rules:
 - [Architecture](architecture.md) - App structure and responsibilities
 - [Testing](testing.md) - Test philosophy and approach
 - [i18n](i18n.md) - Internationalization patterns
+- [UI Components](ui-components.md) - Reusable UI patterns and form validation
 
 ## Infrastructure Patterns
 

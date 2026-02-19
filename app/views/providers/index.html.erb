@@ -16,13 +16,15 @@
             <div class="flex items-center justify-between">
               <div class="min-w-0 flex-1">
                 <h3 class="font-semibold truncate"><%= provider.name %></h3>
-                <p class="text-sm text-base-content/60">
-                  Type: <%= provider.provider_type.humanize %>
-                  <span class="mx-1">·</span>
-                  Status: <%= provider.enabled? ? "Enabled" : "Disabled" %>
-                  <span class="mx-1">·</span>
-                  <%= provider.llm_models.count %> models
-                </p>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-sm text-base-content/60">Type: <%= provider.provider_type.humanize %></span>
+                  <span class="text-base-content/30">·</span>
+                  <span class="badge <%= provider.enabled? ? 'badge-success' : 'badge-error' %> badge-sm">
+                    <%= provider.enabled? ? "Enabled" : "Disabled" %>
+                  </span>
+                  <span class="text-base-content/30">·</span>
+                  <span class="text-sm text-base-content/60"><%= provider.llm_models.count %> models</span>
+                </div>
               </div>
               <div class="flex items-center gap-2 ml-4">
                 <%= link_to "Edit", edit_provider_path(provider), class: "btn btn-sm btn-ghost" %>
@@ -48,12 +50,10 @@
       <% end %>
     </div>
   <% else %>
-    <div class="text-center py-12">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-      </svg>
-      <p class="text-base-content/60 mb-4">No providers configured yet.</p>
-      <%= link_to "Add your first provider", new_provider_path, class: "btn btn-primary" %>
-    </div>
+    <%= render "shared/empty_state",
+        title: "No providers configured",
+        description: "Add an AI provider to start using AI advisors in your councils.",
+        action_path: new_provider_path,
+        action_text: "Add your first provider" %>
   <% end %>
 </div>

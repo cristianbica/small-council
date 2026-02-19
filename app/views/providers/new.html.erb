@@ -27,7 +27,7 @@
           </span>
         </label>
         <%= form.text_field :name,
-            class: "input input-bordered #{'input-error' if form.object.errors[:name].any?}",
+            class: "input input-bordered w-full #{'input-error' if form.object.errors[:name].any?}",
             placeholder: "e.g., OpenAI Production",
             required: true %>
         <% if form.object.errors[:name].any? %>
@@ -52,7 +52,7 @@
         <%= form.select :provider_type,
             Provider.provider_types.keys.map { |t| [t.humanize, t] },
             {},
-            class: "select select-bordered #{'select-error' if form.object.errors[:provider_type].any?}",
+            class: "select select-bordered w-full #{'select-error' if form.object.errors[:provider_type].any?}",
             required: true %>
         <% if form.object.errors[:provider_type].any? %>
           <label class="label">
@@ -72,12 +72,14 @@
             API Key
             <span class="text-error" aria-label="required">*</span>
           </span>
-          <span class="label-text-alt text-base-content/60">Encrypted at rest</span>
         </label>
         <%= form.password_field :api_key,
-            class: "input input-bordered #{'input-error' if form.object.errors[:api_key].any?}",
+            class: "input input-bordered w-full #{'input-error' if form.object.errors[:api_key].any?}",
             placeholder: "sk-...",
             required: true %>
+        <label class="label">
+          <span class="label-text-alt text-base-content/60">Your API key is encrypted at rest</span>
+        </label>
         <% if form.object.errors[:api_key].any? %>
           <label class="label">
             <span class="label-text-alt text-error flex items-center gap-1">
@@ -93,10 +95,9 @@
       <div class="form-control">
         <label class="label">
           <span class="label-text">Organization ID</span>
-          <span class="label-text-alt text-base-content/60">Optional</span>
         </label>
         <%= form.text_field :organization_id,
-            class: "input input-bordered #{'input-error' if form.object.errors[:organization_id].any?}",
+            class: "input input-bordered w-full #{'input-error' if form.object.errors[:organization_id].any?}",
             placeholder: "org-..." %>
         <label class="label">
           <span class="label-text-alt text-base-content/60">Only required for OpenAI enterprise accounts</span>

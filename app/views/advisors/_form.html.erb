@@ -23,7 +23,7 @@
       </span>
     </label>
     <%= f.text_field :name,
-        class: "input input-bordered #{'input-error' if advisor.errors[:name].any?}",
+        class: "input input-bordered w-full #{'input-error' if advisor.errors[:name].any?}",
         placeholder: "e.g., Strategic Advisor",
         required: true %>
     <% if advisor.errors[:name].any? %>
@@ -41,10 +41,9 @@
   <div class="form-control">
     <label class="label">
       <span class="label-text">Prompt / Instructions</span>
-      <span class="label-text-alt text-base-content/60">Guides the AI's behavior</span>
     </label>
     <%= f.text_area :system_prompt,
-        class: "textarea textarea-bordered #{'textarea-error' if advisor.errors[:system_prompt].any?}",
+        class: "textarea textarea-bordered w-full #{'textarea-error' if advisor.errors[:system_prompt].any?}",
         rows: 6,
         placeholder: "Describe this advisor's role, expertise, and how they should respond..." %>
     <label class="label">
@@ -74,7 +73,7 @@
     <%= f.select :llm_model_id,
         Current.account.llm_models.enabled.map { |m| [m.display_name, m.id] },
         { include_blank: "Select a model..." },
-        class: "select select-bordered #{'select-error' if advisor.errors[:llm_model_id].any?}",
+        class: "select select-bordered w-full #{'select-error' if advisor.errors[:llm_model_id].any?}",
         required: true %>
     <label class="label">
       <span class="label-text-alt text-base-content/60">

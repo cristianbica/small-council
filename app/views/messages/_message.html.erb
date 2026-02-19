@@ -2,32 +2,37 @@
   <% is_current_user = message.sender == current_user %>
   <% is_pending = message.pending? %>
   <% is_error = message.error? %>
+  <% sender_name = message.sender.respond_to?(:name) ? message.sender.name : message.sender.email %>
 
-  <div class="flex <%= is_current_user ? 'justify-end' : 'justify-start' %>">
-    <div class="max-w-[80%] <%= 
-      if is_current_user 
-        'bg-primary text-primary-content' 
-      elsif is_error
-        'bg-error text-error-content'
-      elsif is_pending 
-        'bg-base-200 italic opacity-70' 
-      else 
-        'bg-base-300' 
-      end %> rounded-lg p-3">
+  <div class="flex <%= is_current_user ? 'justify-end' : 'justify-start' %> gap-3">
+    <% unless is_current_user %>
+      <div class="avatar placeholder">
+        <div class="bg-neutral text-neutral-content rounded-full w-8 h-8">
+          <span class="text-xs"><%= sender_name.first.upcase %></span>
+        </div>
+      </div>
+    <% end %>
 
-      <div class="text-xs <%= is_current_user ? 'text-primary-content/70' : 'text-base-content/60' %> mb-1">
-        <%= message.sender.is_a?(Advisor) ? "Advisor: #{message.sender.name}" : message.sender.email %>
-        <span class="mx-1">·</span>
-        <%= time_ago_in_words(message.created_at) %> ago
+    <div class="max-w-[75%]">
+      <div class="flex items-baseline gap-2 mb-1 <%= is_current_user ? 'justify-end' : '' %>">
+        <span class="text-sm font-medium"><%= sender_name %></span>
+        <span class="text-xs text-base-content/50"><%= time_ago_in_words(message.created_at) %> ago</span>
         <% if is_pending %>
-          <span class="badge badge-xs badge-warning ml-2">thinking...</span>
-        <% elsif is_error %>
-          <span class="badge badge-xs badge-error ml-2">error</span>
+          <span class="loading loading-spinner loading-xs"></span>
         <% end %>
       </div>
 
-      <div class="whitespace-pre-wrap <%= is_pending ? 'animate-pulse' : '' %>">
-        <%= message.content %>
+      <div class="<%=
+        if is_current_user
+          'bg-primary text-primary-content'
+        elsif is_error
+          'bg-error text-error-content'
+        elsif is_pending
+          'bg-base-200 italic opacity-70'
+        else
+          'bg-base-300'
+        end %> rounded-2xl px-4 py-2 shadow-sm">
+        <div class="whitespace-pre-wrap <%= is_pending ? 'animate-pulse' : '' %>"><%= message.content %></div>
       </div>
     </div>
   </div>

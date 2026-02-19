@@ -26,13 +26,15 @@
               Topic
               <span class="text-error" aria-label="required">*</span>
             </span>
-            <span class="label-text-alt text-base-content/60">This will be your first message</span>
           </label>
           <%= form.text_field :title,
               class: "input input-bordered w-full #{'input-error' if form.object.errors[:title].any?}",
               placeholder: "What would you like to discuss?",
               required: true,
               autofocus: true %>
+          <label class="label">
+            <span class="label-text-alt text-base-content/60">This will be your first message</span>
+          </label>
           <% if form.object.errors[:title].any? %>
             <label class="label">
               <span class="label-text-alt text-error flex items-center gap-1">

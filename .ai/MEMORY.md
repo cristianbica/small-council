@@ -100,6 +100,16 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - Theme: `data-theme="light"` on html tag
 - Key DaisyUI classes: btn, card, navbar, alert, form-control, input, menu
 
+## UI/UX Standards (2026-02-19)
+- Forms use consistent DaisyUI patterns with field-level validation
+- Required fields marked with red asterisk (*)
+- Error states use `input-error` class + inline error messages
+- Empty states use shared `shared/empty_state` partial
+- Navigation has active state indicators
+- All cards use `bg-base-100 shadow` for consistency
+- Primary actions use `btn btn-primary`
+- Secondary actions use `btn btn-ghost`
+
 ## Ruby Version (2026-02-19)
 - **Ruby 4.0.1** (upgraded from 3.4.8) - Uses mise for version management
 - Bundler 4.0.3 with RubyGems 4.0.3
