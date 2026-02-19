@@ -10,7 +10,7 @@ The platform tracks AI usage per account with encrypted provider credentials, su
 
 | Layer | Technology |
 |-------|------------|
-| Backend | Rails 8.1.2 |
+| Backend | Rails 8.1.2, Ruby 4.0.1 |
 | Database | PostgreSQL |
 | Frontend | Hotwire/Turbo + Stimulus |
 | Styling | Tailwind CSS v4 + DaisyUI v5 |
@@ -42,7 +42,7 @@ app/
 ├── jobs/           # GenerateAdvisorResponseJob (Solid Queue)
 └── assets/         # Tailwind CSS v4 + DaisyUI
 
-test/               # 417 tests: models, controllers, integration, security
+test/               # 455 tests: models, controllers, integration, security
 config/
 ├── routes.rb       # All app routes
 └── initializers/   # App configuration
@@ -57,7 +57,7 @@ bin/dev                    # Start web + CSS watch
 bin/rails server          # Rails only
 
 # Testing
-bin/rails test            # Full suite (417 tests)
+bin/rails test            # Full suite (455 tests)
 
 # Build
 bin/rails assets:precompile # CSS compilation

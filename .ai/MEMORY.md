@@ -100,6 +100,11 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - Theme: `data-theme="light"` on html tag
 - Key DaisyUI classes: btn, card, navbar, alert, form-control, input, menu
 
+## Ruby Version (2026-02-19)
+- **Ruby 4.0.1** (upgraded from 3.4.8) - Uses mise for version management
+- Bundler 4.0.3 with RubyGems 4.0.3
+- Note: Minor Bundler/RubyGems platform warnings are expected and harmless
+
 ## Configuration Pattern (2026-02-18)
 - NEVER edit Rails-owned files directly (`config/application.rb`, `config/environments/*.rb`)
 - Always use `.custom.rb` counterparts for app-specific overrides that survive Rails upgrades
