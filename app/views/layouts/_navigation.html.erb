@@ -7,10 +7,42 @@
   <div class="navbar-center hidden lg:flex">
     <% if authenticated? %>
       <ul class="menu menu-horizontal px-1">
-        <li><%= link_to "Dashboard", dashboard_path %></li>
-        <li><%= link_to "Councils", councils_path %></li>
-        <li><%= link_to "AI Providers", providers_path %></li>
-        <li><%= link_to "Sessions", sessions_path %></li>
+        <li>
+          <%= link_to dashboard_path,
+              class: "#{'active' if current_page?(dashboard_path)}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Dashboard
+          <% end %>
+        </li>
+        <li>
+          <%= link_to councils_path,
+              class: "#{'active' if current_page?(councils_path) || controller_name == 'councils'}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Councils
+          <% end %>
+        </li>
+        <li>
+          <%= link_to providers_path,
+              class: "#{'active' if current_page?(providers_path) || controller_name == 'providers'}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            </svg>
+            AI Providers
+          <% end %>
+        </li>
+        <li>
+          <%= link_to sessions_path,
+              class: "#{'active' if current_page?(sessions_path) || controller_name == 'sessions'}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            Sessions
+          <% end %>
+        </li>
       </ul>
     <% end %>
   </div>
@@ -42,20 +74,26 @@
   <!-- Mobile navigation -->
   <div class="lg:hidden navbar bg-base-200 border-t border-base-300">
     <div class="flex-1 flex justify-center">
-      <%= link_to dashboard_path, class: "btn btn-ghost flex-1 rounded-none" do %>
+      <%= link_to dashboard_path,
+          class: "btn btn-ghost flex-1 rounded-none flex-col gap-1 py-2 #{'btn-active' if current_page?(dashboard_path)}" do %>
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
         </svg>
+        <span class="text-xs">Dashboard</span>
       <% end %>
-      <%= link_to councils_path, class: "btn btn-ghost flex-1 rounded-none" do %>
+      <%= link_to councils_path,
+          class: "btn btn-ghost flex-1 rounded-none flex-col gap-1 py-2 #{'btn-active' if controller_name == 'councils'}" do %>
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
+        <span class="text-xs">Councils</span>
       <% end %>
-      <%= link_to sessions_path, class: "btn btn-ghost flex-1 rounded-none" do %>
+      <%= link_to sessions_path,
+          class: "btn btn-ghost flex-1 rounded-none flex-col gap-1 py-2 #{'btn-active' if controller_name == 'sessions'}" do %>
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
+        <span class="text-xs">Sessions</span>
       <% end %>
     </div>
   </div>

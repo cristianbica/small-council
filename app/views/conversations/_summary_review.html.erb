@@ -1,6 +1,11 @@
 <div id="conversation_status" class="card bg-base-200">
   <div class="card-body">
-    <h3 class="card-title">Conversation Summary Ready for Review</h3>
+    <h3 class="card-title flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+      </svg>
+      Conversation Summary Ready for Review
+    </h3>
 
     <% draft_memory = conversation.context["draft_memory"] %>
     <% memory_data = draft_memory.is_a?(String) ? JSON.parse(draft_memory) : draft_memory %>
@@ -8,43 +13,65 @@
     <%= form_with url: approve_summary_conversation_path(conversation), method: :post do |f| %>
       <div class="space-y-4">
         <div class="form-control">
-          <%= f.label :key_decisions, "Key Decisions", class: "label font-bold" %>
+          <label class="label">
+            <span class="label-text font-medium">Key Decisions</span>
+            <span class="label-text-alt text-base-content/60">Major outcomes from the discussion</span>
+          </label>
           <%= f.text_area :key_decisions,
               value: memory_data&.dig("key_decisions"),
               class: "textarea textarea-bordered w-full",
-              rows: 3 %>
+              rows: 3,
+              placeholder: "What decisions were made?" %>
         </div>
 
         <div class="form-control">
-          <%= f.label :action_items, "Action Items", class: "label font-bold" %>
+          <label class="label">
+            <span class="label-text font-medium">Action Items</span>
+            <span class="label-text-alt text-base-content/60">Tasks and next steps</span>
+          </label>
           <%= f.text_area :action_items,
               value: memory_data&.dig("action_items"),
               class: "textarea textarea-bordered w-full",
-              rows: 3 %>
+              rows: 3,
+              placeholder: "What needs to be done?" %>
         </div>
 
         <div class="form-control">
-          <%= f.label :insights, "Insights", class: "label font-bold" %>
+          <label class="label">
+            <span class="label-text font-medium">Insights</span>
+            <span class="label-text-alt text-base-content/60">Key learnings and observations</span>
+          </label>
           <%= f.text_area :insights,
               value: memory_data&.dig("insights"),
               class: "textarea textarea-bordered w-full",
-              rows: 3 %>
+              rows: 3,
+              placeholder: "What insights emerged?" %>
         </div>
 
         <div class="form-control">
-          <%= f.label :open_questions, "Open Questions", class: "label font-bold" %>
+          <label class="label">
+            <span class="label-text font-medium">Open Questions</span>
+            <span class="label-text-alt text-base-content/60">Unresolved items to revisit</span>
+          </label>
           <%= f.text_area :open_questions,
               value: memory_data&.dig("open_questions"),
               class: "textarea textarea-bordered w-full",
-              rows: 3 %>
+              rows: 3,
+              placeholder: "What questions remain?" %>
         </div>
 
+        <div class="divider">Raw Summary</div>
+
         <div class="form-control">
-          <%= f.label :raw_summary, "Full Summary (Raw)", class: "label" %>
+          <label class="label">
+            <span class="label-text">Full Summary (Raw)</span>
+            <span class="label-text-alt text-base-content/60">Complete generated summary</span>
+          </label>
           <%= f.text_area :raw_summary,
               value: memory_data&.dig("raw_summary"),
-              class: "textarea textarea-bordered w-full text-sm",
-              rows: 5 %>
+              class: "textarea textarea-bordered w-full text-sm font-mono",
+              rows: 5,
+              placeholder: "Raw summary will appear here..." %>
         </div>
       </div>
 

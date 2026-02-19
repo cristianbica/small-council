@@ -5,47 +5,117 @@
     <div class="card-body space-y-4">
       <% if @provider.errors.any? %>
         <div class="alert alert-error">
-          <ul class="list-disc list-inside">
-            <% @provider.errors.full_messages.each do |msg| %>
-              <li><%= msg %></li>
-            <% end %>
-          </ul>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <h3 class="font-bold"><%= pluralize(@provider.errors.count, "error") %> prohibited this provider from being saved:</h3>
+            <ul class="mt-1 list-disc list-inside text-sm">
+              <% @provider.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
         </div>
       <% end %>
 
       <div class="form-control">
-        <%= form.label :name, class: "label" %>
-        <%= form.text_field :name, class: "input input-bordered", placeholder: "e.g., OpenAI Production", required: true %>
-      </div>
-
-      <div class="form-control">
-        <%= form.label :provider_type, "Provider Type", class: "label" %>
-        <%= form.select :provider_type, 
-            Provider.provider_types.keys.map { |t| [t.humanize, t] },
-            {}, 
-            class: "select select-bordered",
-            required: true %>
-      </div>
-
-      <div class="form-control">
-        <%= form.label :api_key, "API Key", class: "label" %>
-        <%= form.password_field :api_key, class: "input input-bordered", placeholder: "sk-...", required: true %>
         <label class="label">
-          <span class="label-text-alt text-base-content/60">Your API key is encrypted at rest</span>
+          <span class="label-text">
+            Name
+            <span class="text-error" aria-label="required">*</span>
+          </span>
         </label>
+        <%= form.text_field :name,
+            class: "input input-bordered #{'input-error' if form.object.errors[:name].any?}",
+            placeholder: "e.g., OpenAI Production",
+            required: true %>
+        <% if form.object.errors[:name].any? %>
+          <label class="label">
+            <span class="label-text-alt text-error flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <%= form.object.errors[:name].first %>
+            </span>
+          </label>
+        <% end %>
       </div>
 
       <div class="form-control">
-        <%= form.label :organization_id, "Organization ID (optional)", class: "label" %>
-        <%= form.text_field :organization_id, class: "input input-bordered", placeholder: "org-..." %>
+        <label class="label">
+          <span class="label-text">
+            Provider Type
+            <span class="text-error" aria-label="required">*</span>
+          </span>
+        </label>
+        <%= form.select :provider_type,
+            Provider.provider_types.keys.map { |t| [t.humanize, t] },
+            {},
+            class: "select select-bordered #{'select-error' if form.object.errors[:provider_type].any?}",
+            required: true %>
+        <% if form.object.errors[:provider_type].any? %>
+          <label class="label">
+            <span class="label-text-alt text-error flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <%= form.object.errors[:provider_type].first %>
+            </span>
+          </label>
+        <% end %>
+      </div>
+
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">
+            API Key
+            <span class="text-error" aria-label="required">*</span>
+          </span>
+          <span class="label-text-alt text-base-content/60">Encrypted at rest</span>
+        </label>
+        <%= form.password_field :api_key,
+            class: "input input-bordered #{'input-error' if form.object.errors[:api_key].any?}",
+            placeholder: "sk-...",
+            required: true %>
+        <% if form.object.errors[:api_key].any? %>
+          <label class="label">
+            <span class="label-text-alt text-error flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <%= form.object.errors[:api_key].first %>
+            </span>
+          </label>
+        <% end %>
+      </div>
+
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Organization ID</span>
+          <span class="label-text-alt text-base-content/60">Optional</span>
+        </label>
+        <%= form.text_field :organization_id,
+            class: "input input-bordered #{'input-error' if form.object.errors[:organization_id].any?}",
+            placeholder: "org-..." %>
         <label class="label">
           <span class="label-text-alt text-base-content/60">Only required for OpenAI enterprise accounts</span>
         </label>
+        <% if form.object.errors[:organization_id].any? %>
+          <label class="label">
+            <span class="label-text-alt text-error flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <%= form.object.errors[:organization_id].first %>
+            </span>
+          </label>
+        <% end %>
       </div>
 
       <div class="form-control">
-        <label class="label cursor-pointer justify-start gap-2">
-          <%= form.check_box :enabled, class: "checkbox" %>
+        <label class="label cursor-pointer justify-start gap-3">
+          <%= form.check_box :enabled, class: "checkbox checkbox-primary" %>
           <span class="label-text">Enabled</span>
         </label>
       </div>

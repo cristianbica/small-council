@@ -16,13 +16,47 @@
   <% end %>
 
   <div class="form-control">
-    <%= f.label :name, class: "label" %>
-    <%= f.text_field :name, class: "input input-bordered", placeholder: "e.g., Product Team, Personal Projects" %>
+    <label class="label">
+      <span class="label-text">
+        Name
+        <span class="text-error" aria-label="required">*</span>
+      </span>
+    </label>
+    <%= f.text_field :name,
+        class: "input input-bordered #{'input-error' if space.errors[:name].any?}",
+        placeholder: "e.g., Product Team, Personal Projects",
+        required: true %>
+    <% if space.errors[:name].any? %>
+      <label class="label">
+        <span class="label-text-alt text-error flex items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <%= space.errors[:name].first %>
+        </span>
+      </label>
+    <% end %>
   </div>
 
   <div class="form-control">
-    <%= f.label :description, class: "label" %>
-    <%= f.text_area :description, class: "textarea textarea-bordered", rows: 3, placeholder: "Optional: What is this space for?" %>
+    <label class="label">
+      <span class="label-text">Description</span>
+      <span class="label-text-alt text-base-content/60">Optional</span>
+    </label>
+    <%= f.text_area :description,
+        class: "textarea textarea-bordered #{'textarea-error' if space.errors[:description].any?}",
+        rows: 3,
+        placeholder: "What is this space for?" %>
+    <% if space.errors[:description].any? %>
+      <label class="label">
+        <span class="label-text-alt text-error flex items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <%= space.errors[:description].first %>
+        </span>
+      </label>
+    <% end %>
   </div>
 
   <div class="card-actions justify-end mt-6">

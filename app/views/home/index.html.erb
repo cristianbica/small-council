@@ -1,23 +1,81 @@
-<p style="color: green"><%= notice %></p>
+<div class="space-y-6">
+  <!-- Header -->
+  <div>
+    <h1 class="text-3xl font-bold">Account Settings</h1>
+    <p class="text-base-content/70 mt-1">
+      Signed in as <span class="font-medium"><%= Current.user.email %></span>
+    </p>
+  </div>
 
-<p>Signed as <%= Current.user.email %></p>
+  <!-- Account Settings Card -->
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h2 class="card-title mb-4 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+        Login & Verification
+      </h2>
+      <div class="space-y-3">
+        <%= link_to edit_password_path, class: "flex items-center justify-between p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors" do %>
+          <div>
+            <p class="font-medium">Change Password</p>
+            <p class="text-sm text-base-content/60">Update your account password</p>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        <% end %>
+        <%= link_to edit_identity_email_path, class: "flex items-center justify-between p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors" do %>
+          <div>
+            <p class="font-medium">Change Email Address</p>
+            <p class="text-sm text-base-content/60">Update your email and verify</p>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        <% end %>
+      </div>
+    </div>
+  </div>
 
-<h2>Login and verification</h2>
+  <!-- Security Card -->
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h2 class="card-title mb-4 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+        Security
+      </h2>
+      <%= link_to sessions_path, class: "flex items-center justify-between p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors" do %>
+        <div>
+          <p class="font-medium">Devices & Sessions</p>
+          <p class="text-sm text-base-content/60">Manage active sessions and sign out remotely</p>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      <% end %>
+    </div>
+  </div>
 
-<div>
-  <%= link_to "Change password", edit_password_path %>
+  <!-- Danger Zone -->
+  <div class="card bg-base-100 shadow border-error/20">
+    <div class="card-body">
+      <h2 class="card-title text-error mb-4 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        Danger Zone
+      </h2>
+      <%= button_to session_path(Current.session), method: :delete,
+          class: "btn btn-error btn-outline" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+        Sign Out
+      <% end %>
+    </div>
+  </div>
 </div>
-
-<div>
-  <%= link_to "Change email address", edit_identity_email_path %>
-</div>
-
-<h2>Access history</h2>
-
-<div>
-  <%= link_to "Devices & Sessions", sessions_path %>
-</div>
-
-<br>
-
-<%= button_to "Log out", Current.session, method: :delete %>

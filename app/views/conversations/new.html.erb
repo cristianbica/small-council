@@ -6,26 +6,43 @@
       <%= form_with model: [@council, @conversation], class: "space-y-4" do |form| %>
         <% if @conversation.errors.any? %>
           <div class="alert alert-error">
-            <ul class="list-disc list-inside">
-              <% @conversation.errors.full_messages.each do |msg| %>
-                <li><%= msg %></li>
-              <% end %>
-            </ul>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <h3 class="font-bold"><%= pluralize(@conversation.errors.count, "error") %> prohibited this conversation from being saved:</h3>
+              <ul class="mt-1 list-disc list-inside text-sm">
+                <% @conversation.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            </div>
           </div>
         <% end %>
 
         <div class="form-control">
-          <%= form.label :title, class: "label" do %>
-            <span class="label-text">Topic</span>
-          <% end %>
+          <label class="label">
+            <span class="label-text">
+              Topic
+              <span class="text-error" aria-label="required">*</span>
+            </span>
+            <span class="label-text-alt text-base-content/60">This will be your first message</span>
+          </label>
           <%= form.text_field :title,
-              class: "input input-bordered w-full",
+              class: "input input-bordered w-full #{'input-error' if form.object.errors[:title].any?}",
               placeholder: "What would you like to discuss?",
               required: true,
               autofocus: true %>
-          <label class="label">
-            <span class="label-text-alt">This will be your first message.</span>
-          </label>
+          <% if form.object.errors[:title].any? %>
+            <label class="label">
+              <span class="label-text-alt text-error flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <%= form.object.errors[:title].first %>
+              </span>
+            </label>
+          <% end %>
         </div>
 
         <div class="card-actions justify-end mt-4">
