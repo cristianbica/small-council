@@ -1,6 +1,10 @@
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
-    <h1 class="text-3xl font-bold">Spaces</h1>
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-3xl font-bold">Spaces</h1>
+      <p class="text-base-content/70 mt-1">Manage your workspaces and organize councils</p>
+    </div>
     <%= link_to "New Space", new_space_path, class: "btn btn-primary" %>
   </div>
 
@@ -15,15 +19,15 @@
                 <span class="badge badge-primary badge-sm">Current</span>
               <% end %>
             </h2>
-            <p class="text-sm text-base-content/70 line-clamp-2">
+            <p class="text-sm text-base-content/60 line-clamp-2">
               <%= space.description.presence || "No description" %>
             </p>
 
             <div class="flex items-center gap-2 mt-2">
-              <span class="text-xs text-base-content/50">
+              <span class="text-sm text-base-content/60">
                 <%= pluralize(space.councils.count, "council") %>
               </span>
-              <span class="text-xs text-base-content/50">
+              <span class="text-sm text-base-content/60">
                 · <%= pluralize(space.conversations.count, "conversation") %>
               </span>
             </div>
@@ -38,7 +42,7 @@
     </div>
   <% else %>
     <div class="text-center py-12">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
       </svg>
       <h3 class="text-xl font-semibold mb-2">No spaces yet</h3>

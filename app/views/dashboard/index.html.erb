@@ -1,6 +1,10 @@
-<div class="space-y-8">
-  <div class="flex items-center justify-between">
-    <h1 class="text-3xl font-bold">Dashboard</h1>
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-3xl font-bold">Dashboard</h1>
+      <p class="text-base-content/70 mt-1">Overview of your councils and conversations</p>
+    </div>
   </div>
 
   <!-- Councils Section -->
@@ -8,7 +12,7 @@
     <div class="card-body">
       <div class="flex items-center justify-between mb-4">
         <h2 class="card-title">Your Councils</h2>
-        <span class="badge badge-primary badge-lg"><%= @councils.count %></span>
+        <span class="badge badge-primary badge-sm"><%= @councils.count %></span>
       </div>
 
       <% if @councils.any? %>
@@ -23,7 +27,7 @@
           <% end %>
         </div>
       <% else %>
-        <div class="text-center py-8">
+        <div class="text-center py-12">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
@@ -39,38 +43,31 @@
     <div class="card-body">
       <div class="flex items-center justify-between mb-4">
         <h2 class="card-title">Recent Conversations</h2>
-        <span class="badge badge-secondary badge-lg"><%= @conversations.count %></span>
+        <span class="badge badge-primary badge-sm"><%= @conversations.count %></span>
       </div>
 
       <% if @conversations.any? %>
-        <div class="overflow-x-auto">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% @conversations.each do |conversation| %>
-                <tr class="hover">
-                  <td class="font-medium"><%= conversation.title || "Untitled conversation" %></td>
-                  <td>
-                    <span class="badge badge-outline">Active</span>
-                  </td>
-                  <td class="text-base-content/60"><%= time_ago_in_words(conversation.created_at) %> ago</td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
+        <div class="space-y-3">
+          <% @conversations.each do |conversation| %>
+            <div class="flex items-center justify-between p-4 bg-base-200 rounded-lg">
+              <div class="min-w-0 flex-1">
+                <h3 class="font-semibold truncate"><%= link_to conversation.title || "Untitled conversation", conversation, class: "hover:underline" %></h3>
+                <p class="text-sm text-base-content/60">
+                  <%= conversation.messages.count %> messages · <%= time_ago_in_words(conversation.created_at) %> ago
+                </p>
+              </div>
+              <div class="flex items-center gap-2 ml-4">
+                <span class="badge badge-sm badge-ghost">Active</span>
+              </div>
+            </div>
+          <% end %>
         </div>
       <% else %>
-        <div class="text-center py-8">
+        <div class="text-center py-12">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
-          <p class="text-base-content/60">No conversations yet.</p>
+          <p class="text-base-content/60 mb-4">No conversations yet.</p>
         </div>
       <% end %>
     </div>

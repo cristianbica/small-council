@@ -1,17 +1,21 @@
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
-    <h1 class="text-3xl font-bold">AI Providers</h1>
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-3xl font-bold">AI Providers</h1>
+      <p class="text-base-content/70 mt-1">Manage your AI service providers and models</p>
+    </div>
     <%= link_to "Add Provider", new_provider_path, class: "btn btn-primary" %>
   </div>
 
   <% if @providers.any? %>
-    <div class="grid gap-4">
+    <div class="space-y-4">
       <% @providers.each do |provider| %>
         <div class="card bg-base-100 shadow">
-          <div class="card-body">
+          <div class="card-body p-4">
             <div class="flex items-center justify-between">
-              <div>
-                <h2 class="card-title"><%= provider.name %></h2>
+              <div class="min-w-0 flex-1">
+                <h3 class="font-semibold truncate"><%= provider.name %></h3>
                 <p class="text-sm text-base-content/60">
                   Type: <%= provider.provider_type.humanize %>
                   <span class="mx-1">·</span>
@@ -20,21 +24,21 @@
                   <%= provider.llm_models.count %> models
                 </p>
               </div>
-              <div class="card-actions">
-                <%= link_to "Edit", edit_provider_path(provider), class: "btn btn-sm btn-outline" %>
-                <%= button_to "Remove", provider_path(provider), method: :delete, 
-                    class: "btn btn-sm btn-error btn-outline",
+              <div class="flex items-center gap-2 ml-4">
+                <%= link_to "Edit", edit_provider_path(provider), class: "btn btn-sm btn-ghost" %>
+                <%= button_to "Remove", provider_path(provider), method: :delete,
+                    class: "btn btn-sm btn-ghost text-error",
                     data: { turbo_confirm: "Are you sure? This will remove all associated models." } %>
               </div>
             </div>
 
             <% if provider.llm_models.enabled.any? %>
-              <div class="divider"></div>
+              <div class="divider my-3"></div>
               <div>
-                <h3 class="text-sm font-semibold mb-2">Active Models:</h3>
+                <h4 class="text-sm font-semibold mb-2">Active Models:</h4>
                 <div class="flex flex-wrap gap-2">
                   <% provider.llm_models.enabled.each do |model| %>
-                    <span class="badge badge-outline"><%= model.name %></span>
+                    <span class="badge badge-sm badge-outline"><%= model.name %></span>
                   <% end %>
                 </div>
               </div>
@@ -44,11 +48,12 @@
       <% end %>
     </div>
   <% else %>
-    <div class="card bg-base-100 shadow">
-      <div class="card-body text-center">
-        <p class="text-base-content/60">No providers configured yet.</p>
-        <%= link_to "Add your first provider", new_provider_path, class: "btn btn-primary mt-4" %>
-      </div>
+    <div class="text-center py-12">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+      </svg>
+      <p class="text-base-content/60 mb-4">No providers configured yet.</p>
+      <%= link_to "Add your first provider", new_provider_path, class: "btn btn-primary" %>
     </div>
   <% end %>
 </div>

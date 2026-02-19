@@ -233,9 +233,9 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
 
     get providers_url
     assert_response :success
-    # View uses h2 for provider names in cards
-    assert_select "h2", text: /My Provider/
-    assert_select "h2", { text: /Other Provider/, count: 0 }
+    # View uses h3 for provider names in cards
+    assert_select "h3", text: /My Provider/
+    assert_select "h3", { text: /Other Provider/, count: 0 }
   end
 
   test "provider_type is immutable and cannot be changed on update" do

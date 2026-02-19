@@ -1,13 +1,14 @@
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
     <div>
       <h1 class="text-3xl font-bold">Councils</h1>
-      <p class="text-base-content/60 text-sm mt-1">
+      <p class="text-base-content/70 mt-1">
         in <%= Current.space.name %>
         <%= link_to "(switch)", spaces_path, class: "link link-primary text-xs" %>
       </p>
     </div>
-    <div class="flex gap-2">
+    <div class="flex items-center gap-2">
       <%= link_to "Memory", memory_space_path(Current.space), class: "btn btn-ghost" %>
       <%= link_to "New Council", new_space_council_path(Current.space), class: "btn btn-primary" %>
     </div>
@@ -19,12 +20,12 @@
         <div class="card bg-base-100 shadow hover:shadow-lg transition-shadow">
           <div class="card-body">
             <h2 class="card-title"><%= council.name %></h2>
-            <p class="text-sm text-base-content/70 line-clamp-2">
+            <p class="text-sm text-base-content/60 line-clamp-2">
               <%= council.description.presence || "No description" %>
             </p>
 
             <div class="flex items-center gap-2 mt-2">
-              <span class="text-xs text-base-content/50">
+              <span class="text-sm text-base-content/60">
                 <%= pluralize(council.advisors.where.not(council_id: nil).count, "advisor") %>
               </span>
             </div>
@@ -41,7 +42,7 @@
     </div>
   <% else %>
     <div class="text-center py-12">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
       </svg>
       <h3 class="text-xl font-semibold mb-2">No councils yet</h3>
