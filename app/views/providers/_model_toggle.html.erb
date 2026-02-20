@@ -1,0 +1,28 @@
+<%= turbo_frame_tag "model_toggle_#{provider.id}_#{model_info.model_id}" do %>
+  <%= form_with url: toggle_model_providers_path,
+                method: :post,
+                data: { 
+                  turbo_frame: "model_toggle_#{provider.id}_#{model_info.model_id}",
+                  controller: "toggle",
+                  action: "submit->toggle#loading"
+                } do |f| %>
+    <%= f.hidden_field :provider_id, value: provider.id %>
+    <%= f.hidden_field :model_id, value: model_info.model_id %>
+    <%= f.hidden_field :enabled, value: (!model_info.enabled).to_s %>
+
+    <div class="relative">
+      <%# Toggle switch %>
+      <label class="cursor-pointer">
+        <input type="checkbox"
+               class="toggle toggle-primary"
+               <%= "checked" if model_info.enabled %>
+               onchange="this.form.requestSubmit()" />
+      </label>
+      
+      <%# Loading spinner (hidden by default) %>
+      <div data-toggle-target="spinner" class="hidden absolute inset-0 flex items-center justify-center bg-base-200/80 rounded">
+        <span class="loading loading-spinner loading-xs text-primary"></span>
+      </div>
+    </div>
+  <% end %>
+<% end %>

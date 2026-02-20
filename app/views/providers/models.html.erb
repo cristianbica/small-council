@@ -47,21 +47,7 @@
                   </div>
 
                   <div class="ml-4">
-                    <%= form_with url: toggle_model_providers_path,
-                                  method: :post,
-                                  data: { turbo: true } do |f| %>
-                      <%= f.hidden_field :provider_id, value: provider.id %>
-                      <%= f.hidden_field :model_id, value: model_info.model_id %>
-                      <%= f.hidden_field :enabled, value: (!model_info.enabled).to_s %>
-
-                      <label class="swap">
-                        <%= f.submit "", class: "hidden", data: { turbo_submits_with: "Saving..." } %>
-                        <input type="checkbox"
-                               class="toggle toggle-primary"
-                               <%= "checked" if model_info.enabled %>
-                               onchange="this.form.requestSubmit()" />
-                      </label>
-                    <% end %>
+                    <%= render "providers/model_toggle", provider: provider, model_info: model_info %>
                   </div>
                 </div>
               <% end %>

@@ -173,13 +173,40 @@ class ProvidersController < ApplicationController
     end
 
     respond_to do |format|
+      format.turbo_stream do
+        # Re-fetch the updated model info
+        @provider = provider
+        @model_id = model_id
+        @enabled = enabled
+        @model_info = LLM::ModelManager.available_models(Current.account)
+                                        .find { |m| m.provider == provider && m.model_id == model_id }
+
+        if @model_info
+          render turbo_stream: turbo_stream.replace(
+            "model_toggle_#{provider.id}_#{model_id}",
+            partial: "providers/model_toggle",
+            locals: { provider: provider, model_info: @model_info }
+          )
+        else
+          render turbo_stream: turbo_stream.update(
+            "model_toggle_#{provider.id}_#{model_id}",
+            html: "<span class='text-error'>Error</span>"
+          )
+        end
+      end
       format.html { redirect_back fallback_location: providers_path, notice: message }
       format.json { render json: { success: true, message: message } }
     end
   rescue ActiveRecord::RecordNotFound
     raise
-  rescue => e
+  rescue StandardError => e
     respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.update(
+          "model_toggle_#{params[:provider_id]}_#{params[:model_id]}",
+          html: "<span class='text-error'>Error</span>"
+        )
+      end
       format.html { redirect_back fallback_location: providers_path, alert: "Error: #{e.message}" }
       format.json { render json: { success: false, error: e.message }, status: :unprocessable_entity }
     end
