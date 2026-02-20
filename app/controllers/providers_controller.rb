@@ -40,19 +40,19 @@ class ProvidersController < ApplicationController
 
   # GET /providers/wizard
   def wizard
-    @step = session.dig(:provider_wizard, :step) || 1
-    @wizard_data = session[:provider_wizard] || {}
+    @wizard_data = session[:provider_wizard]&.with_indifferent_access || {}
+    @step = @wizard_data[:step] || 1
 
     # Initialize wizard data if starting fresh
     if @step == 1 && @wizard_data.empty?
       session[:provider_wizard] = { step: 1 }
-      @wizard_data = session[:provider_wizard]
+      @wizard_data = session[:provider_wizard].with_indifferent_access
     end
   end
 
   # POST /providers/wizard/step
   def wizard_step
-    @wizard_data = session[:provider_wizard] || {}
+    @wizard_data = session[:provider_wizard]&.with_indifferent_access || {}
     current_step = @wizard_data[:step] || 1
 
     case current_step
@@ -71,7 +71,8 @@ class ProvidersController < ApplicationController
     when 4
       # Step 4: Configure and save
       @wizard_data[:name] = params[:name].presence || default_name(@wizard_data[:provider_type])
-      @wizard_data[:enabled] = params[:enabled] != "false"
+      # Rails checkbox sends "0" when unchecked, "1" when checked
+      @wizard_data[:enabled] = params[:enabled] == "1"
 
       # Create the provider
       @provider = Current.account.providers.new(
@@ -92,7 +93,7 @@ class ProvidersController < ApplicationController
       end
     end
 
-    session[:provider_wizard] = @wizard_data
+    session[:provider_wizard] = @wizard_data.to_h
     redirect_to wizard_providers_path
   end
 
@@ -106,10 +107,10 @@ class ProvidersController < ApplicationController
 
     if result[:success]
       # Store in session for step 4
-      wizard_data = session[:provider_wizard] || {}
+      wizard_data = session[:provider_wizard]&.with_indifferent_access || {}
       wizard_data[:tested] = true
       wizard_data[:available_models] = result[:models]
-      session[:provider_wizard] = wizard_data
+      session[:provider_wizard] = wizard_data.to_h
     end
 
     render json: result
@@ -117,12 +118,12 @@ class ProvidersController < ApplicationController
 
   # POST /providers/wizard/back
   def wizard_back
-    @wizard_data = session[:provider_wizard] || {}
+    @wizard_data = session[:provider_wizard]&.with_indifferent_access || {}
     current_step = @wizard_data[:step] || 1
 
     if current_step > 1
       @wizard_data[:step] = current_step - 1
-      session[:provider_wizard] = @wizard_data
+      session[:provider_wizard] = @wizard_data.to_h
     end
 
     redirect_to wizard_providers_path

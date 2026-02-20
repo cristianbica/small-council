@@ -1,5 +1,11 @@
 <% provider_type = @wizard_data[:provider_type] %>
-<% provider_name = provider_type&.humanize || "Provider" %>
+<% provider_name = case provider_type
+  when "openai" then "OpenAI"
+  when "anthropic" then "Anthropic"
+  when "github" then "GitHub Models"
+  else provider_type&.humanize || "Provider"
+  end
+%>
 <% default_name = case provider_type
   when "openai" then "OpenAI"
   when "anthropic" then "Anthropic"
@@ -9,7 +15,9 @@
 %>
 
 <div class="flex items-center gap-2 mb-4">
-  <%= button_to "← Back", wizard_back_providers_path, method: :post, class: "btn btn-ghost btn-sm" %>
+  <%= form_with url: wizard_back_providers_path, method: :post do |f| %>
+    <%= f.submit "← Back", class: "btn btn-ghost btn-sm" %>
+  <% end %>
 </div>
 
 <h2 class="card-title mb-2">Configure Provider</h2>
@@ -67,8 +75,11 @@
     </ul>
   </div>
 
-  <div class="card-actions justify-between mt-6">
-    <%= button_to "← Back", wizard_back_providers_path, method: :post, class: "btn btn-ghost" %>
+  <div class="card-actions justify-end mt-6">
     <%= f.submit "Save Provider", class: "btn btn-primary" %>
   </div>
+<% end %>
+
+<%= form_with url: wizard_back_providers_path, method: :post, class: "mt-4" do |f| %>
+  <%= f.submit "← Back", class: "btn btn-ghost btn-sm" %>
 <% end %>
