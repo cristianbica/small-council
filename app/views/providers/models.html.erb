@@ -1,0 +1,89 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-3xl font-bold">
+        <% if @provider %>
+          <%= @provider.name %> - Models
+        <% else %>
+          All Available Models
+        <% end %>
+      </h1>
+      <p class="text-base-content/70 mt-1">
+        Enable or disable models for use with your AI advisors
+      </p>
+    </div>
+    <%= link_to "Back to Providers", providers_path, class: "btn btn-ghost" %>
+  </div>
+
+  <% if @models.any? %>
+    <div class="space-y-6">
+      <% @models.group_by(&:provider).each do |provider, models| %>
+        <div class="card bg-base-100 shadow">
+          <div class="card-body p-4">
+            <h2 class="text-xl font-semibold mb-4"><%= provider.name %> (<%= provider.provider_type.humanize %>)</h2>
+
+            <div class="space-y-2">
+              <% models.each do |model_info| %>
+                <div class="flex items-center justify-between p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-3">
+                      <h3 class="font-medium truncate"><%= model_info.name %></h3>
+                      <% if model_info.capabilities %>
+                        <div class="flex items-center gap-1">
+                          <% if model_info.capabilities[:chat] %>
+                            <span class="badge badge-xs badge-primary" title="Chat">💬</span>
+                          <% end %>
+                          <% if model_info.capabilities[:vision] %>
+                            <span class="badge badge-xs badge-secondary" title="Vision">👁</span>
+                          <% end %>
+                          <% if model_info.capabilities[:functions] %>
+                            <span class="badge badge-xs badge-accent" title="Functions">⚙️</span>
+                          <% end %>
+                        </div>
+                      <% end %>
+                    </div>
+                    <p class="text-xs text-base-content/60 font-mono mt-1"><%= model_info.model_id %></p>
+                  </div>
+
+                  <div class="ml-4">
+                    <%= form_with url: toggle_model_providers_path,
+                                  method: :post,
+                                  data: { turbo: true } do |f| %>
+                      <%= f.hidden_field :provider_id, value: provider.id %>
+                      <%= f.hidden_field :model_id, value: model_info.model_id %>
+                      <%= f.hidden_field :enabled, value: (!model_info.enabled).to_s %>
+
+                      <label class="swap">
+                        <%= f.submit "", class: "hidden", data: { turbo_submits_with: "Saving..." } %>
+                        <input type="checkbox"
+                               class="toggle toggle-primary"
+                               <%= "checked" if model_info.enabled %>
+                               onchange="this.form.requestSubmit()" />
+                      </label>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="card bg-base-100 shadow">
+      <div class="card-body items-center text-center py-12">
+        <div class="mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold">No models available</h3>
+        <p class="text-base-content/70 mt-2 max-w-md">
+          No models were found from your providers. Make sure your providers are enabled and have valid API credentials.
+        </p>
+        <%= link_to "Back to Providers", providers_path, class: "btn btn-primary mt-4" %>
+      </div>
+    </div>
+  <% end %>
+</div>

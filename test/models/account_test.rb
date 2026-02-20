@@ -119,7 +119,7 @@ class AccountTest < ActiveSupport::TestCase
     account = Account.create!(name: "Test", slug: "test-destroy-models")
     provider = account.providers.create!(@provider_attributes)
     provider.llm_models.create!(account: account, name: "GPT-4", identifier: "gpt-4")
-    assert_difference("LlmModel.count", -1) do
+    assert_difference("LLMModel.count", -1) do
       account.destroy
     end
   end

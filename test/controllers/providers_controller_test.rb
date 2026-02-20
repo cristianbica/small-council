@@ -248,11 +248,11 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
       api_key: "key"
     )
 
-    # Attempt to change provider_type to anthropic
+    # Attempt to change provider_type to openrouter
     patch provider_url(provider), params: {
       provider: {
         name: "Updated Name",
-        provider_type: "anthropic"  # Should be ignored
+        provider_type: "openrouter"  # Should be ignored
       }
     }
 
@@ -261,5 +261,175 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
     provider.reload
     assert_equal "Updated Name", provider.name  # Name changed
     assert_equal "openai", provider.provider_type  # Type unchanged
+  end
+
+  # ============================================================================
+  # MODEL MANAGEMENT TESTS
+  # ============================================================================
+
+  test "should get models list when authenticated" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "key",
+      enabled: true
+    )
+
+    # Mock the model manager
+    LLM::ModelManager.stubs(:available_models).returns([])
+
+    get models_provider_url(provider)
+    assert_response :success
+  end
+
+  test "should get all models when no provider_id specified" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    LLM::ModelManager.stubs(:available_models).returns([])
+
+    get models_providers_url
+    assert_response :success
+  end
+
+  test "should toggle model on" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "key",
+      enabled: true
+    )
+
+    LLM::ModelManager.expects(:enable_model)
+                     .with(@account, provider, "gpt-4")
+                     .returns(provider.llm_models.new)
+
+    post toggle_model_providers_url, params: {
+      provider_id: provider.id,
+      model_id: "gpt-4",
+      enabled: "true"
+    }
+
+    assert_redirected_to providers_url
+    assert_equal "Model enabled successfully", flash[:notice]
+  end
+
+  test "should toggle model off" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "key",
+      enabled: true
+    )
+
+    LLM::ModelManager.expects(:disable_model)
+                     .with(@account, provider, "gpt-4")
+                     .returns(provider.llm_models.new)
+
+    post toggle_model_providers_url, params: {
+      provider_id: provider.id,
+      model_id: "gpt-4",
+      enabled: "false"
+    }
+
+    assert_redirected_to providers_url
+    assert_equal "Model disabled successfully", flash[:notice]
+  end
+
+  test "toggle_model responds to json format" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "key",
+      enabled: true
+    )
+
+    LLM::ModelManager.stubs(:enable_model).returns(provider.llm_models.new)
+
+    post toggle_model_providers_url, params: {
+      provider_id: provider.id,
+      model_id: "gpt-4",
+      enabled: "true"
+    }, as: :json
+
+    assert_response :success
+    json_response = JSON.parse(response.body)
+    assert json_response["success"]
+    assert_equal "Model enabled successfully", json_response["message"]
+  end
+
+  test "toggle_model handles errors gracefully" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "key",
+      enabled: true
+    )
+
+    LLM::ModelManager.stubs(:enable_model).raises(StandardError, "API Error")
+
+    post toggle_model_providers_url, params: {
+      provider_id: provider.id,
+      model_id: "gpt-4",
+      enabled: "true"
+    }
+
+    assert_redirected_to providers_url
+    assert flash[:alert].include?("API Error")
+  end
+
+  test "cannot access models from different account" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    other_account = ActsAsTenant.without_tenant do
+      Account.create!(name: "Other Models Account", slug: "other-models-acct")
+    end
+    other_provider = ActsAsTenant.without_tenant do
+      other_account.providers.create!(
+        name: "Other Provider",
+        provider_type: "openai",
+        api_key: "secret-key",
+        enabled: true
+      )
+    end
+
+    get models_provider_url(other_provider)
+    assert_response :not_found
+  end
+
+  test "cannot toggle model from different account" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    other_account = ActsAsTenant.without_tenant do
+      Account.create!(name: "Other Toggle Account", slug: "other-toggle-acct")
+    end
+    other_provider = ActsAsTenant.without_tenant do
+      other_account.providers.create!(
+        name: "Other Provider",
+        provider_type: "openai",
+        api_key: "secret-key",
+        enabled: true
+      )
+    end
+
+    post toggle_model_providers_url, params: {
+      provider_id: other_provider.id,
+      model_id: "gpt-4",
+      enabled: "true"
+    }
+
+    assert_response :not_found
   end
 end

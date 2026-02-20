@@ -123,6 +123,14 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - Provider-specific authentication fields (API Key, optional Organization ID)
 - Wizard URL: `/providers/wizard`
 
+## Model Management UI (2026-02-20)
+- Browse and enable/disable AI models per provider
+- Provider cards show enabled model count with quick access to model management
+- Model list shows capabilities (chat, vision, functions) with toggle switches
+- Uses `LLM::ModelManager` service to sync model metadata from ruby_llm
+- Stores model capabilities, pricing, context window in JSONB metadata column
+- URLs: `/providers/:id/models` (per-provider), `/providers/models` (all models)
+
 ## Ruby Version (2026-02-19)
 - **Ruby 4.0.1** (upgraded from 3.4.8) - Uses mise for version management
 - Bundler 4.0.3 with RubyGems 4.0.3

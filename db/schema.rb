@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_18_223817) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_20_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -101,11 +101,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_223817) do
     t.boolean "deprecated", default: false
     t.boolean "enabled", default: true
     t.string "identifier", null: false
+    t.jsonb "metadata", default: {}
     t.string "name", null: false
     t.bigint "provider_id", null: false
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_llm_models_on_account_id"
     t.index ["deleted_at"], name: "index_llm_models_on_deleted_at"
+    t.index ["metadata"], name: "index_llm_models_on_metadata", using: :gin
     t.index ["provider_id", "identifier"], name: "index_llm_models_on_provider_id_and_identifier", unique: true
     t.index ["provider_id"], name: "index_llm_models_on_provider_id"
   end

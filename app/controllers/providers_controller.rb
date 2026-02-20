@@ -135,6 +135,54 @@ class ProvidersController < ApplicationController
     redirect_to providers_path
   end
 
+  # GET /providers/models?provider_id=123
+  # If provider_id provided, show only that provider's models
+  # If not provided, show all models from all providers
+  def models
+    if params[:id]
+      # Member route - /providers/:id/models
+      @provider = Current.account.providers.find(params[:id])
+      @models = LLM::ModelManager.available_models(Current.account)
+                                 .select { |m| m.provider == @provider }
+    elsif params[:provider_id]
+      # Collection route with provider_id - /providers/models?provider_id=123
+      @provider = Current.account.providers.find(params[:provider_id])
+      @models = LLM::ModelManager.available_models(Current.account)
+                                 .select { |m| m.provider == @provider }
+    else
+      @provider = nil
+      @models = LLM::ModelManager.available_models(Current.account)
+    end
+  end
+
+  # POST /providers/toggle_model
+  # Params: provider_id, model_id, enabled (true/false)
+  def toggle_model
+    provider = Current.account.providers.find(params[:provider_id])
+    model_id = params[:model_id]
+    enabled = params[:enabled] == "true"
+
+    if enabled
+      LLM::ModelManager.enable_model(Current.account, provider, model_id)
+      message = "Model enabled successfully"
+    else
+      LLM::ModelManager.disable_model(Current.account, provider, model_id)
+      message = "Model disabled successfully"
+    end
+
+    respond_to do |format|
+      format.html { redirect_back fallback_location: providers_path, notice: message }
+      format.json { render json: { success: true, message: message } }
+    end
+  rescue ActiveRecord::RecordNotFound
+    raise
+  rescue => e
+    respond_to do |format|
+      format.html { redirect_back fallback_location: providers_path, alert: "Error: #{e.message}" }
+      format.json { render json: { success: false, error: e.message }, status: :unprocessable_entity }
+    end
+  end
+
   private
 
   def provider_params
@@ -148,8 +196,7 @@ class ProvidersController < ApplicationController
   def default_name(provider_type)
     case provider_type
     when "openai" then "OpenAI"
-    when "anthropic" then "Anthropic"
-    when "github" then "GitHub Models"
+    when "openrouter" then "OpenRouter"
     else "AI Provider"
     end
   end

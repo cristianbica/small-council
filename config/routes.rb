@@ -47,6 +47,12 @@ Rails.application.routes.draw do
       post :wizard_back
       post :wizard_cancel
       post :test_connection
+      get :models
+      post :toggle_model
+    end
+
+    member do
+      get :models
     end
   end
 

@@ -6,9 +6,7 @@ class Provider < ApplicationRecord
 
   enum :provider_type, {
     openai: "openai",
-    anthropic: "anthropic",
-    gemini: "gemini",
-    github: "github"
+    openrouter: "openrouter"
   }, prefix: :type
 
   validates :name, presence: true, uniqueness: { scope: :account_id }
@@ -37,5 +35,11 @@ class Provider < ApplicationRecord
 
   def organization_id=(value)
     self.credentials = credentials.merge("organization_id" => value)
+  end
+
+  # Returns LLM::Client for provider-level operations
+  # (list_models, test_connection - chat will fail without model)
+  def api
+    @api ||= LLM::Client.new(provider: self)
   end
 end

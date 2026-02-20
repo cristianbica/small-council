@@ -29,7 +29,7 @@ class ProviderTest < ActiveSupport::TestCase
 
   test "requires unique name per account" do
     @account.providers.create!(name: "OpenAI", provider_type: "openai", api_key: "key1")
-    duplicate = @account.providers.new(name: "OpenAI", provider_type: "anthropic", api_key: "key2")
+    duplicate = @account.providers.new(name: "OpenAI", provider_type: "openrouter", api_key: "key2")
     assert_not duplicate.valid?
     assert_includes duplicate.errors[:name], "has already been taken"
   end
@@ -81,10 +81,10 @@ class ProviderTest < ActiveSupport::TestCase
 
   test "scopes by_type" do
     openai = @account.providers.create!(name: "OpenAI", provider_type: "openai", api_key: "key")
-    anthropic = @account.providers.create!(name: "Anthropic", provider_type: "anthropic", api_key: "key")
+    openrouter = @account.providers.create!(name: "OpenRouter", provider_type: "openrouter", api_key: "key")
 
     assert_includes Provider.by_type("openai"), openai
-    assert_not_includes Provider.by_type("openai"), anthropic
+    assert_not_includes Provider.by_type("openai"), openrouter
   end
 
   test "has_many llm_models" do
@@ -96,21 +96,19 @@ class ProviderTest < ActiveSupport::TestCase
     provider = @account.providers.create!(name: "Test", provider_type: "openai", api_key: "key")
     provider.llm_models.create!(account: @account, name: "GPT-4", identifier: "gpt-4")
 
-    assert_difference("LlmModel.count", -1) do
+    assert_difference("LLMModel.count", -1) do
       provider.destroy
     end
   end
 
   test "provider_type enum values" do
     assert_includes Provider.provider_types.keys, "openai"
-    assert_includes Provider.provider_types.keys, "anthropic"
-    assert_includes Provider.provider_types.keys, "gemini"
-    assert_includes Provider.provider_types.keys, "github"
+    assert_includes Provider.provider_types.keys, "openrouter"
   end
 
   test "type_openai? predicate method" do
     provider = @account.providers.create!(name: "Test", provider_type: "openai", api_key: "key")
     assert provider.type_openai?
-    assert_not provider.type_anthropic?
+    assert_not provider.type_openrouter?
   end
 end

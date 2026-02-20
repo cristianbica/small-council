@@ -1,8 +1,7 @@
 <% provider_type = @wizard_data[:provider_type] %>
 <% provider_name = case provider_type
   when "openai" then "OpenAI"
-  when "anthropic" then "Anthropic"
-  when "github" then "GitHub Models"
+  when "openrouter" then "OpenRouter"
   else provider_type&.humanize || "Provider"
   end
 %>
@@ -20,17 +19,13 @@
   <div class="form-control">
     <label class="label">
       <span class="label-text font-medium">
-        <% if provider_type == "github" %>
-          GitHub Personal Access Token
-        <% else %>
-          API Key
-        <% end %>
+        API Key
         <span class="text-error">*</span>
       </span>
     </label>
     <%= f.password_field :api_key,
         class: "input input-bordered w-full",
-        placeholder: provider_type == "openai" ? "sk-..." : "Enter your API key",
+        placeholder: "sk-...",
         required: true,
         autocomplete: "off" %>
     <label class="label">
@@ -38,10 +33,8 @@
         <% case provider_type %>
         <% when "openai" %>
           <%= link_to "Get your API key →", "https://platform.openai.com/api-keys", target: "_blank", class: "link link-primary" %>
-        <% when "anthropic" %>
-          <%= link_to "Get your API key →", "https://console.anthropic.com/settings/keys", target: "_blank", class: "link link-primary" %>
-        <% when "github" %>
-          <%= link_to "Create a GitHub token →", "https://github.com/settings/tokens", target: "_blank", class: "link link-primary" %>
+        <% when "openrouter" %>
+          <%= link_to "Get your API key →", "https://openrouter.ai/keys", target: "_blank", class: "link link-primary" %>
         <% end %>
       </span>
     </label>

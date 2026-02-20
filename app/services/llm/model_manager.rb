@@ -1,0 +1,79 @@
+module LLM
+  class ModelManager
+    ModelInfo = Struct.new(:provider, :model_id, :name, :enabled, :llm_model, :capabilities, keyword_init: true)
+
+    def self.available_models(account)
+      models = []
+
+      account.providers.enabled.each do |provider|
+        provider.api.list_models.each do |model_data|
+          llm_model = account.llm_models.find_by(
+            provider: provider,
+            identifier: model_data[:id]
+          )
+
+          models << ModelInfo.new(
+            provider: provider,
+            model_id: model_data[:id],
+            name: model_data[:name],
+            enabled: llm_model&.enabled || false,
+            llm_model: llm_model,
+            capabilities: model_data[:capabilities]
+          )
+        end
+      end
+
+      models
+    end
+
+    def self.enable_model(account, provider, model_id)
+      llm_model = account.llm_models.find_or_initialize_by(
+        provider: provider,
+        identifier: model_id
+      )
+
+      # Get model info from ruby_llm
+      client = LLM::Client.new(provider: provider, model: llm_model)
+      info = client.info
+
+      if info
+        llm_model.name = info.name
+        llm_model.enabled = true
+        llm_model.metadata = {
+          capabilities: {
+            chat: info.type == "chat",
+            vision: info.supports_vision?,
+            json_mode: info.structured_output?,
+            functions: info.supports_functions?
+          },
+          pricing: {
+            input_price_per_million: info.input_price_per_million,
+            output_price_per_million: info.output_price_per_million
+          },
+          context_window: info.context_window,
+          max_tokens: info.max_tokens
+        }
+        llm_model.save!
+      else
+        # Fallback if ruby_llm doesn't have info
+        llm_model.name = model_id.split("/").last
+        llm_model.enabled = true
+        llm_model.save!
+      end
+
+      llm_model
+    end
+
+    def self.disable_model(account, provider, model_id)
+      llm_model = account.llm_models.find_by(
+        provider: provider,
+        identifier: model_id
+      )
+
+      return unless llm_model
+
+      llm_model.update!(enabled: false)
+      llm_model
+    end
+  end
+end

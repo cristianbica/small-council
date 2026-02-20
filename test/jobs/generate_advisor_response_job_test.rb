@@ -194,21 +194,21 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
     assert_match(/Unexpected error/, @message.content)
   end
 
-  test "calculates cost for anthropic provider" do
-    anthropic_provider = @account.providers.create!(
-      name: "Anthropic",
-      provider_type: "anthropic",
-      api_key: "anthropic-key"
+  test "calculates cost for openrouter provider" do
+    openrouter_provider = @account.providers.create!(
+      name: "OpenRouter",
+      provider_type: "openrouter",
+      api_key: "openrouter-key"
     )
-    anthropic_model = anthropic_provider.llm_models.create!(
+    openrouter_model = openrouter_provider.llm_models.create!(
       account: @account,
-      name: "Claude",
-      identifier: "claude-3-sonnet"
+      name: "Claude via OpenRouter",
+      identifier: "anthropic/claude-3-sonnet"
     )
     advisor = @account.advisors.create!(
-      name: "Anthropic Advisor",
+      name: "OpenRouter Advisor",
       system_prompt: "You are helpful",
-      llm_model: anthropic_model
+      llm_model: openrouter_model
     )
     message = @conversation.messages.create!(
       account: @account,
@@ -219,7 +219,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
     )
 
     mock_response = {
-      content: "Hello from Claude!",
+      content: "Hello from Claude via OpenRouter!",
       input_tokens: 1000,
       output_tokens: 500,
       total_tokens: 1500
@@ -236,10 +236,10 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
     end
 
     usage = UsageRecord.last
-    assert_equal "anthropic", usage.provider
-    # Anthropic rates: $0.008/1K input, $0.024/1K output
-    # Cost = (1000 * 0.008/1000) + (500 * 0.024/1000) = 0.008 + 0.012 = 0.02 dollars = 2 cents
-    assert_equal 2, usage.cost_cents
+    assert_equal "openrouter", usage.provider
+    # Using default rates: $0.03/1K input, $0.06/1K output
+    # Cost = (1000 * 0.03/1000) + (500 * 0.06/1000) = 0.03 + 0.03 = 0.06 dollars = 6 cents
+    assert_equal 6, usage.cost_cents
   end
 
   test "logs error on unexpected exception" do

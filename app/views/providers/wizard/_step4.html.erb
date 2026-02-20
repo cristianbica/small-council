@@ -1,15 +1,13 @@
 <% provider_type = @wizard_data[:provider_type] %>
 <% provider_name = case provider_type
   when "openai" then "OpenAI"
-  when "anthropic" then "Anthropic"
-  when "github" then "GitHub Models"
+  when "openrouter" then "OpenRouter"
   else provider_type&.humanize || "Provider"
   end
 %>
 <% default_name = case provider_type
   when "openai" then "OpenAI"
-  when "anthropic" then "Anthropic"
-  when "github" then "GitHub Models"
+  when "openrouter" then "OpenRouter"
   else "AI Provider"
   end
 %>

@@ -1,6 +1,6 @@
 require "test_helper"
 
-class LlmModelTest < ActiveSupport::TestCase
+class LLMModelTest < ActiveSupport::TestCase
   setup do
     @account = accounts(:one)
     set_tenant(@account)
@@ -36,7 +36,7 @@ class LlmModelTest < ActiveSupport::TestCase
   end
 
   test "requires provider" do
-    model = LlmModel.new(account: @account, name: "GPT-4", identifier: "gpt-4")
+    model = LLMModel.new(account: @account, name: "GPT-4", identifier: "gpt-4")
     assert_not model.valid?
     assert_includes model.errors[:provider], "can't be blank"
   end
@@ -61,7 +61,7 @@ class LlmModelTest < ActiveSupport::TestCase
     deleted = @provider.llm_models.create!(account: @account, name: "Deleted", identifier: "gone")
     deleted.soft_delete
 
-    available_models = LlmModel.available
+    available_models = LLMModel.available
     assert_includes available_models, available
     assert_not_includes available_models, deprecated
     assert_not_includes available_models, deleted
@@ -71,7 +71,7 @@ class LlmModelTest < ActiveSupport::TestCase
     enabled = @provider.llm_models.create!(account: @account, name: "Active", identifier: "active")
     deprecated = @provider.llm_models.create!(account: @account, name: "Deprecated", identifier: "old", deprecated: true)
 
-    enabled_models = LlmModel.enabled
+    enabled_models = LLMModel.enabled
     assert_includes enabled_models, enabled
     assert_not_includes enabled_models, deprecated
   end
@@ -87,12 +87,12 @@ class LlmModelTest < ActiveSupport::TestCase
   end
 
   test "belongs to provider" do
-    model = LlmModel.new
+    model = LLMModel.new
     assert_respond_to model, :provider
   end
 
   test "has_many advisors" do
-    model = LlmModel.new
+    model = LLMModel.new
     assert_respond_to model, :advisors
   end
 

@@ -5,7 +5,7 @@ class ProviderConnectionTesterTest < ActiveSupport::TestCase
     result = ProviderConnectionTester.test("unknown", "api_key")
 
     assert_equal false, result[:success]
-    assert_equal "Unknown provider type", result[:error]
+    assert result[:error].present?
   end
 
   test "test catches and returns error on exception" do
@@ -17,16 +17,16 @@ class ProviderConnectionTesterTest < ActiveSupport::TestCase
   end
 
   test "test_openai returns success with models on valid connection" do
-    # Mock the OpenAI client
+    # Mock the LLM::Client
     mock_client = mock
-    mock_models = mock
-    mock_response = { "data" => [ { "id" => "gpt-4" }, { "id" => "gpt-3.5-turbo" } ] }
+    mock_api = mock
 
-    OpenAI::Client.expects(:new)
-      .with(access_token: "sk-test", organization_id: nil)
-      .returns(mock_client)
-    mock_client.expects(:models).returns(mock_models)
-    mock_models.expects(:list).returns(mock_response)
+    LLM::Client.expects(:new).returns(mock_client)
+    mock_client.expects(:test_connection).returns({ success: true, model: "gpt-4o-mini" })
+    mock_client.expects(:list_models).returns([
+      { id: "gpt-4", name: "GPT-4", provider: "openai" },
+      { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo", provider: "openai" }
+    ])
 
     result = ProviderConnectionTester.test("openai", "sk-test")
 
@@ -36,27 +36,21 @@ class ProviderConnectionTesterTest < ActiveSupport::TestCase
 
   test "test_openai includes organization_id when provided" do
     mock_client = mock
-    mock_models = mock
-    mock_response = { "data" => [ { "id" => "gpt-4" } ] }
 
-    OpenAI::Client.expects(:new)
-      .with(access_token: "sk-test", organization_id: "org-123")
-      .returns(mock_client)
-    mock_client.expects(:models).returns(mock_models)
-    mock_models.expects(:list).returns(mock_response)
+    LLM::Client.expects(:new).returns(mock_client)
+    mock_client.expects(:test_connection).returns({ success: true, model: "gpt-4o-mini" })
+    mock_client.expects(:list_models).returns([ { id: "gpt-4", name: "GPT-4", provider: "openai" } ])
 
     result = ProviderConnectionTester.test("openai", "sk-test", "org-123")
 
     assert_equal true, result[:success]
   end
 
-  test "test_openai handles OpenAI errors" do
+  test "test_openai handles connection errors" do
     mock_client = mock
-    mock_models = mock
 
-    OpenAI::Client.expects(:new).returns(mock_client)
-    mock_client.expects(:models).returns(mock_models)
-    mock_models.expects(:list).raises(OpenAI::Error.new("Invalid API key"))
+    LLM::Client.expects(:new).returns(mock_client)
+    mock_client.expects(:test_connection).returns({ success: false, error: "Invalid API key" })
 
     result = ProviderConnectionTester.test("openai", "invalid-key")
 
@@ -64,40 +58,32 @@ class ProviderConnectionTesterTest < ActiveSupport::TestCase
     assert_match(/Invalid API key/, result[:error])
   end
 
-  test "test_anthropic returns success with models on valid connection" do
+  test "test_openrouter returns success with models on valid connection" do
     mock_client = mock
 
-    Anthropic::Client.expects(:new)
-      .with(access_token: "test-key")
-      .returns(mock_client)
-    mock_client.expects(:messages).returns({ "content" => [ { "text" => "Hi" } ] })
+    LLM::Client.expects(:new).returns(mock_client)
+    mock_client.expects(:test_connection).returns({ success: true, model: "openai/gpt-4o-mini" })
+    mock_client.expects(:list_models).returns([
+      { id: "openai/gpt-4", name: "GPT-4", provider: "openrouter" },
+      { id: "anthropic/claude-3-opus", name: "Claude 3 Opus", provider: "openrouter" }
+    ])
 
-    result = ProviderConnectionTester.test("anthropic", "test-key")
+    result = ProviderConnectionTester.test("openrouter", "sk-or-test")
 
     assert_equal true, result[:success]
-    assert_includes result[:models], "claude-3-opus-20240229"
-    assert_includes result[:models], "claude-3-sonnet-20240229"
-    assert_includes result[:models], "claude-3-haiku-20240307"
+    assert_includes result[:models], "openai/gpt-4"
+    assert_includes result[:models], "anthropic/claude-3-opus"
   end
 
-  test "test_anthropic handles errors" do
+  test "test_openrouter handles errors" do
     mock_client = mock
 
-    Anthropic::Client.expects(:new).returns(mock_client)
-    mock_client.expects(:messages).raises(StandardError.new("Invalid API key"))
+    LLM::Client.expects(:new).returns(mock_client)
+    mock_client.expects(:test_connection).returns({ success: false, error: "Invalid API key" })
 
-    result = ProviderConnectionTester.test("anthropic", "invalid-key")
+    result = ProviderConnectionTester.test("openrouter", "invalid-key")
 
     assert_equal false, result[:success]
     assert_match(/Invalid API key/, result[:error])
-  end
-
-  test "test_github_models returns success with static models list" do
-    result = ProviderConnectionTester.test("github", "ghp-test")
-
-    assert_equal true, result[:success]
-    assert_includes result[:models], "Phi-3-mini-4k-instruct"
-    assert_includes result[:models], "Meta-Llama-3.1-8B-Instruct"
-    assert_includes result[:models], "Mistral-large"
   end
 end

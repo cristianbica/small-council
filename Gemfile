@@ -43,9 +43,8 @@ gem "image_processing", "~> 1.2"
 # Multi-tenancy support
 gem "acts_as_tenant", "~> 1.0"
 
-# AI/LLM API clients
-gem "ruby-openai", "~> 7.0"
-gem "anthropic", "~> 0.3"
+# AI/LLM API client (unified)
+gem "ruby_llm", "~> 1.3"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
