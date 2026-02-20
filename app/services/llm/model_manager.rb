@@ -27,12 +27,13 @@ module LLM
     end
 
     def self.enable_model(account, provider, model_id)
+      # Use find_or_initialize_by to handle existing records
       llm_model = account.llm_models.find_or_initialize_by(
         provider: provider,
         identifier: model_id
       )
 
-      # Get model info from ruby_llm
+      # Update with metadata from API
       client = LLM::Client.new(provider: provider, model: llm_model)
       info = client.info
 
@@ -53,14 +54,13 @@ module LLM
           context_window: info.context_window,
           max_tokens: info.max_tokens
         }
-        llm_model.save!
       else
         # Fallback if ruby_llm doesn't have info
-        llm_model.name = model_id.split("/").last
+        llm_model.name ||= model_id.split("/").last
         llm_model.enabled = true
-        llm_model.save!
       end
 
+      llm_model.save!
       llm_model
     end
 

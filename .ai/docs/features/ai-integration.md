@@ -4,19 +4,46 @@ Multi-provider LLM support for AI advisor responses.
 
 ## Overview
 
-Advisors generate responses using real LLM APIs. The system supports multiple providers (OpenAI, Anthropic, GitHub Models) with per-account configuration.
+Advisors generate responses using real LLM APIs. The system supports multiple providers (OpenAI, OpenRouter) with per-account configuration through a unified wrapper architecture.
+
+## Architecture
+
+### LLM Module Structure
+
+```
+app/services/llm/
+├── llm.rb              # Module definition, APIError class
+├── client.rb           # Unified wrapper for all provider operations
+└── model_manager.rb    # Model lifecycle management
+```
+
+### LLM::Client
+
+The `LLM::Client` class provides a unified interface for all LLM operations:
+
+```ruby
+# Provider-level operations
+client = LLM::Client.new(provider: provider)
+client.list_models      # List available models
+client.test_connection  # Validate credentials
+
+# Model-level operations
+client = LLM::Client.new(provider: provider, model: llm_model)
+client.info             # Get model metadata
+client.supports?(:vision)  # Check capabilities
+client.chat(messages, system_prompt: "...")  # Chat completion
+```
 
 ## Providers
 
 ### Supported
-- **OpenAI** - GPT-4, GPT-3.5 via official API
-- **Anthropic** - Claude 3 models via official API
-- **GitHub Models** - OpenAI-compatible API hosted on Azure
+- **OpenAI** - GPT-4o, GPT-4o-mini, o1, o3-mini, etc.
+- **OpenRouter** - Multi-provider access (OpenAI, Anthropic, Google, etc.)
 
 ### Configuration
 Each account manages its own providers:
 - Name (e.g., "OpenAI Production")
-- Provider type (enum)
+- Provider type (enum: openai, openrouter)
 - API key (encrypted at rest)
 - Organization ID (OpenAI only, optional)
 - Enabled flag
@@ -30,10 +57,10 @@ API keys are encrypted using Rails encrypted attributes. Requires:
 
 ### LlmModel
 Each provider can have multiple models:
-- Name (display name, e.g., "GPT-4")
-- Identifier (API identifier, e.g., "gpt-4")
-- Enabled/Deprecated/Deleted flags for lifecycle management
-- Soft delete pattern (deleted_at timestamp)
+- Name (display name, e.g., "GPT-4o")
+- Identifier (API identifier, e.g., "gpt-4o")
+- Enabled flag for lifecycle management
+- Metadata (capabilities, pricing, context window) synced from ruby_llm
 
 ### Advisor → LlmModel
 Advisors reference an LlmModel instead of hardcoded provider/model strings. This enables:
@@ -41,9 +68,49 @@ Advisors reference an LlmModel instead of hardcoded provider/model strings. This
 - Per-account model availability
 - Usage tracking per model
 
+## DSL: provider.api and model.api
+
+Models provide convenient API accessors:
+
+```ruby
+# Provider-level operations
+provider.api.list_models
+provider.api.test_connection
+
+# Model-level operations
+llm_model.api.info
+llm_model.api.supports?(:vision)
+llm_model.api.chat(messages, system_prompt: "...")
+```
+
+These methods return `LLM::Client` instances:
+- `Provider#api` - Client without model (provider operations only)
+- `LlmModel#api` - Client with model (all operations including chat)
+
+## Error Handling
+
+### LLM::APIError
+Raised when API calls fail:
+
+```ruby
+begin
+  result = client.chat(messages)
+rescue LLM::APIError => e
+  # Handle API failure
+end
+```
+
+### LLM::Client::MissingModelError
+Raised when model-level operations are called on a client without a model:
+
+```ruby
+client = LLM::Client.new(provider: provider)
+client.chat(messages)  # Raises MissingModelError
+```
+
 ## AI Client Service
 
-`app/services/ai_client.rb` handles API calls:
+`app/services/ai_client.rb` handles high-level advisor interactions:
 
 ```ruby
 client = AiClient.new(advisor: advisor, conversation: conversation, message: message)
@@ -51,8 +118,22 @@ result = client.generate_response
 # Returns: { content: "...", input_tokens: N, output_tokens: M, total_tokens: P }
 ```
 
+### How AiClient Uses the Wrapper
+
+AiClient now uses the unified LLM::Client through the model DSL:
+
+```ruby
+# In AiClient#generate_response
+result = advisor.llm_model.api.chat(
+  build_messages,
+  system_prompt: advisor.system_prompt,
+  temperature: advisor.model_config["temperature"] || 0.7,
+  max_tokens: advisor.model_config["max_tokens"] || 1000
+)
+```
+
 ### Features
-- Provider-specific message formatting (OpenAI vs Anthropic)
+- Unified provider interface via LLM::Client
 - Automatic retry with exponential backoff
 - Conversation context building (system prompt + history)
 - Error handling with custom exception classes
@@ -88,24 +169,27 @@ Every API call creates a UsageRecord:
 
 - Input/output token counts
 - Provider type and model identifier
-- Calculated cost (placeholder rates; per-model pricing in Phase 2)
+- Calculated cost (using per-model pricing from metadata)
 - Timestamp and associations (account, conversation, message)
 
 ## Routes
 
 ```
-/providers              # index, new, create
-/providers/:id/edit      # edit, update, destroy
+/providers                    # index, new, create
+/providers/:id/edit           # edit, update, destroy
+/providers/:id/models         # model management
 ```
 
 ## Testing
 
 ### Model Tests
 - Provider: validation, encryption, scopes
-- LlmModel: validation, soft delete, scopes
+- LlmModel: validation, metadata sync, scopes
 - Advisor: llm_model association, provider delegation
 
 ### Service Tests
+- LLM::Client: provider operations, chat, error handling
+- LLM::ModelManager: enable/disable, model discovery
 - AiClient: message building, response parsing, error handling
 - Uses Mocha for mocking API calls
 
@@ -125,7 +209,5 @@ Every API call creates a UsageRecord:
 ## Limitations (Phase 1)
 
 - No streaming responses (full response only)
-- Placeholder cost calculation (needs per-model pricing table)
 - No rate limiting per account
 - No provider health checks or failover
-- Console/seeds required for model creation (no UI yet)

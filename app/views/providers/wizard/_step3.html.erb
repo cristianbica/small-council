@@ -46,6 +46,8 @@
     </div>
 
     <%= form_with url: wizard_step_providers_path, method: :post, class: "card-actions justify-end" do |f| %>
+      <%= f.hidden_field :api_key, value: params[:api_key] %>
+      <%= f.hidden_field :organization_id, value: params[:organization_id] %>
       <%= f.submit "Continue →", class: "btn btn-primary" %>
     <% end %>
   </div>
@@ -67,6 +69,8 @@
         <%= f.submit "← Back", class: "btn btn-ghost" %>
       <% end %>
       <%= form_with url: wizard_step_providers_path, method: :post do |f| %>
+        <%= f.hidden_field :api_key, value: params[:api_key] %>
+        <%= f.hidden_field :organization_id, value: params[:organization_id] %>
         <%= f.submit "Try Again", class: "btn btn-primary" %>
       <% end %>
     </div>

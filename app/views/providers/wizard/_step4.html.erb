@@ -38,6 +38,8 @@
 <% end %>
 
 <%= form_with url: wizard_step_providers_path, method: :post, class: "space-y-4" do |f| %>
+  <%= f.hidden_field :api_key, value: params[:api_key] %>
+  <%= f.hidden_field :organization_id, value: params[:organization_id] %>
   <div class="form-control">
     <label class="label">
       <span class="label-text">Name</span>

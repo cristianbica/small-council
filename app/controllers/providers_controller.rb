@@ -60,41 +60,43 @@ class ProvidersController < ApplicationController
       # Step 1: Select provider type
       @wizard_data[:provider_type] = params[:provider_type]
       @wizard_data[:step] = 2
+      session[:provider_wizard] = @wizard_data.to_h
+      redirect_to wizard_providers_path
     when 2
-      # Step 2: Authentication
-      @wizard_data[:api_key] = params[:api_key]
-      @wizard_data[:organization_id] = params[:organization_id]
+      # Step 2: Authentication - DO NOT store API keys in session
+      # Pass API key as query param to step 3 (only in URL for one redirect)
       @wizard_data[:step] = 3
+      session[:provider_wizard] = @wizard_data.to_h
+      redirect_to wizard_providers_path(api_key: params[:api_key], organization_id: params[:organization_id])
     when 3
       # Step 3: Test connection (handled by test_connection action)
       @wizard_data[:step] = 4
+      session[:provider_wizard] = @wizard_data.to_h
+      redirect_to wizard_providers_path(api_key: params[:api_key], organization_id: params[:organization_id])
     when 4
       # Step 4: Configure and save
       @wizard_data[:name] = params[:name].presence || default_name(@wizard_data[:provider_type])
       # Rails checkbox sends "0" when unchecked, "1" when checked
       @wizard_data[:enabled] = params[:enabled] == "1"
 
-      # Create the provider
+      # Create the provider - API key comes directly from params (hidden field), not session
       @provider = Current.account.providers.new(
         name: @wizard_data[:name],
         provider_type: @wizard_data[:provider_type],
-        api_key: @wizard_data[:api_key],
-        organization_id: @wizard_data[:organization_id],
+        api_key: params[:api_key],
+        organization_id: params[:organization_id],
         enabled: @wizard_data[:enabled]
       )
 
       if @provider.save
         session.delete(:provider_wizard)
         redirect_to providers_path, notice: "Provider '#{@provider.name}' was successfully added."
-        return
+        nil
       else
         render :wizard, status: :unprocessable_entity
-        return
+        nil
       end
     end
-
-    session[:provider_wizard] = @wizard_data.to_h
-    redirect_to wizard_providers_path
   end
 
   # POST /providers/test_connection

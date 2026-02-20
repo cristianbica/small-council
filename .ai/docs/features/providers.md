@@ -4,7 +4,7 @@ AI provider management for LLM API credentials and model configuration.
 
 ## Overview
 
-- **Provider** = AI service credentials (OpenAI, Anthropic, GitHub Models)
+- **Provider** = AI service credentials (OpenAI, OpenRouter)
 - API keys are encrypted at rest using Rails encrypted attributes
 - Each account manages its own providers independently
 - Multiple providers per account supported
@@ -13,39 +13,40 @@ AI provider management for LLM API credentials and model configuration.
 
 | Provider | Type | Models |
 |----------|------|--------|
-| OpenAI | `openai` | GPT-4, GPT-3.5, etc. |
-| Anthropic | `anthropic` | Claude 3 series |
-| GitHub Models | `github_models` | OpenAI-compatible on Azure |
+| OpenAI | `openai` | GPT-4o, GPT-4o-mini, o1, o3-mini, etc. |
+| OpenRouter | `openrouter` | Multi-provider access (OpenAI, Anthropic, Google, etc.) |
 
-## Usage
+## Provider Setup Wizard
 
-### Adding a Provider
-1. Navigate to "AI Providers" in navigation
-2. Click "Add Provider"
-3. Enter:
-   - Name (e.g., "OpenAI Production")
-   - Provider type (dropdown)
-   - API key (encrypted on save)
-   - Organization ID (OpenAI only, optional)
-4. Save - API key is encrypted immediately
+Adding a provider uses a 4-step wizard flow:
 
-### Managing Models
-Providers are created with models via console/seeds:
+1. **Select Provider** - Choose OpenAI or OpenRouter from the provider type dropdown
+2. **Enter Credentials** - Provide API key (and organization ID for OpenAI if applicable)
+3. **Test Connection** - System validates the API key by making a test call
+4. **Name Provider** - Give the provider a descriptive name (e.g., "OpenAI Production")
 
+## Model Management
+
+After creating a provider, models are managed through the UI:
+
+### Available Models
+- Models are fetched dynamically from the provider's API
+- Each model shows capabilities (chat, vision, JSON mode, functions)
+- Models can be enabled or disabled per account
+
+### Enable/Disable Models
 ```ruby
-provider = account.providers.create!(
-  name: "OpenAI",
-  provider_type: "openai",
-  api_key: "sk-..."
-)
-provider.llm_models.create!(
-  account: account,
-  name: "GPT-4",
-  identifier: "gpt-4"
-)
+# Enable a model
+LLM::ModelManager.enable_model(account, provider, "gpt-4o")
+
+# Disable a model
+LLM::ModelManager.disable_model(account, provider, "gpt-4o")
 ```
 
-UI for model management coming in Phase 2.
+### Model Lifecycle
+- **Enabled**: Available for advisors to use
+- **Disabled**: Hidden from advisor configuration but preserved in database
+- Models store metadata (capabilities, pricing, context window) from ruby_llm
 
 ## Technical
 
@@ -54,12 +55,46 @@ UI for model management coming in Phase 2.
 /providers              # index, new, create
 /providers/:id/edit     # edit, update
 /providers/:id          # destroy
+/providers/:id/models   # model management UI
 ```
 
 ### Models
 - `Provider`: name, provider_type, credentials (encrypted), organization_id, enabled
 - `Provider.has_many :llm_models, dependent: :destroy`
-- `LlmModel`: name, identifier, enabled, deprecated, deleted_at (soft delete)
+- `LlmModel`: name, identifier, enabled, metadata (capabilities, pricing), provider reference
+
+### LLM::Client
+
+The `LLM::Client` class handles all provider operations:
+
+```ruby
+# Provider-level operations (no model required)
+client = LLM::Client.new(provider: provider)
+client.list_models      # Fetch available models from API
+client.test_connection  # Validate API credentials
+
+# Model-level operations (requires model)
+client = LLM::Client.new(provider: provider, model: llm_model)
+client.info             # Get model metadata from ruby_llm
+client.supports?(:vision)  # Check capability support
+client.chat(messages, system_prompt: "...")  # Execute chat completion
+```
+
+### LLM::ModelManager
+
+Manages model lifecycle and discovery:
+
+```ruby
+# List all available models across all providers
+models = LLM::ModelManager.available_models(account)
+# Returns array of ModelInfo structs with provider, model_id, name, enabled, capabilities
+
+# Enable a model (fetches metadata from ruby_llm)
+llm_model = LLM::ModelManager.enable_model(account, provider, "gpt-4o")
+
+# Disable a model
+LLM::ModelManager.disable_model(account, provider, "gpt-4o")
+```
 
 ### Encrypted Credentials
 ```ruby
@@ -74,7 +109,8 @@ Requirements:
 - Test environment uses deterministic keys (see `config/initializers/active_record_encryption.rb`)
 
 ### Controllers
-- `ProvidersController`: Standard CRUD
+- `ProvidersController`: Standard CRUD + wizard flow
+- `Provider::ModelsController`: Model management (enable/disable)
 - All account users can manage providers (Phase 1 - no role restrictions)
 
 ### Access Control
@@ -107,6 +143,7 @@ UsageRecord.create!(
 ## Implementation Notes
 
 - Provider type is immutable after creation (UI reflects this)
-- Soft delete on models (deleted_at) for historical references
+- Models are soft-enabled/disabled (not deleted) for historical references
 - Each advisor references one LlmModel
 - Changing an advisor's model requires selecting from account's available models
+- Model metadata is synced from ruby_llm on enable

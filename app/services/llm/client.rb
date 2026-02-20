@@ -42,7 +42,7 @@ module LLM
       raise MissingModelError, "Client initialized without a model" unless @model
 
       RubyLLM.models.find(api_identifier)
-    rescue
+    rescue StandardError
       nil
     end
 

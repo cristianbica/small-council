@@ -42,9 +42,9 @@ class ProvidersWizardTest < ActionDispatch::IntegrationTest
     post wizard_step_providers_path
     follow_redirect!
 
-    # Step 4: Configure and save
+    # Step 4: Configure and save (API key passed as hidden field, not from session)
     assert_difference("Provider.count", 1) do
-      post wizard_step_providers_path, params: { name: "My OpenAI", enabled: "1" }
+      post wizard_step_providers_path, params: { name: "My OpenAI", enabled: "1", api_key: "sk-test123" }
     end
 
     assert_redirected_to providers_path

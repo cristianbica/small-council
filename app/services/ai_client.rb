@@ -59,7 +59,7 @@ class AiClient
     retries = 0
     begin
       yield
-    rescue => e
+    rescue StandardError => e
       retries += 1
       if retries <= MAX_RETRIES
         sleep(RETRY_DELAY * retries)
