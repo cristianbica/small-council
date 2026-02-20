@@ -109,6 +109,19 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - All cards use `bg-base-100 shadow` for consistency
 - Primary actions use `btn btn-primary`
 - Secondary actions use `btn btn-ghost`
+- Cards and list items are clickable with `link_to` wrapper
+- Breadcrumbs on all nested pages using DaisyUI `breadcrumbs` class
+- Hover effects: `hover:shadow-lg` for cards, `hover:bg-base-300` for list items
+- Message copy button appears on hover using `group-hover:opacity-100`
+
+## Provider Integration Wizard (2026-02-19)
+- 4-step wizard for adding AI providers: Select → Authenticate → Test → Configure
+- Uses `ProviderConnectionTester` service to validate API keys before saving
+- Real-time connection testing via AJAX with loading/success/error states
+- Session-based state management for multi-step flow
+- Supports OpenAI, Anthropic, and GitHub Models
+- Provider-specific authentication fields (API Key, optional Organization ID)
+- Wizard URL: `/providers/wizard`
 
 ## Ruby Version (2026-02-19)
 - **Ruby 4.0.1** (upgraded from 3.4.8) - Uses mise for version management

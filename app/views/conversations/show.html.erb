@@ -1,6 +1,16 @@
 <%= turbo_stream_from "conversation_#{@conversation.id}" %>
 
 <div class="space-y-6">
+  <!-- Breadcrumbs -->
+  <div class="breadcrumbs text-sm">
+    <ul>
+      <li><%= link_to "Councils", councils_path %></li>
+      <li><%= link_to @conversation.council.name, @conversation.council %></li>
+      <li><%= link_to "Conversations", council_conversations_path(@conversation.council) %></li>
+      <li><%= @conversation.title %></li>
+    </ul>
+  </div>
+
   <!-- Header -->
   <div class="flex items-center justify-between mb-6">
     <div>

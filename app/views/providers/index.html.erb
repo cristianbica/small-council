@@ -5,13 +5,13 @@
       <h1 class="text-3xl font-bold">AI Providers</h1>
       <p class="text-base-content/70 mt-1">Manage your AI service providers and models</p>
     </div>
-    <%= link_to "Add Provider", new_provider_path, class: "btn btn-primary" %>
+    <%= link_to "Add Provider", wizard_providers_path, class: "btn btn-primary" %>
   </div>
 
   <% if @providers.any? %>
     <div class="space-y-4">
       <% @providers.each do |provider| %>
-        <div class="card bg-base-100 shadow">
+        <%= link_to edit_provider_path(provider), class: "card bg-base-100 shadow hover:shadow-lg transition-all" do %>
           <div class="card-body p-4">
             <div class="flex items-center justify-between">
               <div class="min-w-0 flex-1">
@@ -26,7 +26,7 @@
                   <span class="text-sm text-base-content/60"><%= provider.llm_models.count %> models</span>
                 </div>
               </div>
-              <div class="flex items-center gap-2 ml-4">
+              <div class="flex items-center gap-2 ml-4" onclick="event.preventDefault();">
                 <%= link_to "Edit", edit_provider_path(provider), class: "btn btn-sm btn-ghost" %>
                 <%= button_to "Remove", provider_path(provider), method: :delete,
                     class: "btn btn-sm btn-ghost text-error",
@@ -46,14 +46,14 @@
               </div>
             <% end %>
           </div>
-        </div>
+        <% end %>
       <% end %>
     </div>
   <% else %>
     <%= render "shared/empty_state",
         title: "No providers configured",
         description: "Add an AI provider to start using AI advisors in your councils.",
-        action_path: new_provider_path,
+        action_path: wizard_providers_path,
         action_text: "Add your first provider" %>
   <% end %>
 </div>

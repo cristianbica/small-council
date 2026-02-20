@@ -17,27 +17,20 @@
   <% if @councils.any? %>
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <% @councils.each do |council| %>
-        <div class="card bg-base-100 shadow hover:shadow-lg transition-shadow">
+        <%= link_to council, class: "card bg-base-100 shadow hover:shadow-lg transition-all hover:-translate-y-0.5" do %>
           <div class="card-body">
             <h2 class="card-title"><%= council.name %></h2>
             <p class="text-sm text-base-content/60 line-clamp-2">
               <%= council.description.presence || "No description" %>
             </p>
 
-            <div class="flex items-center gap-2 mt-2">
+            <div class="flex items-center gap-2 mt-4">
               <span class="text-sm text-base-content/60">
                 <%= pluralize(council.advisors.where.not(council_id: nil).count, "advisor") %>
               </span>
             </div>
-
-            <div class="card-actions justify-end mt-4">
-              <%= link_to "View", council, class: "btn btn-sm btn-ghost" %>
-              <% if council.user_id == Current.user.id %>
-                <%= link_to "Edit", edit_council_path(council), class: "btn btn-sm btn-ghost" %>
-              <% end %>
-            </div>
           </div>
-        </div>
+        <% end %>
       <% end %>
     </div>
   <% else %>

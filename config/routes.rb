@@ -40,7 +40,15 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :providers
+  resources :providers do
+    collection do
+      get :wizard
+      post :wizard_step
+      post :wizard_back
+      post :wizard_cancel
+      post :test_connection
+    end
+  end
 
   # Health check
   get "up" => "rails/health#show", as: :rails_health_check

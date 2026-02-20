@@ -30,19 +30,24 @@
   <section class="card bg-base-100 shadow">
     <div class="card-body">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="card-title">Your Councils</h2>
+        <h2 class="card-title flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Your Councils
+        </h2>
         <span class="badge badge-primary badge-sm"><%= @councils.count %></span>
       </div>
 
       <% if @councils.any? %>
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <% @councils.each do |council| %>
-            <div class="card bg-base-200">
+            <%= link_to council, class: "card bg-base-200 hover:bg-base-300 transition-colors" do %>
               <div class="card-body p-4">
                 <h3 class="font-semibold"><%= council.name %></h3>
                 <p class="text-sm text-base-content/60"><%= council.description || "No description" %></p>
               </div>
-            </div>
+            <% end %>
           <% end %>
         </div>
       <% else %>
@@ -66,9 +71,9 @@
       <% if @conversations.any? %>
         <div class="space-y-3">
           <% @conversations.each do |conversation| %>
-            <div class="flex items-center justify-between p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors">
+            <%= link_to conversation, class: "flex items-center justify-between p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors" do %>
               <div class="min-w-0 flex-1">
-                <h3 class="font-semibold truncate"><%= link_to conversation.title || "Untitled conversation", conversation, class: "hover:underline" %></h3>
+                <h3 class="font-semibold truncate"><%= conversation.title || "Untitled conversation" %></h3>
                 <p class="text-sm text-base-content/60">
                   <%= conversation.messages.count %> messages · <%= time_ago_in_words(conversation.created_at) %> ago
                 </p>
@@ -78,7 +83,7 @@
                   <%= conversation.status %>
                 </span>
               </div>
-            </div>
+            <% end %>
           <% end %>
         </div>
       <% else %>

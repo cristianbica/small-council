@@ -1,0 +1,74 @@
+<% provider_type = @wizard_data[:provider_type] %>
+<% provider_name = provider_type&.humanize || "Provider" %>
+<% default_name = case provider_type
+  when "openai" then "OpenAI"
+  when "anthropic" then "Anthropic"
+  when "github" then "GitHub Models"
+  else "AI Provider"
+  end
+%>
+
+<div class="flex items-center gap-2 mb-4">
+  <%= button_to "← Back", wizard_back_providers_path, method: :post, class: "btn btn-ghost btn-sm" %>
+</div>
+
+<h2 class="card-title mb-2">Configure Provider</h2>
+<p class="text-base-content/70 mb-6">Review and finalize your <%= provider_name %> configuration.</p>
+
+<% if @provider&.errors&.any? %>
+  <div class="alert alert-error mb-6">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <div>
+      <h3 class="font-bold"><%= pluralize(@provider.errors.count, "error") %> prohibited this provider from being saved:</h3>
+      <ul class="mt-1 list-disc list-inside text-sm">
+        <% @provider.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  </div>
+<% end %>
+
+<%= form_with url: wizard_step_providers_path, method: :post, class: "space-y-4" do |f| %>
+  <div class="form-control">
+    <label class="label">
+      <span class="label-text">Name</span>
+      <span class="label-text-alt text-base-content/60">Optional</span>
+    </label>
+    <%= f.text_field :name,
+        class: "input input-bordered w-full",
+        placeholder: default_name,
+        value: @wizard_data[:name] || default_name %>
+    <label class="label">
+      <span class="label-text-alt text-base-content/60">A friendly name to identify this provider</span>
+    </label>
+  </div>
+
+  <div class="form-control">
+    <label class="label cursor-pointer justify-start gap-3">
+      <%= f.check_box :enabled,
+          class: "checkbox checkbox-primary",
+          checked: @wizard_data[:enabled] != false %>
+      <span class="label-text">Enabled</span>
+    </label>
+    <label class="label">
+      <span class="label-text-alt text-base-content/60">Provider is active and available for use</span>
+    </label>
+  </div>
+
+  <div class="bg-base-200 rounded-lg p-4">
+    <h4 class="font-semibold mb-2">Summary:</h4>
+    <ul class="text-sm space-y-1 text-base-content/70">
+      <li>• Type: <%= provider_name %></li>
+      <li>• Models: <%= @wizard_data[:available_models]&.count || "Unknown" %> available</li>
+      <li>• Status: <%= @wizard_data[:tested] ? "Tested and ready" : "Ready to test" %></li>
+    </ul>
+  </div>
+
+  <div class="card-actions justify-between mt-6">
+    <%= button_to "← Back", wizard_back_providers_path, method: :post, class: "btn btn-ghost" %>
+    <%= f.submit "Save Provider", class: "btn btn-primary" %>
+  </div>
+<% end %>

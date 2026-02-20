@@ -8,6 +8,7 @@
         "-i", "--rm", "--init",
         "--ipc=host",
         "-v", "/root/p/small-council/tmp/playwright:/tmp",
+        "-e", "PLAYWRIGHT_CHROMIUM_ARGS=\"--window-size=1920,1080 --force-device-scale-factor=2\"",
         "mcr.microsoft.com/playwright/mcp"
       ],
       "enabled": true

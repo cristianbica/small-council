@@ -2,6 +2,62 @@
 
 Reusable UI patterns and components for Small Council.
 
+## DaisyUI Usage (Tailwind v4 + DaisyUI v5)
+
+This repo uses DaisyUI as a Tailwind plugin in `app/assets/tailwind/application.css`:
+
+- `@import "tailwindcss";`
+- `@plugin "./daisyui.mjs" { themes: all; }`
+
+Use DaisyUI + Tailwind utilities first; avoid custom CSS unless a component cannot be expressed with existing classes.
+
+### Class Composition Rule
+
+Compose classes in this order:
+
+1. Component class (`btn`, `card`, `input`, `alert`)
+2. DaisyUI modifiers (style/color/size/behavior, e.g. `btn-primary btn-sm`)
+3. Tailwind utilities for spacing/layout/responsiveness (e.g. `w-full md:w-auto`)
+
+Example:
+
+```erb
+<%= form.submit "Save",
+    class: "btn btn-primary btn-sm w-full md:w-auto" %>
+```
+
+### Theme + Color Rule
+
+- Prefer semantic DaisyUI color tokens (`primary`, `secondary`, `accent`, `base-*`, `*-content`) over raw palette values.
+- Prefer component color classes (`btn-primary`, `alert-error`, `badge-success`) over `text-gray-*`/`bg-gray-*` so themes stay readable.
+- Avoid `dark:` variants for DaisyUI semantic colors; theme tokens already adapt.
+- Keep global theme on the layout root (`data-theme`) and avoid per-component hard-coded color overrides.
+
+### Layout + Responsiveness Rule
+
+- Use Tailwind responsive utilities for layout (`sm:`, `md:`, `lg:`) with DaisyUI components.
+- For grouped controls, prefer DaisyUI structure classes (`join`, `menu`, `tabs`) plus responsive direction utilities.
+- Keep page rhythm with existing spacing standards in this file (`space-y-6`, `gap-4`, etc.).
+
+### Customization Rule
+
+- First choice: DaisyUI component + modifier classes.
+- Second choice: Tailwind utility classes.
+- Last resort: utility `!` override (for specificity conflicts only; use sparingly).
+
+Example last resort:
+
+```erb
+<button class="btn btn-primary bg-red-500!">Danger</button>
+```
+
+### Anti-patterns
+
+- Do not introduce new one-off CSS classes for common controls already covered by DaisyUI.
+- Do not mix conflicting component families on the same element (example: `btn` + `input`).
+- Do not rely on fixed Tailwind gray text colors for core surfaces; use `*-content` semantics.
+- Do not apply `bg-base-100 text-base-content` on `body` unless needed for a specific reason.
+
 ## Form Field Pattern
 
 Standard form field with validation support:

@@ -1,4 +1,13 @@
 <div class="space-y-6">
+  <!-- Breadcrumbs -->
+  <div class="breadcrumbs text-sm">
+    <ul>
+      <li><%= link_to "Councils", councils_path %></li>
+      <li><%= link_to @council.name, @council %></li>
+      <li>Conversations</li>
+    </ul>
+  </div>
+
   <!-- Header -->
   <div class="flex items-center justify-between mb-6">
     <div>
@@ -14,7 +23,7 @@
       <% if @conversations.any? %>
         <div class="space-y-3">
           <% @conversations.each do |conversation| %>
-            <div class="flex items-center justify-between p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors">
+            <%= link_to conversation, class: "flex items-center justify-between p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors" do %>
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2">
                   <div class="avatar placeholder">
@@ -22,7 +31,7 @@
                       <span class="text-xs"><%= conversation.user.email.first.upcase %></span>
                     </div>
                   </div>
-                  <h3 class="font-semibold truncate"><%= link_to conversation.title, conversation, class: "hover:underline" %></h3>
+                  <h3 class="font-semibold truncate"><%= conversation.title %></h3>
                   <span class="badge <%= conversation.active? ? 'badge-success' : (conversation.concluding? ? 'badge-warning' : 'badge-ghost') %> badge-sm">
                     <%= conversation.status %>
                   </span>
@@ -38,14 +47,11 @@
                 </p>
               </div>
               <div class="flex items-center gap-2 ml-4">
-                <%= link_to conversation, class: "btn btn-ghost btn-sm" do %>
-                  View
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                <% end %>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
               </div>
-            </div>
+            <% end %>
           <% end %>
         </div>
       <% else %>

@@ -1,4 +1,12 @@
 <div class="space-y-6">
+  <!-- Breadcrumbs -->
+  <div class="breadcrumbs text-sm">
+    <ul>
+      <li><%= link_to "Councils", councils_path %></li>
+      <li><%= @council.name %></li>
+    </ul>
+  </div>
+
   <!-- Header -->
   <div class="flex items-center justify-between mb-6">
     <div>
@@ -32,7 +40,8 @@
       <% if @advisors.any? %>
         <div class="space-y-3">
           <% @advisors.each do |advisor| %>
-            <div class="flex items-center justify-between p-4 bg-base-200 rounded-lg">
+            <%= link_to edit_council_advisor_path(@council, advisor),
+                class: "flex items-center justify-between p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors" do %>
               <div class="min-w-0 flex-1">
                 <h3 class="font-semibold truncate"><%= advisor.name %></h3>
                 <p class="text-sm text-base-content/60 line-clamp-1">
@@ -44,7 +53,7 @@
                 </p>
               </div>
               <% if @council.user_id == Current.user.id %>
-                <div class="flex items-center gap-2 ml-4">
+                <div class="flex items-center gap-2 ml-4" onclick="event.preventDefault();">
                   <%= link_to "Edit", edit_council_advisor_path(@council, advisor), class: "btn btn-xs btn-ghost" %>
                   <%= button_to "Remove", council_advisor_path(@council, advisor),
                       method: :delete,
@@ -52,7 +61,7 @@
                       data: { turbo_confirm: "Remove this advisor?" } %>
                 </div>
               <% end %>
-            </div>
+            <% end %>
           <% end %>
         </div>
       <% else %>
@@ -76,9 +85,9 @@
       <% if @council.conversations.any? %>
         <div class="space-y-3">
           <% @council.conversations.recent.limit(5).each do |conversation| %>
-            <div class="flex items-center justify-between p-4 bg-base-200 rounded-lg">
+            <%= link_to conversation, class: "flex items-center justify-between p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors" do %>
               <div class="min-w-0 flex-1">
-                <h3 class="font-semibold truncate"><%= link_to conversation.title, conversation, class: "hover:underline" %></h3>
+                <h3 class="font-semibold truncate"><%= conversation.title %></h3>
                 <p class="text-sm text-base-content/60">
                   <%= conversation.messages.count %> messages ·
                   <% if conversation.last_message_at %>
@@ -93,7 +102,7 @@
                   <%= conversation.status %>
                 </span>
               </div>
-            </div>
+            <% end %>
           <% end %>
           <% if @council.conversations.count > 5 %>
             <div class="text-center mt-4">
