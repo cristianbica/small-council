@@ -5,12 +5,13 @@ module LLM
     def self.available_models(account)
       models = []
 
+      # Preload all LLMModels for the account to avoid N+1 queries
+      llm_models_by_key = account.llm_models.index_by { |m| [ m.provider_id, m.identifier ] }
+
       account.providers.enabled.each do |provider|
         provider.api.list_models.each do |model_data|
-          llm_model = account.llm_models.find_by(
-            provider: provider,
-            identifier: model_data[:id]
-          )
+          # Lookup from preloaded hash instead of querying database
+          llm_model = llm_models_by_key[[ provider.id, model_data[:id] ]]
 
           models << ModelInfo.new(
             provider: provider,
