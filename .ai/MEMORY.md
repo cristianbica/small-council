@@ -85,6 +85,8 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - 2026-02-18: Security test audit added 37 new security tests covering tenant isolation, parameter tampering, mass assignment, and cross-account access. See `.ai/docs/patterns/security-testing.md` for patterns.
 - 2026-02-18: Conversation Memory Features - Structured AI-generated summaries with key decisions, action items, insights, and open questions. Space-level cumulative memory browser with search. Regenerate summary option available during review.
 
+- 2026-02-24: Created `dhh-coder` overlay (coding style) and `dhh-reviewer` overlay (code review persona) for 37signals/DHH Rails conventions
+
 ## Gems
 - `ruby-openai` (~> 7.0) - OpenAI API client
 - `anthropic` (~> 0.3) - Anthropic API client
