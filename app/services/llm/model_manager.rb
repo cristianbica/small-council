@@ -39,22 +39,29 @@ module LLM
       info = client.info
 
       if info
+        # Store full RubyLLM data
+        full_metadata = info.as_json
+
+        # Determine if model is free
+        input_price = full_metadata.dig("pricing", "input").to_f
+        output_price = full_metadata.dig("pricing", "output").to_f
+        is_free = input_price == 0.0 && output_price == 0.0
+
+        # Extract capabilities
+        capabilities = {
+          "chat" => full_metadata["type"] == "chat",
+          "vision" => full_metadata["vision"] || false,
+          "json_mode" => full_metadata["structured_output"] || false,
+          "functions" => full_metadata["supports_functions"] || false,
+          "streaming" => full_metadata["streaming"] || false
+        }
+
         llm_model.name = info.name
         llm_model.enabled = true
-        llm_model.metadata = {
-          capabilities: {
-            chat: info.type == "chat",
-            vision: info.supports_vision?,
-            json_mode: info.structured_output?,
-            functions: info.supports_functions?
-          },
-          pricing: {
-            input_price_per_million: info.input_price_per_million,
-            output_price_per_million: info.output_price_per_million
-          },
-          context_window: info.context_window,
-          max_tokens: info.max_tokens
-        }
+        llm_model.metadata = full_metadata
+        llm_model.free = is_free
+        llm_model.context_window = full_metadata["context_window"]
+        llm_model.capabilities = capabilities
       else
         # Fallback if ruby_llm doesn't have info
         llm_model.name ||= model_id.split("/").last

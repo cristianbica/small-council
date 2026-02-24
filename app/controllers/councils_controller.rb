@@ -10,7 +10,7 @@ class CouncilsController < ApplicationController
   end
 
   def show
-    @advisors = @council.advisors.where.not(council_id: nil).order(created_at: :asc)
+    @advisors = @council.advisors.order(created_at: :asc)
   end
 
   def new

@@ -1,4 +1,4 @@
-<div class="space-y-6">
+<div class="space-y-6" data-controller="model-filter" data-model-filter-total-count-value="<%= @models.count %>">
   <!-- Header -->
   <div class="flex items-center justify-between mb-6">
     <div>
@@ -11,9 +11,48 @@
       </h1>
       <p class="text-base-content/70 mt-1">
         Enable or disable models for use with your AI advisors
+        <span class="text-sm ml-2" data-filter-count><%= @models.count %> models</span>
       </p>
     </div>
     <%= link_to "Back to Providers", providers_path, class: "btn btn-ghost" %>
+  </div>
+
+  <!-- Filters -->
+  <div class="card bg-base-100 shadow">
+    <div class="card-body p-4">
+      <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <!-- Search -->
+        <div class="form-control flex-1 w-full sm:w-auto">
+          <div class="input-group">
+            <span class="bg-base-200 px-3 py-2 rounded-l-lg border border-base-300 border-r-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input type="text"
+                   data-model-filter-target="searchInput"
+                   data-action="input->model-filter#filter"
+                   placeholder="Search models by name or ID..."
+                   class="input input-bordered w-full rounded-l-none" />
+          </div>
+        </div>
+
+        <!-- Free Only Toggle -->
+        <div class="flex items-center gap-3">
+          <label class="label cursor-pointer gap-2">
+            <input type="checkbox"
+                   data-model-filter-target="freeToggle"
+                   data-action="change->model-filter#filter"
+                   class="checkbox checkbox-primary" />
+            <span class="label-text">Free only</span>
+          </label>
+
+          <button data-action="click->model-filter#reset" class="btn btn-ghost btn-sm">
+            Reset
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <% if @models.any? %>
@@ -25,10 +64,26 @@
 
             <div class="space-y-2">
               <% models.each do |model_info| %>
-                <div class="flex items-center justify-between p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors">
+                <% llm_model = model_info.llm_model %>
+                <div data-model-filter-target="model"
+                     data-model-name="<%= model_info.name %>"
+                     data-model-id="<%= model_info.model_id %>"
+                     data-model-free="<%= llm_model&.free || false %>"
+                     class="flex items-center justify-between p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors">
                   <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3 flex-wrap">
                       <h3 class="font-medium truncate"><%= model_info.name %></h3>
+
+                      <!-- Free/Paid Badge -->
+                      <% if llm_model %>
+                        <% if llm_model.free? %>
+                          <span class="badge badge-success badge-sm">Free</span>
+                        <% else %>
+                          <span class="badge badge-ghost badge-sm">Paid</span>
+                        <% end %>
+                      <% end %>
+
+                      <!-- Capabilities -->
                       <% if model_info.capabilities %>
                         <div class="flex items-center gap-1">
                           <% if model_info.capabilities[:chat] %>
@@ -40,10 +95,19 @@
                           <% if model_info.capabilities[:functions] %>
                             <span class="badge badge-xs badge-accent" title="Functions">⚙️</span>
                           <% end %>
+                          <% if model_info.capabilities[:json_mode] %>
+                            <span class="badge badge-xs badge-info" title="JSON">📋</span>
+                          <% end %>
                         </div>
                       <% end %>
                     </div>
-                    <p class="text-xs text-base-content/60 font-mono mt-1"><%= model_info.model_id %></p>
+
+                    <div class="flex items-center gap-2 text-xs text-base-content/60 mt-1">
+                      <span class="font-mono"><%= model_info.model_id %></span>
+                      <% if llm_model&.context_window.present? %>
+                        <span class="badge badge-ghost badge-xs"><%= number_with_delimiter(llm_model.context_window) %> ctx</span>
+                      <% end %>
+                    </div>
                   </div>
 
                   <div class="ml-4">
@@ -55,6 +119,24 @@
           </div>
         </div>
       <% end %>
+    </div>
+
+    <!-- No Results Message (hidden by default) -->
+    <div data-model-filter-target="noResults" class="hidden card bg-base-100 shadow">
+      <div class="card-body items-center text-center py-12">
+        <div class="mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold">No models match your filters</h3>
+        <p class="text-base-content/70 mt-2 max-w-md">
+          Try adjusting your search term or unchecking "Free only" to see more models.
+        </p>
+        <button data-action="click->model-filter#reset" class="btn btn-primary mt-4">
+          Clear Filters
+        </button>
+      </div>
     </div>
   <% else %>
     <div class="card bg-base-100 shadow">

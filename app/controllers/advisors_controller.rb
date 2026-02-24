@@ -8,11 +8,10 @@ class AdvisorsController < ApplicationController
   end
 
   def create
-    @advisor = @council.advisors.new(advisor_params)
-    @advisor.account = Current.account
-    @advisor.council = @council
+    @advisor = Current.account.advisors.new(advisor_params)
 
     if @advisor.save
+      @council.council_advisors.create!(advisor: @advisor, position: @council.council_advisors.count)
       redirect_to @council, notice: "Advisor added successfully."
     else
       render :new, status: :unprocessable_entity

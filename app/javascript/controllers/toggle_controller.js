@@ -3,9 +3,16 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["spinner"]
 
+  connect() {
+    // Reset state when controller connects (after Turbo stream updates)
+    this.reset()
+  }
+
   loading() {
     // Show spinner
-    this.spinnerTarget.classList.remove("hidden")
+    if (this.hasSpinnerTarget) {
+      this.spinnerTarget.classList.remove("hidden")
+    }
     
     // Disable the toggle while loading
     const checkbox = this.element.querySelector('input[type="checkbox"]')
@@ -14,9 +21,11 @@ export default class extends Controller {
     }
   }
 
-  complete() {
+  reset() {
     // Hide spinner
-    this.spinnerTarget.classList.add("hidden")
+    if (this.hasSpinnerTarget) {
+      this.spinnerTarget.classList.add("hidden")
+    }
     
     // Re-enable the toggle
     const checkbox = this.element.querySelector('input[type="checkbox"]')

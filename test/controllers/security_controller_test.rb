@@ -182,19 +182,20 @@ class SecurityControllerTest < ActionDispatch::IntegrationTest
     # Try to create advisor with other account's model
     council = @account.councils.create!(name: "Test", user: @user, space: @space)
 
-    post council_advisors_url(council), params: {
-      advisor: {
-        name: "Tampered Advisor",
-        system_prompt: "Test",
-        llm_model_id: other_model.id  # Trying to use other account's model
+    assert_no_difference("Advisor.count") do
+      post council_advisors_url(council), params: {
+        advisor: {
+          name: "Tampered Advisor",
+          system_prompt: "Test",
+          llm_model_id: other_model.id  # Trying to use other account's model
+        }
       }
-    }
+    end
 
     # The controller should reject the foreign llm_model_id
-    # Advisor should be created but with nil llm_model_id (foreign model rejected)
-    advisor = Advisor.find_by(name: "Tampered Advisor")
-    assert advisor, "Advisor should be created"
-    assert_nil advisor.llm_model_id, "Foreign llm_model_id should be rejected"
+    # Advisor creation should fail because no valid llm_model is provided
+    assert_response :unprocessable_entity
+    assert_nil Advisor.find_by(name: "Tampered Advisor"), "Advisor should not be created with foreign model"
   end
 
   test "cannot access providers from another account" do

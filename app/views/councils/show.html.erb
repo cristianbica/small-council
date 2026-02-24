@@ -22,7 +22,7 @@
         <%= link_to "Edit Council", edit_council_path(@council), class: "btn btn-ghost btn-sm" %>
         <%= button_to "Delete", @council, method: :delete,
             class: "btn btn-error btn-sm",
-            data: { turbo_confirm: "Are you sure? This will delete the council and all its advisors." } %>
+            data: { turbo_confirm: "Are you sure? This will permanently delete:\n\n• This council\n• All #{@council.advisors.count} advisor(s) in this council\n• All #{@council.conversations.count} conversation(s)\n• All messages within those conversations\n\nThis action cannot be undone." } %>
       <% end %>
     </div>
   </div>

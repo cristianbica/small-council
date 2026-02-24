@@ -304,9 +304,10 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
       enabled: true
     )
 
+    mock_model = provider.llm_models.new(name: "GPT-4", identifier: "gpt-4")
     LLM::ModelManager.expects(:enable_model)
                      .with(@account, provider, "gpt-4")
-                     .returns(provider.llm_models.new)
+                     .returns(mock_model)
 
     post toggle_model_providers_url, params: {
       provider_id: provider.id,
@@ -315,7 +316,7 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_redirected_to providers_url
-    assert_equal "Model enabled successfully", flash[:notice]
+    assert_equal "Model 'GPT-4' enabled successfully", flash[:notice]
   end
 
   test "should toggle model off" do
@@ -328,9 +329,10 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
       enabled: true
     )
 
+    mock_model = provider.llm_models.new(name: "GPT-4", identifier: "gpt-4")
     LLM::ModelManager.expects(:disable_model)
                      .with(@account, provider, "gpt-4")
-                     .returns(provider.llm_models.new)
+                     .returns(mock_model)
 
     post toggle_model_providers_url, params: {
       provider_id: provider.id,
@@ -339,7 +341,7 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_redirected_to providers_url
-    assert_equal "Model disabled successfully", flash[:notice]
+    assert_equal "Model 'GPT-4' disabled successfully", flash[:notice]
   end
 
   test "toggle_model responds to json format" do
@@ -352,7 +354,8 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
       enabled: true
     )
 
-    LLM::ModelManager.stubs(:enable_model).returns(provider.llm_models.new)
+    mock_model = provider.llm_models.new(name: "GPT-4", identifier: "gpt-4")
+    LLM::ModelManager.stubs(:enable_model).returns(mock_model)
 
     post toggle_model_providers_url, params: {
       provider_id: provider.id,
@@ -363,7 +366,7 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     json_response = JSON.parse(response.body)
     assert json_response["success"]
-    assert_equal "Model enabled successfully", json_response["message"]
+    assert_equal "Model 'GPT-4' enabled successfully", json_response["message"]
   end
 
   test "toggle_model handles errors gracefully" do

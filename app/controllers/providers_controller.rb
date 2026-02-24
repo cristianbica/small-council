@@ -165,34 +165,30 @@ class ProvidersController < ApplicationController
     enabled = params[:enabled] == "true"
 
     if enabled
-      LLM::ModelManager.enable_model(Current.account, provider, model_id)
-      message = "Model enabled successfully"
+      llm_model = LLM::ModelManager.enable_model(Current.account, provider, model_id)
+      message = "Model '#{llm_model.name}' enabled successfully"
     else
-      LLM::ModelManager.disable_model(Current.account, provider, model_id)
-      message = "Model disabled successfully"
+      llm_model = LLM::ModelManager.disable_model(Current.account, provider, model_id)
+      message = "Model '#{llm_model&.name || model_id}' disabled successfully"
     end
 
     respond_to do |format|
       format.turbo_stream do
-        # Re-fetch the updated model info
-        @provider = provider
-        @model_id = model_id
-        @enabled = enabled
-        @model_info = LLM::ModelManager.available_models(Current.account)
-                                        .find { |m| m.provider == provider && m.model_id == model_id }
+        # Build model info from the saved record (no API call needed)
+        model_info = LLM::ModelManager::ModelInfo.new(
+          provider: provider,
+          model_id: model_id,
+          name: llm_model&.name || model_id.split("/").last,
+          enabled: enabled,
+          llm_model: llm_model,
+          capabilities: llm_model&.capabilities || {}
+        )
 
-        if @model_info
-          render turbo_stream: turbo_stream.replace(
-            "model_toggle_#{provider.id}_#{model_id}",
-            partial: "providers/model_toggle",
-            locals: { provider: provider, model_info: @model_info }
-          )
-        else
-          render turbo_stream: turbo_stream.update(
-            "model_toggle_#{provider.id}_#{model_id}",
-            html: "<span class='text-error'>Error</span>"
-          )
-        end
+        render turbo_stream: turbo_stream.replace(
+          "model_toggle_#{provider.id}_#{model_id}",
+          partial: "providers/model_toggle",
+          locals: { provider: provider, model_info: model_info }
+        )
       end
       format.html { redirect_back fallback_location: providers_path, notice: message }
       format.json { render json: { success: true, message: message } }
@@ -200,12 +196,14 @@ class ProvidersController < ApplicationController
   rescue ActiveRecord::RecordNotFound
     raise
   rescue StandardError => e
+    logger.error "[toggle_model] Error: #{e.class} - #{e.message}"
+
     respond_to do |format|
       format.turbo_stream do
         render turbo_stream: turbo_stream.update(
           "model_toggle_#{params[:provider_id]}_#{params[:model_id]}",
-          html: "<span class='text-error'>Error</span>"
-        )
+          html: "<span class='text-error' title='#{e.message}'>Error</span>"
+        ), status: :unprocessable_entity
       end
       format.html { redirect_back fallback_location: providers_path, alert: "Error: #{e.message}" }
       format.json { render json: { success: false, error: e.message }, status: :unprocessable_entity }

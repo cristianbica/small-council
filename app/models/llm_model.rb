@@ -12,10 +12,13 @@ class LLMModel < ApplicationRecord
   # Delegations for convenience
   delegate :provider_type, to: :provider, allow_nil: true
 
+  # Scopes
   scope :enabled, -> { where(enabled: true, deprecated: false).where(deleted_at: nil) }
   scope :available, -> { enabled }
   scope :deprecated, -> { where(deprecated: true) }
   scope :soft_deleted, -> { where.not(deleted_at: nil) }
+  scope :free, -> { where(free: true) }
+  scope :paid, -> { where(free: false) }
 
   # Soft delete
   def soft_delete
@@ -42,61 +45,71 @@ class LLMModel < ApplicationRecord
     @api ||= LLM::Client.new(provider: provider, model: self)
   end
 
-  # Sync metadata from ruby_llm
+  # Sync metadata from ruby_llm - stores full RubyLLM::Model::Info data
   def sync_from_ruby_llm!
     model_info = api.info
     return unless model_info
 
+    # Store full RubyLLM data in metadata
+    full_metadata = model_info.as_json
+
+    # Extract important attributes for direct querying
+    # Determine if free: either explicitly marked or both input/output price are 0
+    is_free = if full_metadata["pricing"].present?
+                input_price = full_metadata["pricing"]["input"].to_f
+                output_price = full_metadata["pricing"]["output"].to_f
+                input_price == 0.0 && output_price == 0.0
+    else
+                false
+    end
+
     update!(
-      metadata: {
-        capabilities: {
-          chat: model_info.type == "chat",
-          vision: model_info.supports_vision?,
-          json_mode: model_info.structured_output?,
-          functions: model_info.supports_functions?
-        },
-        pricing: {
-          input_price_per_million: model_info.input_price_per_million,
-          output_price_per_million: model_info.output_price_per_million
-        },
-        context_window: model_info.context_window,
-        max_tokens: model_info.max_tokens
-      }
+      metadata: full_metadata,
+      free: is_free,
+      context_window: full_metadata["context_window"],
+      capabilities: extract_capabilities(full_metadata)
     )
   end
 
-  # Capability checkers
+  # Capability checkers (use capabilities column, fallback to metadata for flexibility)
   def supports_chat?
-    metadata.dig("capabilities", "chat") || false
+    capabilities["chat"] || metadata.dig("capabilities", "chat") || type == "chat"
   end
 
   def supports_vision?
-    metadata.dig("capabilities", "vision") || false
+    capabilities["vision"] || metadata.dig("vision") || false
   end
 
   def supports_json_mode?
-    metadata.dig("capabilities", "json_mode") || false
+    capabilities["json_mode"] || metadata.dig("structured_output") || false
   end
 
   def supports_functions?
-    metadata.dig("capabilities", "functions") || false
+    capabilities["functions"] || metadata.dig("supports_functions") || false
   end
 
-  # Pricing accessors
-  def input_price_per_million
-    metadata.dig("pricing", "input_price_per_million")
+  def supports_streaming?
+    capabilities["streaming"] || metadata.dig("streaming") || false
   end
 
-  def output_price_per_million
-    metadata.dig("pricing", "output_price_per_million")
+  # Pricing accessors (use metadata as source of truth)
+  def input_price
+    metadata.dig("pricing", "input").to_f
   end
 
-  # Context window accessor
-  def context_window
-    metadata["context_window"]
+  def output_price
+    metadata.dig("pricing", "output").to_f
   end
 
-  def max_tokens
-    metadata["max_tokens"]
+  private
+
+  def extract_capabilities(full_metadata)
+    {
+      "chat" => full_metadata["type"] == "chat",
+      "vision" => full_metadata["vision"] || false,
+      "json_mode" => full_metadata["structured_output"] || false,
+      "functions" => full_metadata["supports_functions"] || false,
+      "streaming" => full_metadata["streaming"] || false
+    }
   end
 end

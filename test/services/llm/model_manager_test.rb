@@ -60,17 +60,22 @@ module LLM
     end
 
     test "enable_model creates new LLMModel with metadata" do
-      mock_client = mock("client")
-      mock_info = mock("model_info")
+      mock_info = stub("model_info")
       mock_info.stubs(:name).returns("GPT-4 Turbo")
-      mock_info.stubs(:type).returns("chat")
-      mock_info.stubs(:supports_vision?).returns(true)
-      mock_info.stubs(:structured_output?).returns(true)
-      mock_info.stubs(:supports_functions?).returns(true)
-      mock_info.stubs(:input_price_per_million).returns(10.0)
-      mock_info.stubs(:output_price_per_million).returns(30.0)
-      mock_info.stubs(:context_window).returns(128000)
-      mock_info.stubs(:max_tokens).returns(4096)
+      mock_info.stubs(:as_json).returns({
+        "name" => "GPT-4 Turbo",
+        "type" => "chat",
+        "vision" => true,
+        "structured_output" => true,
+        "supports_functions" => true,
+        "streaming" => true,
+        "pricing" => {
+          "input" => 10.0,
+          "output" => 30.0
+        },
+        "context_window" => 128000,
+        "max_tokens" => 4096
+      })
 
       LLM::Client.any_instance.stubs(:info).returns(mock_info)
 
@@ -80,10 +85,9 @@ module LLM
         assert_equal "GPT-4 Turbo", llm_model.name
         assert_equal "gpt-4-turbo", llm_model.identifier
         assert llm_model.enabled
-        assert_equal true, llm_model.metadata["capabilities"]["chat"]
-        assert_equal true, llm_model.metadata["capabilities"]["vision"]
-        assert_equal 10.0, llm_model.metadata["pricing"]["input_price_per_million"]
-        assert_equal 128000, llm_model.metadata["context_window"]
+        assert_equal false, llm_model.free
+        assert_equal 128000, llm_model.context_window
+        assert_equal true, llm_model.capabilities["chat"]
       end
     end
 
@@ -95,16 +99,22 @@ module LLM
         enabled: false
       )
 
-      mock_info = mock("model_info")
+      mock_info = stub("model_info")
       mock_info.stubs(:name).returns("GPT-4 Updated")
-      mock_info.stubs(:type).returns("chat")
-      mock_info.stubs(:supports_vision?).returns(false)
-      mock_info.stubs(:structured_output?).returns(false)
-      mock_info.stubs(:supports_functions?).returns(false)
-      mock_info.stubs(:input_price_per_million).returns(5.0)
-      mock_info.stubs(:output_price_per_million).returns(15.0)
-      mock_info.stubs(:context_window).returns(8192)
-      mock_info.stubs(:max_tokens).returns(2048)
+      mock_info.stubs(:as_json).returns({
+        "name" => "GPT-4 Updated",
+        "type" => "chat",
+        "vision" => false,
+        "structured_output" => false,
+        "supports_functions" => false,
+        "streaming" => true,
+        "pricing" => {
+          "input" => 5.0,
+          "output" => 15.0
+        },
+        "context_window" => 8192,
+        "max_tokens" => 2048
+      })
 
       LLM::Client.any_instance.stubs(:info).returns(mock_info)
 
@@ -114,6 +124,38 @@ module LLM
         assert_equal existing.id, llm_model.id
         assert_equal "GPT-4 Updated", llm_model.name
         assert llm_model.enabled
+        assert_equal false, llm_model.free
+        assert_equal 8192, llm_model.context_window
+      end
+    end
+
+    test "enable_model marks model as free when pricing is zero" do
+      mock_info = stub("model_info")
+      mock_info.stubs(:name).returns("Free Model")
+      mock_info.stubs(:as_json).returns({
+        "name" => "Free Model",
+        "type" => "chat",
+        "vision" => true,
+        "structured_output" => false,
+        "supports_functions" => false,
+        "streaming" => true,
+        "pricing" => {
+          "input" => 0.0,
+          "output" => 0.0
+        },
+        "context_window" => 8192,
+        "max_tokens" => 2048
+      })
+
+      LLM::Client.any_instance.stubs(:info).returns(mock_info)
+
+      assert_difference("LLMModel.count") do
+        llm_model = LLM::ModelManager.enable_model(@account, @provider, "free-model")
+
+        assert_equal "Free Model", llm_model.name
+        assert_equal true, llm_model.free
+        assert_equal 0.0, llm_model.input_price
+        assert_equal 0.0, llm_model.output_price
       end
     end
 
