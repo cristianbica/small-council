@@ -34,6 +34,24 @@ class AdvisorsController < ApplicationController
     redirect_to @council, notice: "Advisor removed successfully."
   end
 
+  def generate_prompt
+    description = params[:description]
+
+    if description.blank?
+      render json: { error: "Description is required" }, status: :unprocessable_entity
+      return
+    end
+
+    begin
+      generated_prompt = PromptGenerator.generate(description: description, account: Current.account)
+      render json: { prompt: generated_prompt }
+    rescue PromptGenerator::NoFreeModelError => e
+      render json: { error: e.message }, status: :unprocessable_entity
+    rescue PromptGenerator::GenerationError => e
+      render json: { error: e.message }, status: :unprocessable_entity
+    end
+  end
+
   private
 
   def set_council

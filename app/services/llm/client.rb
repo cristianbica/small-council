@@ -68,7 +68,11 @@ module LLM
       context = build_context
       chat = context.chat(model: api_identifier)
 
-      chat.with_system_message(system_prompt) if system_prompt
+      # Use with_instructions for system prompt
+      chat.with_instructions(system_prompt) if system_prompt
+
+      # Set temperature if provided
+      chat.with_temperature(temperature) if temperature
 
       messages.each do |msg|
         chat.add_message(role: msg[:role], content: msg[:content])
@@ -80,8 +84,8 @@ module LLM
         content: response.content,
         input_tokens: response.input_tokens,
         output_tokens: response.output_tokens,
-        total_tokens: response.total_tokens,
-        model: response.model,
+        total_tokens: response.input_tokens.to_i + response.output_tokens.to_i,
+        model: response.model_id,
         provider: @provider.provider_type
       }
     rescue => e

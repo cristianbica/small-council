@@ -45,6 +45,33 @@ class CouncilsController < ApplicationController
     redirect_to space_councils_path(Current.space), notice: "Council deleted successfully."
   end
 
+  def generate_description
+    name = params[:name]
+
+    if name.blank?
+      render json: { error: "Council name is required" }, status: :unprocessable_entity
+      return
+    end
+
+    # Check authorization for existing councils
+    if params[:id].present?
+      council = Current.space.councils.find(params[:id])
+      unless council.user_id == Current.user.id
+        render json: { error: "Only the creator can modify this council." }, status: :forbidden
+        return
+      end
+    end
+
+    begin
+      generated_description = DescriptionGenerator.generate(name: name, account: Current.account)
+      render json: { description: generated_description }
+    rescue DescriptionGenerator::NoFreeModelError => e
+      render json: { error: e.message }, status: :unprocessable_entity
+    rescue DescriptionGenerator::GenerationError => e
+      render json: { error: e.message }, status: :unprocessable_entity
+    end
+  end
+
   private
 
   def set_space_from_params_or_current

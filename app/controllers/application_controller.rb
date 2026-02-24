@@ -36,11 +36,8 @@ class ApplicationController < ActionController::Base
   def set_current_space
     return unless Current.account
 
-    Current.space = if session[:space_id]
-      Current.account.spaces.find_by(id: session[:space_id])
-    else
-      Current.account.spaces.first
-    end
+    Current.space = Current.account.spaces.find_by(id: session[:space_id]) if session[:space_id]
+    Current.space ||= Current.account.spaces.first
 
     # Auto-create default space if none exists (for legacy accounts)
     Current.space ||= Current.account.spaces.create!(name: "General", description: "Default space for your councils")

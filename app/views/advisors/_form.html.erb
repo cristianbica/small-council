@@ -1,100 +1,167 @@
-<%= form_with model: [@council, advisor], class: "space-y-4" do |f| %>
-  <% if advisor.errors.any? %>
-    <div class="alert alert-error">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <div>
-        <h3 class="font-bold"><%= pluralize(advisor.errors.count, "error") %> prohibited this advisor from being saved:</h3>
-        <ul class="mt-1 list-disc list-inside text-sm">
-          <% advisor.errors.full_messages.each do |message| %>
-            <li><%= message %></li>
-          <% end %>
-        </ul>
+<div data-controller="prompt-generator"
+     data-prompt-generator-url-value="<%= generate_prompt_council_advisors_path(@council) %>">
+
+  <%= form_with model: [@council, advisor], class: "space-y-4" do |f| %>
+    <% if advisor.errors.any? %>
+      <div class="alert alert-error">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+          <h3 class="font-bold"><%= pluralize(advisor.errors.count, "error") %> prohibited this advisor from being saved:</h3>
+          <ul class="mt-1 list-disc list-inside text-sm">
+            <% advisor.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
       </div>
+    <% end %>
+
+    <div class="form-control">
+      <label class="label">
+        <span class="label-text">
+          Advisor Name
+          <span class="text-error" aria-label="required">*</span>
+        </span>
+      </label>
+      <%= f.text_field :name,
+          class: "input input-bordered w-full #{'input-error' if advisor.errors[:name].any?}",
+          placeholder: "e.g., Strategic Advisor",
+          required: true,
+          data: { "prompt-generator-target": "advisorNameField" } %>
+      <% if advisor.errors[:name].any? %>
+        <label class="label">
+          <span class="label-text-alt text-error flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <%= advisor.errors[:name].first %>
+          </span>
+        </label>
+      <% end %>
+    </div>
+
+    <div class="form-control">
+      <div class="flex items-center justify-between">
+        <label class="label">
+          <span class="label-text">Prompt / Instructions</span>
+        </label>
+        <button type="button"
+                class="btn btn-sm btn-secondary"
+                data-action="click->prompt-generator#openModal">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          Generate with AI
+        </button>
+      </div>
+      <%= f.text_area :system_prompt,
+          class: "textarea textarea-bordered w-full #{'textarea-error' if advisor.errors[:system_prompt].any?}",
+          rows: 6,
+          placeholder: "Describe this advisor's role, expertise, and how they should respond...",
+          data: { "prompt-generator-target": "systemPromptField" } %>
+      <label class="label">
+        <span class="label-text-alt text-base-content/60">
+          This is the system prompt that guides the AI's behavior.
+        </span>
+      </label>
+      <% if advisor.errors[:system_prompt].any? %>
+        <label class="label">
+          <span class="label-text-alt text-error flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <%= advisor.errors[:system_prompt].first %>
+          </span>
+        </label>
+      <% end %>
+    </div>
+
+    <div class="form-control">
+      <label class="label">
+        <span class="label-text">
+          AI Model
+          <span class="text-error" aria-label="required">*</span>
+        </span>
+      </label>
+      <%= f.select :llm_model_id,
+          Current.account.llm_models.enabled.map { |m| [m.display_name, m.id] },
+          { include_blank: "Select a model..." },
+          class: "select select-bordered w-full #{'select-error' if advisor.errors[:llm_model_id].any?}",
+          required: true %>
+      <label class="label">
+        <span class="label-text-alt text-base-content/60">
+          Choose the AI model that will power this advisor.
+          <%= link_to "Manage models", providers_path, class: "link link-primary" %>
+        </span>
+      </label>
+      <% if advisor.errors[:llm_model_id].any? %>
+        <label class="label">
+          <span class="label-text-alt text-error flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <%= advisor.errors[:llm_model_id].first %>
+          </span>
+        </label>
+      <% end %>
+    </div>
+
+    <div class="card-actions justify-end mt-6">
+      <%= link_to "Cancel", @council, class: "btn btn-ghost" %>
+      <%= f.submit class: "btn btn-primary" %>
     </div>
   <% end %>
 
-  <div class="form-control">
-    <label class="label">
-      <span class="label-text">
-        Advisor Name
-        <span class="text-error" aria-label="required">*</span>
-      </span>
-    </label>
-    <%= f.text_field :name,
-        class: "input input-bordered w-full #{'input-error' if advisor.errors[:name].any?}",
-        placeholder: "e.g., Strategic Advisor",
-        required: true %>
-    <% if advisor.errors[:name].any? %>
-      <label class="label">
-        <span class="label-text-alt text-error flex items-center gap-1">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <%= advisor.errors[:name].first %>
-        </span>
-      </label>
-    <% end %>
-  </div>
+  <%# Modal for AI Prompt Generation %>
+  <dialog data-prompt-generator-target="modal" 
+          class="modal"
+          data-action="click->prompt-generator#clickOutside">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg mb-4">Generate Prompt with AI</h3>
+      
+      <p class="text-sm text-base-content/70 mb-4">
+        Describe what this advisor should do. The AI will generate a comprehensive system prompt based on your description.
+      </p>
 
-  <div class="form-control">
-    <label class="label">
-      <span class="label-text">Prompt / Instructions</span>
-    </label>
-    <%= f.text_area :system_prompt,
-        class: "textarea textarea-bordered w-full #{'textarea-error' if advisor.errors[:system_prompt].any?}",
-        rows: 6,
-        placeholder: "Describe this advisor's role, expertise, and how they should respond..." %>
-    <label class="label">
-      <span class="label-text-alt text-base-content/60">
-        This is the system prompt that guides the AI's behavior.
-      </span>
-    </label>
-    <% if advisor.errors[:system_prompt].any? %>
-      <label class="label">
-        <span class="label-text-alt text-error flex items-center gap-1">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <%= advisor.errors[:system_prompt].first %>
-        </span>
-      </label>
-    <% end %>
-  </div>
+      <div class="form-control mb-4">
+        <label class="label">
+          <span class="label-text">Short Description</span>
+        </label>
+        <input type="text" 
+               data-prompt-generator-target="descriptionInput"
+               class="input input-bordered w-full"
+               placeholder="e.g., A strategic advisor that helps with business decisions..."
+               required>
+      </div>
 
-  <div class="form-control">
-    <label class="label">
-      <span class="label-text">
-        AI Model
-        <span class="text-error" aria-label="required">*</span>
-      </span>
-    </label>
-    <%= f.select :llm_model_id,
-        Current.account.llm_models.enabled.map { |m| [m.display_name, m.id] },
-        { include_blank: "Select a model..." },
-        class: "select select-bordered w-full #{'select-error' if advisor.errors[:llm_model_id].any?}",
-        required: true %>
-    <label class="label">
-      <span class="label-text-alt text-base-content/60">
-        Choose the AI model that will power this advisor.
-        <%= link_to "Manage models", providers_path, class: "link link-primary" %>
-      </span>
-    </label>
-    <% if advisor.errors[:llm_model_id].any? %>
-      <label class="label">
-        <span class="label-text-alt text-error flex items-center gap-1">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <%= advisor.errors[:llm_model_id].first %>
-        </span>
-      </label>
-    <% end %>
-  </div>
+      <div data-prompt-generator-target="errorMessage" 
+           class="alert alert-error hidden mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span></span>
+      </div>
 
-  <div class="card-actions justify-end mt-6">
-    <%= link_to "Cancel", @council, class: "btn btn-ghost" %>
-    <%= f.submit class: "btn btn-primary" %>
-  </div>
-<% end %>
+      <div class="modal-action">
+        <button type="button" 
+                class="btn btn-ghost"
+                data-action="click->prompt-generator#closeModal">
+          Cancel
+        </button>
+        <button type="button" 
+                data-prompt-generator-target="generateButton"
+                data-action="click->prompt-generator#generate"
+                class="btn btn-primary">
+          <span data-prompt-generator-target="loadingIndicator" class="hidden loading loading-spinner loading-xs mr-2"></span>
+          Generate Prompt
+        </button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button>close</button>
+    </form>
+  </dialog>
+
+</div>
