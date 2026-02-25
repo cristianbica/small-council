@@ -1,0 +1,126 @@
+<div class="max-w-4xl mx-auto">
+  <!-- Breadcrumbs -->
+  <div class="breadcrumbs text-sm mb-4">
+    <ul>
+      <li><%= link_to "Spaces", spaces_path %></li>
+      <li><%= link_to @space.name, @space %></li>
+      <li><%= link_to "Advisors", space_advisors_path(@space) %></li>
+      <li><%= @advisor.name %></li>
+    </ul>
+  </div>
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-4">
+      <div class="avatar placeholder">
+        <div class="bg-neutral text-neutral-content rounded-full w-16 h-16">
+          <span class="text-2xl"><%= @advisor.name.first.upcase %></span>
+        </div>
+      </div>
+      <div>
+        <h1 class="text-3xl font-bold"><%= @advisor.name %></h1>
+        <% if @advisor.scribe? %>
+          <span class="badge badge-primary mt-1">Scribe</span>
+        <% end %>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <%= link_to edit_space_advisor_path(@space, @advisor), class: "btn btn-outline" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+        Edit
+      <% end %>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Left Column: Details -->
+    <div class="lg:col-span-1 space-y-6">
+      <!-- Basic Info -->
+      <section class="card bg-base-100 shadow">
+        <div class="card-body">
+          <h2 class="card-title text-lg mb-4">Details</h2>
+          
+          <div class="space-y-3">
+            <div>
+              <span class="text-sm text-base-content/60">AI Model</span>
+              <p class="font-medium">
+                <% if @advisor.llm_model.present? %>
+                  <%= @advisor.llm_model.name %>
+                <% else %>
+                  <span class="text-base-content/40">Not configured</span>
+                <% end %>
+              </p>
+            </div>
+            
+            <div>
+              <span class="text-sm text-base-content/60">Short Description</span>
+              <p class="font-medium">
+                <%= @advisor.short_description.presence || "<span class='text-base-content/40'>No description</span>".html_safe %>
+              </p>
+            </div>
+
+            <div>
+              <span class="text-sm text-base-content/60">Created</span>
+              <p class="font-medium"><%= time_ago_in_words(@advisor.created_at) %> ago</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Usage Stats -->
+      <section class="card bg-base-100 shadow">
+        <div class="card-body">
+          <h2 class="card-title text-lg mb-4">Usage</h2>
+          <div class="stats stats-vertical shadow">
+            <div class="stat">
+              <div class="stat-title">Councils</div>
+              <div class="stat-value text-2xl"><%= @advisor.councils.count %></div>
+              <div class="stat-desc">Active memberships</div>
+            </div>
+            <div class="stat">
+              <div class="stat-title">Messages</div>
+              <div class="stat-value text-2xl"><%= @advisor.messages.count %></div>
+              <div class="stat-desc">Total responses</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Right Column: System Prompt -->
+    <div class="lg:col-span-2">
+      <section class="card bg-base-100 shadow">
+        <div class="card-body">
+          <h2 class="card-title text-lg mb-4">System Prompt</h2>
+          <div class="bg-base-200 rounded-lg p-4">
+            <pre class="whitespace-pre-wrap text-sm font-mono"><%= @advisor.system_prompt %></pre>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Danger Zone -->
+  <% unless @advisor.scribe? %>
+    <section class="card bg-error/5 border border-error/20 mt-6">
+      <div class="card-body">
+        <h2 class="card-title text-error">Danger Zone</h2>
+        <p class="text-sm mb-4">
+          Deleting this advisor will remove it from all councils and cannot be undone.
+          Any existing messages from this advisor will remain but the advisor cannot respond to new conversations.
+        </p>
+        <%= button_to space_advisor_path(@space, @advisor), 
+            method: :delete,
+            class: "btn btn-error btn-outline",
+            data: { turbo_confirm: "Are you sure you want to delete #{@advisor.name}? This action cannot be undone." } do %>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          Delete Advisor
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+</div>

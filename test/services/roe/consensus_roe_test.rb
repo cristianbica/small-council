@@ -24,12 +24,14 @@ module RoE
       @advisor1 = @account.advisors.create!(
         name: "Test Advisor One",
         system_prompt: "You are advisor one",
-        llm_model: @llm_model
+        llm_model: @llm_model,
+        space: @space
       )
       @advisor2 = @account.advisors.create!(
         name: "Test Advisor Two",
         system_prompt: "You are advisor two",
-        llm_model: @llm_model
+        llm_model: @llm_model,
+        space: @space
       )
       @council.advisors << [ @advisor1, @advisor2 ]
 

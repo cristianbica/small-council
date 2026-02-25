@@ -46,10 +46,10 @@ class CouncilsController < ApplicationController
   end
 
   def generate_description
-    name = params[:name]
+    concept = params[:concept]
 
-    if name.blank?
-      render json: { error: "Council name is required" }, status: :unprocessable_entity
+    if concept.blank?
+      render json: { error: "Please describe the council's purpose" }, status: :unprocessable_entity
       return
     end
 
@@ -63,11 +63,11 @@ class CouncilsController < ApplicationController
     end
 
     begin
-      generated_description = DescriptionGenerator.generate(name: name, account: Current.account)
-      render json: { description: generated_description }
-    rescue DescriptionGenerator::NoFreeModelError => e
+      result = ContentGenerator.generate(profile: :council, context: concept, account: Current.account)
+      render json: { name: result[:name], description: result[:description] }
+    rescue ContentGenerator::NoModelError => e
       render json: { error: e.message }, status: :unprocessable_entity
-    rescue DescriptionGenerator::GenerationError => e
+    rescue ContentGenerator::GenerationError => e
       render json: { error: e.message }, status: :unprocessable_entity
     end
   end

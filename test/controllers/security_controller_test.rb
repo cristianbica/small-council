@@ -180,10 +180,8 @@ class SecurityControllerTest < ActionDispatch::IntegrationTest
     end
 
     # Try to create advisor with other account's model
-    council = @account.councils.create!(name: "Test", user: @user, space: @space)
-
     assert_no_difference("Advisor.count") do
-      post council_advisors_url(council), params: {
+      post space_advisors_url(@space), params: {
         advisor: {
           name: "Tampered Advisor",
           system_prompt: "Test",

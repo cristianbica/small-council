@@ -88,7 +88,8 @@ class CouncilTest < ActiveSupport::TestCase
     advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
     council.council_advisors.create!(advisor: advisor, position: 0)
     assert_difference("CouncilAdvisor.count", -1) do
@@ -109,7 +110,8 @@ class CouncilTest < ActiveSupport::TestCase
     advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
     council.council_advisors.create!(advisor: advisor, position: 0)
     assert_includes council.advisors, advisor

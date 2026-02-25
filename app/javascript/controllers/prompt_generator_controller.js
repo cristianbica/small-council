@@ -23,6 +23,11 @@ export default class extends Controller {
   }
 
   openModal() {
+    if (!this.hasModalTarget) {
+      console.log("[PromptGenerator] No modal target found")
+      return
+    }
+    
     console.log("[PromptGenerator] Opening modal")
     
     // Pre-fill input based on context (advisor or council)
@@ -34,12 +39,14 @@ export default class extends Controller {
       prefillValue = this.councilNameFieldTarget.value
     }
     
-    if (prefillValue && !this.descriptionInputTarget.value) {
+    if (prefillValue && this.hasDescriptionInputTarget && !this.descriptionInputTarget.value) {
       this.descriptionInputTarget.value = prefillValue
     }
 
     this.modalTarget.showModal()
-    this.descriptionInputTarget.focus()
+    if (this.hasDescriptionInputTarget) {
+      this.descriptionInputTarget.focus()
+    }
   }
 
   closeModal() {
@@ -54,7 +61,17 @@ export default class extends Controller {
 
     if (this.isGenerating) return
 
-    const inputValue = this.descriptionInputTarget.value.trim()
+    // Determine input source: systemPromptField for advisor mode, descriptionInput for council mode
+    const inputTarget = this.hasSystemPromptFieldTarget 
+      ? this.systemPromptFieldTarget 
+      : (this.hasDescriptionInputTarget ? this.descriptionInputTarget : null)
+    
+    if (!inputTarget) {
+      this.showError("Input field not found")
+      return
+    }
+
+    const inputValue = inputTarget.value.trim()
     if (!inputValue) {
       this.showError("Please enter a value")
       return
@@ -92,7 +109,10 @@ export default class extends Controller {
           } else if (this.hasDescriptionFieldTarget) {
             this.descriptionFieldTarget.value = generatedContent
           }
-          this.closeModal()
+          // Only close modal if it exists (council mode)
+          if (this.hasModalTarget) {
+            this.closeModal()
+          }
         } else {
           this.showError(result.error || "Failed to generate")
         }
@@ -109,25 +129,38 @@ export default class extends Controller {
   }
 
   setLoadingState(loading) {
+    if (!this.hasGenerateButtonTarget) return
+    
     if (loading) {
       this.generateButtonTarget.disabled = true
       this.generateButtonTarget.classList.add("loading")
-      this.loadingIndicatorTarget.classList.remove("hidden")
+      if (this.hasLoadingIndicatorTarget) {
+        this.loadingIndicatorTarget.classList.remove("hidden")
+      }
     } else {
       this.generateButtonTarget.disabled = false
       this.generateButtonTarget.classList.remove("loading")
-      this.loadingIndicatorTarget.classList.add("hidden")
+      if (this.hasLoadingIndicatorTarget) {
+        this.loadingIndicatorTarget.classList.add("hidden")
+      }
     }
   }
 
   showError(message) {
-    this.errorMessageTarget.textContent = message
-    this.errorMessageTarget.classList.remove("hidden")
+    if (this.hasErrorMessageTarget) {
+      this.errorMessageTarget.textContent = message
+      this.errorMessageTarget.classList.remove("hidden")
+    } else {
+      // Fallback to alert if no error message target
+      console.error("[PromptGenerator] Error:", message)
+    }
   }
 
   clearError() {
-    this.errorMessageTarget.textContent = ""
-    this.errorMessageTarget.classList.add("hidden")
+    if (this.hasErrorMessageTarget) {
+      this.errorMessageTarget.textContent = ""
+      this.errorMessageTarget.classList.add("hidden")
+    }
   }
 
   getCSRFToken() {
@@ -137,8 +170,16 @@ export default class extends Controller {
 
   // Close modal when clicking outside
   clickOutside(event) {
-    if (event.target === this.modalTarget) {
+    if (this.hasModalTarget && event.target === this.modalTarget) {
       this.closeModal()
+    }
+  }
+
+  closeModal() {
+    if (this.hasModalTarget) {
+      console.log("[PromptGenerator] Closing modal")
+      this.modalTarget.close()
+      this.clearError()
     }
   }
 }

@@ -24,12 +24,14 @@ module RoE
       @advisor1 = @account.advisors.create!(
         name: "Test Advisor One",
         system_prompt: "You are an expert in programming and software development",
-        llm_model: @llm_model
+        llm_model: @llm_model,
+        space: @space
       )
       @advisor2 = @account.advisors.create!(
         name: "Test Advisor Two",
         system_prompt: "You specialize in business strategy and management",
-        llm_model: @llm_model
+        llm_model: @llm_model,
+        space: @space
       )
       @council.advisors << [ @advisor1, @advisor2 ]
 
@@ -55,7 +57,8 @@ module RoE
       scribe = @account.advisors.create!(
         name: "The Scribe",
         system_prompt: "You are the scribe who moderates discussions",
-        llm_model: @llm_model
+        llm_model: @llm_model,
+        space: @space
       )
       @council.advisors << scribe
 
@@ -70,7 +73,8 @@ module RoE
       scrib = @account.advisors.create!(
         name: "Council Scrib",
         system_prompt: "You are the scrib who moderates discussions",
-        llm_model: @llm_model
+        llm_model: @llm_model,
+        space: @space
       )
       @council.advisors << scrib
 
@@ -83,15 +87,14 @@ module RoE
     test "creates scribe when none exists and uses it for moderation" do
       message = create_message("I need help with programming")
 
-      # No scribe exists initially
+      # No scribe exists in council initially (space may have auto-created one)
       assert_nil @council.advisors.find_by("LOWER(name) LIKE ? OR LOWER(name) LIKE ?", "%scribe%", "%scrib%")
 
       responders = @roe.determine_responders(message)
 
-      # Scribe should be created and returned
-      scribe = @council.advisors.find_by("LOWER(name) LIKE ? OR LOWER(name) LIKE ?", "%scribe%", "%scrib%")
-      assert scribe.present?, "Scribe should be created"
-      assert_equal [ scribe ], responders
+      # Scribe should be returned as responder (from space)
+      assert responders.any? { |r| r.scribe? }, "Scribe should be returned as responder"
+      assert_equal 1, responders.count
     end
 
     test "@mentions take priority over scribe selection" do
@@ -99,7 +102,8 @@ module RoE
       scribe = @account.advisors.create!(
         name: "The Scribe",
         system_prompt: "You are the scribe who moderates discussions",
-        llm_model: @llm_model
+        llm_model: @llm_model,
+        space: @space
       )
       @council.advisors << scribe
 

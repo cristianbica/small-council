@@ -117,10 +117,12 @@ class MessageTest < ActiveSupport::TestCase
   end
 
   test "sender can be an Advisor" do
+    space = @account.spaces.create!(name: "Advisor Sender Test Space")
     advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: space
     )
     message = @account.messages.create!(
       conversation: @conversation,
@@ -173,10 +175,12 @@ class MessageTest < ActiveSupport::TestCase
   end
 
   test "can set role to advisor" do
+    space = @account.spaces.create!(name: "Role Advisor Test Space")
     advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: space
     )
     message = @account.messages.create!(
       conversation: @conversation,

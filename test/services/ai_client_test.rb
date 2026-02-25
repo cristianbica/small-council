@@ -6,13 +6,14 @@ class AiClientTest < ActiveSupport::TestCase
     set_tenant(@account)
     @provider = @account.providers.create!(name: "OpenAI", provider_type: "openai", api_key: "test-key")
     @llm_model = @provider.llm_models.create!(account: @account, name: "GPT-4", identifier: "gpt-4")
+    @user = @account.users.create!(email: "test@example.com", password: "password123")
+    @space = @account.spaces.create!(name: "Test Space")
     @advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a helpful assistant.",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
-    @user = @account.users.create!(email: "test@example.com", password: "password123")
-    @space = @account.spaces.create!(name: "Test Space")
     @council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     @conversation = @account.conversations.create!(
       council: @council,
@@ -39,7 +40,8 @@ class AiClientTest < ActiveSupport::TestCase
     # Create advisor without llm_model (skipping validation)
     advisor_without_model = @account.advisors.new(
       name: "Test Advisor No Model",
-      system_prompt: "You are a helpful assistant."
+      system_prompt: "You are a helpful assistant.",
+      space: @space
     )
     advisor_without_model.save(validate: false)
 
@@ -84,7 +86,8 @@ class AiClientTest < ActiveSupport::TestCase
     other_advisor = @account.advisors.create!(
       name: "Other Advisor",
       system_prompt: "Other prompt",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
     advisor_message = @conversation.messages.create!(
       account: @account,
@@ -131,7 +134,8 @@ class AiClientTest < ActiveSupport::TestCase
     other_advisor = @account.advisors.create!(
       name: "Other Advisor",
       system_prompt: "Other prompt",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
     advisor_msg = @conversation.messages.create!(
       account: @account,
@@ -172,7 +176,8 @@ class AiClientTest < ActiveSupport::TestCase
     other_advisor = @account.advisors.create!(
       name: "Response Advisor",
       system_prompt: "Response prompt",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
     advisor_msg = @conversation.messages.create!(
       account: @account,
@@ -325,9 +330,21 @@ class AiClientTest < ActiveSupport::TestCase
     ]
 
     mock_api = mock()
+    # System prompt now includes council context
+    expected_system_prompt = <<~PROMPT
+      #{@advisor.system_prompt}
+
+      ---
+
+      You are participating in the '#{@conversation.council.name}' council.
+      Engagement mode: #{@conversation.rules_of_engagement.humanize}
+      Advisors take turns responding. Be concise and add value.
+    PROMPT
+    .strip
+
     mock_api.expects(:chat).with(
       expected_messages,
-      system_prompt: @advisor.system_prompt,
+      system_prompt: expected_system_prompt,
       temperature: 0.7,
       max_tokens: 1000
     ).returns({ content: "Hi!", input_tokens: 10, output_tokens: 5, total_tokens: 15 })
@@ -343,9 +360,21 @@ class AiClientTest < ActiveSupport::TestCase
     client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
 
     mock_api = mock()
+    # System prompt now includes council context
+    expected_system_prompt = <<~PROMPT
+      #{@advisor.system_prompt}
+
+      ---
+
+      You are participating in the '#{@conversation.council.name}' council.
+      Engagement mode: #{@conversation.rules_of_engagement.humanize}
+      Advisors take turns responding. Be concise and add value.
+    PROMPT
+    .strip
+
     mock_api.expects(:chat).with(
       anything,
-      system_prompt: @advisor.system_prompt,
+      system_prompt: expected_system_prompt,
       temperature: 0.5,
       max_tokens: 500
     ).returns({ content: "Response", input_tokens: 10, output_tokens: 5, total_tokens: 15 })

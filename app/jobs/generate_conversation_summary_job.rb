@@ -46,16 +46,30 @@ class GenerateConversationSummaryJob < ApplicationJob
     )
 
     result = client.generate_response
+
+    # Handle case where result is nil (no LLM model or disabled)
+    if result.nil?
+      Rails.logger.error "[GenerateConversationSummaryJob] No result from AI - check LLM model configuration"
+      return {
+        key_decisions: "- [No AI model available - please configure an LLM model or enable an existing one]\n",
+        action_items: "- [No AI model available]\n",
+        insights: "- [No AI model available]\n",
+        open_questions: "- [No AI model available]\n",
+        raw_summary: "Summary generation failed: No LLM model available or model is disabled.\n\nPlease go to AI Providers and configure a model.\n\nTranscript length: #{transcript.length} characters"
+      }
+    end
+
     parse_structured_summary(result[:content])
   rescue => e
     Rails.logger.error "[GenerateConversationSummaryJob] AI summary failed: #{e.message}"
+    Rails.logger.error e.backtrace.first(5).join("\n")
     # Fallback to template structure
     {
       key_decisions: "- [AI generation failed - please fill in manually]\n",
       action_items: "- [AI generation failed - please fill in manually]\n",
       insights: "- [AI generation failed - please fill in manually]\n",
       open_questions: "- [AI generation failed - please fill in manually]\n",
-      raw_summary: "Summary generation failed. Please fill in the structured fields manually.\n\nTranscript length: #{transcript.length} characters"
+      raw_summary: "Summary generation failed: #{e.message}\n\nPlease fill in the structured fields manually.\n\nTranscript length: #{transcript.length} characters"
     }
   end
 
@@ -106,6 +120,7 @@ class GenerateConversationSummaryJob < ApplicationJob
   def build_summary_prompt(transcript)
     # Create a message object for the prompt (won't be saved)
     Message.new(
+      account: @conversation.account,
       content: <<~PROMPT,
         Please analyze the following conversation transcript and produce a structured summary:
 

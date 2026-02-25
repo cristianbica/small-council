@@ -26,69 +26,71 @@ class CouncilsControllerGenerateDescriptionTest < ActionDispatch::IntegrationTes
     set_tenant(@account)
   end
 
-  test "generate_description returns generated description for creator" do
-    mock_result = { content: "A strategic council focused on engineering leadership." }
+  test "generate_description returns generated name and description for creator" do
+    mock_result = { content: '{"name":"Engineering Leadership Council","description":"A strategic council focused on engineering leadership and technical decisions."}' }
     LLM::Client.any_instance.stubs(:chat).returns(mock_result)
 
     post generate_description_council_url(@council),
-         params: { name: "Engineering Leadership Council" },
+         params: { concept: "A council for engineering leadership and technical decisions" },
          as: :json
 
     assert_response :success
     json_response = JSON.parse(response.body)
-    assert_equal "A strategic council focused on engineering leadership.", json_response["description"]
+    assert_equal "Engineering Leadership Council", json_response["name"]
+    assert_equal "A strategic council focused on engineering leadership and technical decisions.", json_response["description"]
   end
 
   test "generate_description on collection route works for new councils" do
-    mock_result = { content: "A council for product strategy discussions." }
+    mock_result = { content: '{"name":"Product Strategy Council","description":"A council for product strategy discussions and roadmap planning."}' }
     LLM::Client.any_instance.stubs(:chat).returns(mock_result)
 
     post generate_description_councils_url,
-         params: { name: "Product Strategy Council" },
+         params: { concept: "A council for product strategy discussions" },
          as: :json
 
     assert_response :success
     json_response = JSON.parse(response.body)
-    assert_equal "A council for product strategy discussions.", json_response["description"]
+    assert_equal "Product Strategy Council", json_response["name"]
+    assert_equal "A council for product strategy discussions and roadmap planning.", json_response["description"]
   end
 
-  test "generate_description requires name parameter" do
+  test "generate_description requires concept parameter" do
     post generate_description_council_url(@council),
-         params: { name: "" },
+         params: { concept: "" },
          as: :json
 
     assert_response :unprocessable_entity
     json_response = JSON.parse(response.body)
-    assert_equal "Council name is required", json_response["error"]
+    assert_equal "Please describe the council's purpose", json_response["error"]
   end
 
-  test "generate_description requires name parameter for collection route" do
+  test "generate_description requires concept parameter for collection route" do
     post generate_description_councils_url,
          params: {},
          as: :json
 
     assert_response :unprocessable_entity
     json_response = JSON.parse(response.body)
-    assert_equal "Council name is required", json_response["error"]
+    assert_equal "Please describe the council's purpose", json_response["error"]
   end
 
   test "generate_description returns error when no free model available" do
     @free_model.update!(free: false)
 
     post generate_description_council_url(@council),
-         params: { name: "Test Council" },
+         params: { concept: "Test Council for technical decisions" },
          as: :json
 
     assert_response :unprocessable_entity
     json_response = JSON.parse(response.body)
-    assert_match /No free AI model available/, json_response["error"]
+    assert_match /No AI model available/, json_response["error"]
   end
 
   test "generate_description returns error on API failure" do
     LLM::Client.any_instance.stubs(:chat).raises(LLM::APIError.new("API Error"))
 
     post generate_description_council_url(@council),
-         params: { name: "Test Council" },
+         params: { concept: "Test Council for technical decisions" },
          as: :json
 
     assert_response :unprocessable_entity
@@ -101,7 +103,7 @@ class CouncilsControllerGenerateDescriptionTest < ActionDispatch::IntegrationTes
     sign_in_as(other_user)
 
     post generate_description_council_url(@council),
-         params: { name: "Test Council" },
+         params: { concept: "Test Council for technical decisions" },
          as: :json
 
     assert_response :forbidden
@@ -109,17 +111,19 @@ class CouncilsControllerGenerateDescriptionTest < ActionDispatch::IntegrationTes
     assert_equal "Only the creator can modify this council.", json_response["error"]
   end
 
-  test "generate_description works with valid name and free model" do
+  test "generate_description works with valid concept and free model" do
+    expected_name = "Strategic Planning Council"
     expected_description = "A council dedicated to strategic decision-making and technical excellence."
-    mock_result = { content: expected_description }
+    mock_result = { content: "{\"name\":\"#{expected_name}\",\"description\":\"#{expected_description}\"}" }
     LLM::Client.any_instance.stubs(:chat).returns(mock_result)
 
     post generate_description_council_url(@council),
-         params: { name: "Strategic Planning Council" },
+         params: { concept: "A council for strategic planning and technical excellence" },
          as: :json
 
     assert_response :success
     json_response = JSON.parse(response.body)
+    assert_equal expected_name, json_response["name"]
     assert_equal expected_description, json_response["description"]
   end
 end

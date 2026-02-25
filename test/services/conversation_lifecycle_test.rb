@@ -25,7 +25,8 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
     @advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
     @council.advisors << @advisor
 

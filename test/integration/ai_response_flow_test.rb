@@ -19,13 +19,13 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
     )
 
     # Setup advisor with model
+    @space = @account.spaces.first || @account.spaces.create!(name: "General")
     @advisor = @account.advisors.create!(
       name: "Helper Bot",
       system_prompt: "You are a helpful assistant.",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
-
-    @space = @account.spaces.first || @account.spaces.create!(name: "General")
     @council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     @council.advisors << @advisor
 

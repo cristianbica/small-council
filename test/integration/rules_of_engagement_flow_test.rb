@@ -25,7 +25,8 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
     @advisor = @account.advisors.create!(
       name: "Helper Bot",
       system_prompt: "You are a helper bot",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
     @council.advisors << @advisor
 
@@ -94,7 +95,8 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
     advisor2 = @account.advisors.create!(
       name: "Second Advisor",
       system_prompt: "You are advisor 2",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
     @council.advisors << advisor2
     @conversation.update!(rules_of_engagement: :consensus)

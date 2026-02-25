@@ -1,78 +1,126 @@
 class AdvisorsController < ApplicationController
-  before_action :set_council
-  before_action :set_advisor, only: [ :edit, :update, :destroy ]
-  before_action :require_creator
+  before_action :set_space
+  before_action :set_advisor, only: [ :show, :edit, :update, :destroy ]
+
+  def index
+    @advisors = @space.non_scribe_advisors.order(:name)
+    @scribe = @space.advisors.find_by("LOWER(name) LIKE ? OR LOWER(name) LIKE ?", "%scribe%", "%scrib%")
+  end
+
+  def show
+  end
 
   def new
-    @advisor = @council.advisors.new
+    @advisor = @space.advisors.new
+    @council = Current.space.councils.find(params[:council_id]) if params[:council_id]
   end
 
   def create
-    @advisor = Current.account.advisors.new(advisor_params)
+    @advisor = @space.advisors.new(advisor_params)
+    @advisor.account = Current.account
 
     if @advisor.save
-      @council.council_advisors.create!(advisor: @advisor, position: @council.council_advisors.count)
-      redirect_to @council, notice: "Advisor added successfully."
+      redirect_to space_advisors_path(@space), notice: "Advisor '#{@advisor.name}' was successfully created."
     else
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
+    @council = Current.space.councils.find(params[:council_id]) if params[:council_id]
   end
 
   def update
     if @advisor.update(advisor_params)
-      redirect_to @council, notice: "Advisor updated successfully."
+      redirect_to space_advisors_path(@space), notice: "Advisor '#{@advisor.name}' was successfully updated."
     else
       render :edit, status: :unprocessable_entity
     end
   end
 
   def destroy
-    @advisor.destroy
-    redirect_to @council, notice: "Advisor removed successfully."
+    if @advisor.destroy
+      redirect_to space_advisors_path(@space), notice: "Advisor was successfully deleted."
+    else
+      redirect_to space_advisors_path(@space), alert: "Cannot delete advisor that has messages."
+    end
   end
 
   def generate_prompt
-    description = params[:description]
+    concept = params[:concept]
 
-    if description.blank?
-      render json: { error: "Description is required" }, status: :unprocessable_entity
+    if concept.blank?
+      render json: { error: "Concept is required" }, status: :unprocessable_entity
       return
     end
 
     begin
-      generated_prompt = PromptGenerator.generate(description: description, account: Current.account)
-      render json: { prompt: generated_prompt }
-    rescue PromptGenerator::NoModelError => e
+      result = ContentGenerator.generate(profile: :advisor, context: concept, account: Current.account)
+      render json: result
+    rescue ContentGenerator::NoModelError => e
       render json: { error: e.message }, status: :unprocessable_entity
-    rescue PromptGenerator::GenerationError => e
+    rescue ContentGenerator::GenerationError => e
       render json: { error: e.message }, status: :unprocessable_entity
     end
+  end
+
+  def select
+    # This action is only accessible via council nested route
+    @council = Current.space.councils.find(params[:council_id])
+    # Get all advisors in this space that aren't already in this council
+    @available_advisors = @space.advisors.where.not(id: @council.advisor_ids)
+  rescue ActiveRecord::RecordNotFound
+    redirect_to councils_path, alert: "Council not found."
+  end
+
+  def add_existing
+    @council = Current.space.councils.find(params[:council_id])
+    advisor_ids = params[:advisor_ids] || []
+
+    if advisor_ids.empty?
+      redirect_to select_council_advisors_path(@council), alert: "Please select at least one advisor."
+      return
+    end
+
+    added_count = 0
+    advisor_ids.each do |advisor_id|
+      advisor = @space.advisors.find_by(id: advisor_id)
+      next unless advisor
+      next if @council.advisors.include?(advisor)
+
+      @council.advisors << advisor
+      added_count += 1
+    end
+
+    if added_count > 0
+      redirect_to @council, notice: "Added #{added_count} advisor(s) to the council."
+    else
+      redirect_to select_council_advisors_path(@council), alert: "No advisors were added."
+    end
+  rescue ActiveRecord::RecordNotFound
+    redirect_to councils_path, alert: "Council not found."
   end
 
   private
 
-  def set_council
-    @council = Current.account.councils.find(params[:council_id])
+  def set_space
+    if params[:space_id]
+      @space = Current.account.spaces.find(params[:space_id])
+    elsif params[:council_id]
+      council = Current.space.councils.find(params[:council_id])
+      @space = council.space
+    end
+  rescue ActiveRecord::RecordNotFound
+    redirect_to spaces_path, alert: "Space not found."
   end
 
   def set_advisor
-    @advisor = @council.advisors.find(params[:id])
-  end
-
-  def require_creator
-    unless @council.user_id == Current.user.id
-      redirect_to @council, alert: "Only the creator can manage advisors."
-    end
+    @advisor = @space.advisors.find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    redirect_to space_advisors_path(@space), alert: "Advisor not found."
   end
 
   def advisor_params
-    params.require(:advisor).permit(:name, :system_prompt, :llm_model_id).tap do |whitelisted|
-      if whitelisted[:llm_model_id].present?
-        whitelisted[:llm_model_id] = Current.account.llm_models.find_by(id: whitelisted[:llm_model_id])&.id
-      end
-    end
+    params.require(:advisor).permit(:name, :short_description, :system_prompt, :llm_model_id)
   end
 end

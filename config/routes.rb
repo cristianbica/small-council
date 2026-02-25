@@ -18,9 +18,14 @@ Rails.application.routes.draw do
   # Settings
   resource :settings, only: [ :edit, :update ]
 
-  # Spaces routes with nested councils
+  # Spaces routes with nested councils and advisors
   resources :spaces do
     resources :councils, only: [ :index, :new, :create ]
+    resources :advisors do
+      collection do
+        post :generate_prompt
+      end
+    end
     member do
       get :memory
       get :search_memory
@@ -32,6 +37,8 @@ Rails.application.routes.draw do
     resources :advisors, only: [ :new, :create, :edit, :update, :destroy ] do
       collection do
         post :generate_prompt
+        get :select
+        post :add_existing
       end
     end
     resources :conversations, only: [ :index, :show, :new, :create, :update ]

@@ -87,10 +87,12 @@ class AccountTest < ActiveSupport::TestCase
     account = Account.create!(name: "Test", slug: "test-destroy-advisors")
     provider = account.providers.create!(@provider_attributes)
     llm_model = provider.llm_models.create!(account: account, name: "GPT-4", identifier: "gpt-4")
+    space = account.spaces.create!(name: "Test Space")
     account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      llm_model: llm_model
+      llm_model: llm_model,
+      space: space
     )
     assert_difference("Advisor.count", -1) do
       account.destroy
@@ -129,11 +131,13 @@ class AccountTest < ActiveSupport::TestCase
     account = Account.create!(name: "Test", slug: "test-global-scope")
     provider = account.providers.create!(@provider_attributes)
     llm_model = provider.llm_models.create!(account: account, name: "GPT-4", identifier: "gpt-4")
+    space = account.spaces.create!(name: "Test Space")
     account.advisors.create!(
       name: "Global Advisor",
       system_prompt: "You are global",
       llm_model: llm_model,
-      global: true
+      global: true,
+      space: space
     )
     assert_includes Account.with_global_advisors, account
   end

@@ -7,11 +7,15 @@ class GenerateAdvisorResponseJob < ApplicationJob
     conversation = Conversation.find_by(id: conversation_id)
     message = Message.find_by(id: message_id)
 
+    Rails.logger.info "[GenerateAdvisorResponseJob] Starting for advisor #{advisor_id}, message #{message_id}"
+
     return unless advisor && conversation && message
     return unless message.pending? # Only process pending messages
 
     # Set tenant context for background job
     ActsAsTenant.current_tenant = advisor.account
+
+    Rails.logger.info "[GenerateAdvisorResponseJob] Processing message #{message_id} for advisor #{advisor.name}"
 
     begin
       # Call AI service
@@ -25,15 +29,19 @@ class GenerateAdvisorResponseJob < ApplicationJob
 
         # Record usage
         create_usage_record(message, advisor, result)
+
+        Rails.logger.info "[GenerateAdvisorResponseJob] Successfully processed message #{message_id} for advisor #{advisor.name}"
       else
-        handle_error(message, "Empty response from AI")
+        Rails.logger.error "[GenerateAdvisorResponseJob] Empty response for advisor #{advisor.id}, message #{message.id}"
+        handle_error(message, "Empty response from AI - check LLM model configuration")
       end
     rescue AiClient::ApiError => e
+      Rails.logger.error "[GenerateAdvisorResponseJob] API Error for advisor #{advisor.id}: #{e.message}"
       handle_error(message, "API Error: #{e.message}")
     rescue => e
-      handle_error(message, "Unexpected error: #{e.message}")
-      Rails.logger.error "[GenerateAdvisorResponseJob] Unexpected error: #{e.message}"
+      Rails.logger.error "[GenerateAdvisorResponseJob] Unexpected error for advisor #{advisor.id}: #{e.message}"
       Rails.logger.error e.backtrace.first(10).join("\n")
+      handle_error(message, "Unexpected error: #{e.message}")
     end
   ensure
     ActsAsTenant.current_tenant = nil

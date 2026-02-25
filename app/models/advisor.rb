@@ -1,7 +1,7 @@
 class Advisor < ApplicationRecord
   acts_as_tenant :account
   belongs_to :account
-  belongs_to :council, optional: true
+  belongs_to :space
   belongs_to :llm_model, optional: true
 
   has_many :council_advisors, dependent: :destroy
@@ -14,18 +14,19 @@ class Advisor < ApplicationRecord
 
   validates :name, presence: true
   validates :account, presence: true
+  validates :space, presence: true
 
-  # Simple advisors (with council_id) only need name and short_description
-  # Full advisors (without council_id) need all AI model fields
-  validates :system_prompt, presence: true, unless: -> { council_id.present? }
-  validates :llm_model, presence: true, unless: -> { council_id.present? }
+  # Advisors need system_prompt and llm_model unless they're simple (legacy check removed)
+  validates :system_prompt, presence: true
+  validates :llm_model, presence: true
 
   scope :global, -> { where(global: true) }
   scope :custom, -> { where(global: false) }
+  scope :for_space, ->(space) { where(space: space) }
 
-  # Helper method for simple advisors
-  def simple?
-    council_id.present?
+  # Check if this is the Scribe advisor
+  def scribe?
+    name.downcase.include?("scribe") || name.downcase.include?("scrib")
   end
 
   # Delegation to llm_model for convenience

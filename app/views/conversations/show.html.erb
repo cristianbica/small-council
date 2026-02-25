@@ -57,54 +57,124 @@
     </div>
   <% end %>
 
-  <!-- Messages Area -->
-  <section class="card bg-base-100 shadow">
-    <div class="card-body">
-      <% if @messages.any? %>
-        <div id="messages" class="space-y-4 max-h-[60vh] overflow-y-auto p-2">
-          <% @messages.each do |message| %>
-            <%= render "messages/message", message: message, current_user: Current.user %>
+  <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <!-- Main Content: Messages Area -->
+    <div class="lg:col-span-3 space-y-6">
+      <section class="card bg-base-100 shadow">
+        <div class="card-body">
+          <% if @messages.any? %>
+            <div id="messages" class="space-y-4 max-h-[60vh] overflow-y-auto p-2">
+              <% @messages.each do |message| %>
+                <%= render "messages/message", message: message, current_user: Current.user %>
+              <% end %>
+            </div>
+          <% else %>
+            <%= render "shared/empty_state",
+                title: "No messages yet",
+                description: "Start the conversation by typing your first message below." %>
           <% end %>
         </div>
-      <% else %>
-        <%= render "shared/empty_state",
-            title: "No messages yet",
-            description: "Start the conversation by typing your first message below." %>
+      </section>
+
+      <!-- Message Form (only when active) -->
+      <% if @conversation.active? %>
+        <section class="card bg-base-100 shadow sticky bottom-4 z-10">
+          <div class="card-body py-3">
+            <%= form_with model: [@conversation, @new_message],
+                class: "flex items-end gap-2" do |form| %>
+              <% if @new_message.errors.any? %>
+                <div class="alert alert-error mb-2">
+                  <ul class="list-disc list-inside">
+                    <% @new_message.errors.full_messages.each do |msg| %>
+                      <li><%= msg %></li>
+                    <% end %>
+                  </ul>
+                </div>
+              <% end %>
+
+              <div class="form-control flex-1">
+                <%= form.text_area :content,
+                    class: "textarea textarea-bordered w-full resize-none",
+                    placeholder: "Type your message...",
+                    rows: 1,
+                    required: true %>
+              </div>
+
+              <%= form.button type: :submit, class: "btn btn-primary btn-circle" do %>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+              <% end %>
+            <% end %>
+          </div>
+        </section>
       <% end %>
     </div>
-  </section>
 
-  <!-- Message Form (only when active) -->
-  <% if @conversation.active? %>
-    <section class="card bg-base-100 shadow sticky bottom-4 z-10">
-      <div class="card-body py-3">
-        <%= form_with model: [@conversation, @new_message],
-            class: "flex items-end gap-2" do |form| %>
-          <% if @new_message.errors.any? %>
-            <div class="alert alert-error mb-2">
-              <ul class="list-disc list-inside">
-                <% @new_message.errors.full_messages.each do |msg| %>
-                  <li><%= msg %></li>
-                <% end %>
-              </ul>
+    <!-- Sidebar: Advisors -->
+    <div class="lg:col-span-1">
+      <div class="card bg-base-100 shadow sticky top-4">
+        <div class="card-body">
+          <h3 class="card-title text-lg mb-4">Council Advisors</h3>
+          
+          <% if @conversation.council.advisors.any? %>
+            <div class="space-y-3 mb-6">
+              <% @conversation.council.advisors.each do |advisor| %>
+                <div class="flex items-center gap-3 p-2 bg-base-200 rounded-lg">
+                  <div class="avatar placeholder">
+                    <div class="bg-neutral text-neutral-content rounded-full w-8">
+                      <span class="text-xs"><%= advisor.name.first.upcase %></span>
+                    </div>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="font-medium text-sm truncate"><%= advisor.name %></div>
+                    <div class="text-xs text-base-content/60">@<%= advisor.name.parameterize %></div>
+                  </div>
+                </div>
+              <% end %>
             </div>
+          <% else %>
+            <p class="text-sm text-base-content/60 mb-4">No advisors in this council.</p>
           <% end %>
 
-          <div class="form-control flex-1">
-            <%= form.text_area :content,
-                class: "textarea textarea-bordered w-full resize-none",
-                placeholder: "Type your message...",
-                rows: 1,
-                required: true %>
+          <div class="divider"></div>
+
+          <div class="space-y-3">
+            <h4 class="font-medium text-sm">How to Mention</h4>
+            <p class="text-sm text-base-content/70">
+              Use <code class="bg-base-200 px-1 py-0.5 rounded text-xs">@advisor-name</code> to direct a question to a specific advisor.
+            </p>
+            <div class="text-xs text-base-content/60 space-y-1">
+              <p><strong>Examples:</strong></p>
+              <p class="font-mono bg-base-200 p-1.5 rounded">@strategic-advisor What's your take on this?</p>
+              <p class="font-mono bg-base-200 p-1.5 rounded">@technical-expert Can you review the implementation?</p>
+            </div>
           </div>
 
-          <%= form.button type: :submit, class: "btn btn-primary btn-circle" do %>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-          <% end %>
-        <% end %>
+          <div class="divider"></div>
+
+          <div class="space-y-2">
+            <h4 class="font-medium text-sm">Engagement Mode</h4>
+            <p class="text-xs text-base-content/60">
+              This conversation uses <strong><%= @conversation.rules_of_engagement.humanize %></strong> mode.
+            </p>
+            <p class="text-xs text-base-content/60">
+              <% case @conversation.rules_of_engagement %>
+              <% when "moderated" %>
+                The Scribe will coordinate responses and manage the conversation flow.
+              <% when "round_robin" %>
+                Advisors will respond in sequence, taking turns to contribute.
+              <% when "on_demand" %>
+                Mention specific advisors when you want their input.
+              <% when "silent" %>
+                Advisors observe without responding directly.
+              <% when "consensus" %>
+                Advisors must reach agreement before responding.
+              <% end %>
+            </p>
+          </div>
+        </div>
       </div>
-    </section>
-  <% end %>
+    </div>
+  </div>
 </div>

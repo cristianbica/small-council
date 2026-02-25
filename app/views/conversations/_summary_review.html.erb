@@ -7,8 +7,8 @@
       Conversation Summary Ready for Review
     </h3>
 
-    <% draft_memory = conversation.context["draft_memory"] %>
-    <% memory_data = draft_memory.is_a?(String) ? JSON.parse(draft_memory) : draft_memory %>
+    <% draft_memory = conversation.draft_memory %>
+    <% memory_data = draft_memory.is_a?(String) ? JSON.parse(draft_memory) : (draft_memory || {}) %>
 
     <%= form_with url: approve_summary_conversation_path(conversation), method: :post do |f| %>
       <div class="space-y-4">

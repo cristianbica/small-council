@@ -17,11 +17,17 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "should sign in" do
+  test "should sign in and redirect to space councils" do
+    account = accounts(:one)
+    space = account.spaces.first
+
     post sign_in_url, params: { email: @user.email, password: "password123" }
     assert_redirected_to root_url
 
     get root_url
+    assert_redirected_to space_councils_path(space)
+
+    follow_redirect!
     assert_response :success
   end
 

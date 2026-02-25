@@ -6,13 +6,14 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
     set_tenant(@account)
     @provider = @account.providers.create!(name: "OpenAI", provider_type: "openai", api_key: "key")
     @llm_model = @provider.llm_models.create!(account: @account, name: "GPT-4", identifier: "gpt-4")
+    @user = @account.users.create!(email: "test@example.com", password: "password123")
+    @space = @account.spaces.create!(name: "Test Space")
     @advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are helpful.",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
-    @user = @account.users.create!(email: "test@example.com", password: "password123")
-    @space = @account.spaces.create!(name: "Test Space")
     @council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     @conversation = @account.conversations.create!(
       council: @council,
@@ -208,7 +209,8 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
     advisor = @account.advisors.create!(
       name: "OpenRouter Advisor",
       system_prompt: "You are helpful",
-      llm_model: openrouter_model
+      llm_model: openrouter_model,
+      space: @space
     )
     message = @conversation.messages.create!(
       account: @account,

@@ -11,14 +11,19 @@ class ApplicationControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_in_url
   end
 
-  test "allows authenticated users to access dashboard" do
+  test "allows authenticated users to access app and redirects to space councils" do
     sign_in_as(@user)
     set_tenant(@account)
+    space = @account.spaces.first
+
     get dashboard_url
+    assert_redirected_to space_councils_path(space)
+
+    follow_redirect!
     assert_response :success
   end
 
-  test "auto-creates default space when account has no spaces" do
+  test "shows dashboard when account has no spaces" do
     # Create fresh account without spaces
     fresh_account = Account.create!(name: "Fresh Account", slug: "fresh-test-#{Time.now.to_i}")
     fresh_user = fresh_account.users.create!(email: "fresh@example.com", password: "password123")
@@ -29,11 +34,28 @@ class ApplicationControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(fresh_user)
     set_tenant(fresh_account)
 
-    # First request should auto-create default space
+    # Dashboard shows successfully with no spaces
     get dashboard_url
     assert_response :success
 
-    # Verify space was created
+    # Still no spaces (dashboard skips auto-creation)
+    assert_equal 0, fresh_account.reload.spaces.count
+  end
+
+  test "auto-creates default space when accessing non-dashboard controller with no spaces" do
+    # Create fresh account without spaces
+    fresh_account = Account.create!(name: "Fresh Account 2", slug: "fresh-test-2-#{Time.now.to_i}")
+    fresh_user = fresh_account.users.create!(email: "fresh2@example.com", password: "password123")
+
+    assert_equal 0, fresh_account.spaces.count
+
+    sign_in_as(fresh_user)
+    set_tenant(fresh_account)
+
+    # Accessing spaces index triggers auto-creation
+    get spaces_url
+
+    # Space was auto-created
     assert_equal 1, fresh_account.reload.spaces.count
     assert_equal "General", fresh_account.spaces.first.name
   end
@@ -52,7 +74,10 @@ class ApplicationControllerTest < ActionDispatch::IntegrationTest
     # Now verify the session has the space_id
     assert_equal other_space.id, session[:space_id]
 
-    # Visit dashboard - should work with the session space
+    # Visit dashboard - should redirect to the session space councils
+    get dashboard_url
+    assert_redirected_to space_councils_path(other_space)
+
     follow_redirect!
     assert_response :success
   end

@@ -33,7 +33,7 @@
       <div class="flex items-center justify-between mb-4">
         <h2 class="card-title">Advisors</h2>
         <% if @council.user_id == Current.user.id %>
-          <%= link_to "Add Advisor", new_council_advisor_path(@council), class: "btn btn-primary btn-sm" %>
+          <%= link_to "Add Advisor", select_council_advisors_path(@council), class: "btn btn-primary btn-sm" %>
         <% end %>
       </div>
 
@@ -68,7 +68,7 @@
         <%= render "shared/empty_state",
             title: "No advisors yet",
             description: "Add advisors to this council to start collaborating.",
-            action_path: (@council.user_id == Current.user.id) ? new_council_advisor_path(@council) : nil,
+            action_path: (@council.user_id == Current.user.id) ? select_council_advisors_path(@council) : nil,
             action_text: "Add First Advisor" %>
       <% end %>
     </div>

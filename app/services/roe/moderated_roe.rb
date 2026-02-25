@@ -8,11 +8,11 @@ module RoE
       advisors_list = advisors.to_a
       return [] if advisors_list.empty?
 
-      # Ensure a Scribe advisor exists and use it for moderation
-      scribe = @conversation.council.find_or_create_scribe_advisor
+      # Use the space's Scribe advisor for moderation
+      scribe = @conversation.council.scribe_advisor
       return [ scribe ] if scribe.present?
 
-      # Fall back to keyword-based selection if scribe creation failed
+      # Fall back to keyword-based selection if scribe is unavailable
       content = message&.content.to_s.downcase
 
       scored = advisors_list.map do |advisor|

@@ -23,7 +23,8 @@ class CouncilAdvisorTest < ActiveSupport::TestCase
     @advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
   end
 
@@ -65,7 +66,8 @@ class CouncilAdvisorTest < ActiveSupport::TestCase
     other_advisor = @account.advisors.create!(
       name: "Other Advisor",
       system_prompt: "You are another advisor",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
     council_advisor = CouncilAdvisor.new(council: @council, advisor: other_advisor, position: 1)
     assert council_advisor.valid?

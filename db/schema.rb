@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_25_121000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_25_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -29,20 +29,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_25_121000) do
 
   create_table "advisors", force: :cascade do |t|
     t.bigint "account_id", null: false
-    t.bigint "council_id"
     t.datetime "created_at", null: false
     t.boolean "global", default: false
     t.bigint "llm_model_id"
     t.jsonb "metadata", default: {}
     t.jsonb "model_config", default: {}
     t.string "name", null: false
+    t.bigint "space_id"
     t.text "system_prompt", null: false
     t.datetime "updated_at", null: false
+    t.index ["account_id", "space_id"], name: "index_advisors_on_account_id_and_space_id"
     t.index ["account_id"], name: "index_advisors_on_account_id"
-    t.index ["council_id"], name: "index_advisors_on_council_id"
     t.index ["llm_model_id"], name: "index_advisors_on_llm_model_id"
     t.index ["metadata"], name: "index_advisors_on_metadata", using: :gin
     t.index ["model_config"], name: "index_advisors_on_model_config", using: :gin
+    t.index ["space_id", "name"], name: "index_advisors_on_space_id_and_name"
+    t.index ["space_id"], name: "index_advisors_on_space_id"
   end
 
   create_table "conversations", force: :cascade do |t|
@@ -83,6 +85,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_25_121000) do
     t.jsonb "configuration", default: {}
     t.datetime "created_at", null: false
     t.text "description"
+    t.text "memory"
     t.string "name", null: false
     t.bigint "space_id"
     t.datetime "updated_at", null: false
@@ -205,8 +208,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_25_121000) do
 
   add_foreign_key "accounts", "llm_models", column: "default_llm_model_id"
   add_foreign_key "advisors", "accounts"
-  add_foreign_key "advisors", "councils"
   add_foreign_key "advisors", "llm_models"
+  add_foreign_key "advisors", "spaces"
   add_foreign_key "conversations", "accounts"
   add_foreign_key "conversations", "councils"
   add_foreign_key "conversations", "users"

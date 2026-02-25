@@ -20,47 +20,57 @@ class AdvisorTest < ActiveSupport::TestCase
 
   # Validation tests
   test "valid with all required attributes" do
+    space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.new(
       name: "Test Advisor",
       system_prompt: "You are a helpful test advisor",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: space
     )
     assert advisor.valid?
   end
 
   test "invalid without name" do
+    space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.new(
       system_prompt: "You are a test advisor",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: space
     )
     assert_not advisor.valid?
     assert_includes advisor.errors[:name], "can't be blank"
   end
 
   test "invalid without system_prompt for non-simple advisor" do
+    space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.new(
       name: "Test Advisor",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: space
     )
     assert_not advisor.valid?
     assert_includes advisor.errors[:system_prompt], "can't be blank"
   end
 
   test "invalid without llm_model for non-simple advisor" do
+    space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.new(
       name: "Test Advisor",
-      system_prompt: "You are a test advisor"
+      system_prompt: "You are a test advisor",
+      space: space
     )
     assert_not advisor.valid?
     assert_includes advisor.errors[:llm_model], "can't be blank"
   end
 
   test "invalid without account" do
+    space = @account.spaces.create!(name: "Test Space")
     ActsAsTenant.without_tenant do
       advisor = Advisor.new(
         name: "Orphan Advisor",
         system_prompt: "You are a test advisor",
-        llm_model: @llm_model
+        llm_model: @llm_model,
+        space: space
       )
       assert_not advisor.valid?
       assert_includes advisor.errors[:account], "can't be blank"
@@ -94,13 +104,14 @@ class AdvisorTest < ActiveSupport::TestCase
   end
 
   test "dependent destroy removes associated council_advisors" do
+    space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: space
     )
     user = @account.users.create!(email: "test@example.com", password: "password123")
-    space = @account.spaces.create!(name: "Test Space")
     council = @account.councils.create!(name: "Test Council", user: user, space: space)
     advisor.council_advisors.create!(council: council, position: 0)
     assert_difference("CouncilAdvisor.count", -1) do
@@ -110,62 +121,82 @@ class AdvisorTest < ActiveSupport::TestCase
 
   # Scope tests
   test "global scope returns only global advisors" do
-    @account.advisors.create!(
+    space = @account.spaces.create!(name: "Global Scope Test Space")
+    global_advisor = @account.advisors.create!(
       name: "Global Advisor",
       system_prompt: "You are global",
       llm_model: @llm_model,
-      global: true
+      global: true,
+      space: space
     )
-    @account.advisors.create!(
+    custom_advisor = @account.advisors.create!(
       name: "Custom Advisor",
       system_prompt: "You are custom",
       llm_model: @llm_model,
-      global: false
+      global: false,
+      space: space
     )
-    assert_equal 1, Advisor.global.count
-    assert Advisor.global.all?(&:global)
+    # Only global advisor should be in global scope
+    global_advisors = Advisor.global.where(space: space)
+    assert_includes global_advisors, global_advisor
+    refute_includes global_advisors, custom_advisor
+    assert global_advisors.all?(&:global)
   end
 
   test "custom scope returns only non-global advisors" do
-    @account.advisors.create!(
+    space = @account.spaces.create!(name: "Custom Scope Test Space")
+    global_advisor = @account.advisors.create!(
       name: "Global Advisor",
       system_prompt: "You are global",
       llm_model: @llm_model,
-      global: true
+      global: true,
+      space: space
     )
-    @account.advisors.create!(
+    custom_advisor = @account.advisors.create!(
       name: "Custom Advisor",
       system_prompt: "You are custom",
       llm_model: @llm_model,
-      global: false
+      global: false,
+      space: space
     )
-    assert_equal 1, Advisor.custom.count
-    assert Advisor.custom.none?(&:global)
+    # Should include both the custom advisor and the auto-created Scribe
+    custom_advisors = Advisor.custom.where(space: space)
+    assert_includes custom_advisors, custom_advisor
+    refute_includes custom_advisors, global_advisor
+    assert custom_advisors.none?(&:global)
   end
 
-  test "belongs to council (optional)" do
+  test "belongs to space" do
     advisor = Advisor.new
-    assert_respond_to advisor, :council
+    assert_respond_to advisor, :space
   end
 
-  test "valid as simple advisor with council_id, name, account, and model" do
-    user = @account.users.create!(email: "test@example.com", password: "password123")
-    space = @account.spaces.create!(name: "Test Space")
-    council = @account.councils.create!(name: "Test Council", user: user, space: space)
-
+  test "invalid without space" do
     advisor = @account.advisors.new(
-      name: "Simple Advisor",
-      council: council,
+      name: "Test Advisor",
+      system_prompt: "You are a test advisor",
+      llm_model: @llm_model
+    )
+    assert_not advisor.valid?
+    assert_includes advisor.errors[:space], "must exist"
+  end
+
+  test "valid with space, name, system_prompt, and llm_model" do
+    space = @account.spaces.create!(name: "Test Space")
+    advisor = @account.advisors.new(
+      name: "Test Advisor",
+      space: space,
       llm_model: @llm_model,
-      system_prompt: "You are a simple advisor"
+      system_prompt: "You are a helpful advisor"
     )
     assert advisor.valid?
-    assert advisor.simple?
   end
 
-  test "non-simple advisor requires system_prompt and llm_model" do
+  test "advisor requires system_prompt and llm_model" do
+    space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.new(
-      name: "Full Advisor"
+      name: "Full Advisor",
+      space: space
     )
     assert_not advisor.valid?
     assert_includes advisor.errors[:system_prompt], "can't be blank"
@@ -173,19 +204,23 @@ class AdvisorTest < ActiveSupport::TestCase
   end
 
   test "delegates provider to llm_model" do
+    space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: space
     )
     assert_equal @provider, advisor.provider
   end
 
   test "delegates provider_type to llm_model" do
+    space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: space
     )
     assert_equal "openai", advisor.provider_type
   end

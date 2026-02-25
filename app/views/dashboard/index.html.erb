@@ -21,8 +21,13 @@
     </div>
     <div class="stat bg-base-100 shadow rounded-lg">
       <div class="stat-title">Space</div>
-      <div class="stat-value text-lg"><%= Current.space.name %></div>
-      <div class="stat-desc"><%= link_to "Switch", spaces_path, class: "link link-primary" %></div>
+      <% if Current.space.present? %>
+        <div class="stat-value text-lg"><%= Current.space.name %></div>
+        <div class="stat-desc"><%= link_to "Switch", spaces_path, class: "link link-primary" %></div>
+      <% else %>
+        <div class="stat-value text-lg">None</div>
+        <div class="stat-desc"><%= link_to "Create Space", new_space_path, class: "link link-primary" %></div>
+      <% end %>
     </div>
   </div>
 

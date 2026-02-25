@@ -4,7 +4,7 @@ class AdvisorsControllerTest < ActionDispatch::IntegrationTest
   def setup
     @account = accounts(:one)
     @user = users(:one)
-    @space = @account.spaces.first || @account.spaces.create!(name: "General")
+    @space = spaces(:one)
 
     # Create provider and model for advisors
     @provider = @account.providers.create!(
@@ -21,25 +21,22 @@ class AdvisorsControllerTest < ActionDispatch::IntegrationTest
 
   test "should redirect to sign in when not authenticated" do
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    get new_council_advisor_url(council)
+    get new_space_advisor_url(@space)
     assert_redirected_to sign_in_url
   end
 
   test "should get new when authenticated" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    get new_council_advisor_url(council)
+    get new_space_advisor_url(@space)
     assert_response :success
   end
 
   test "should create advisor when authenticated" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     assert_difference("Advisor.count") do
-      post council_advisors_url(council), params: {
+      post space_advisors_url(@space), params: {
         advisor: {
           name: "Test Advisor",
           system_prompt: "You are helpful",
@@ -47,70 +44,67 @@ class AdvisorsControllerTest < ActionDispatch::IntegrationTest
         }
       }
     end
-    assert_redirected_to council_url(council)
+    assert_redirected_to space_advisors_path(@space)
 
     advisor = Advisor.last
     assert_equal @llm_model, advisor.llm_model
+    assert_equal @space, advisor.space
   end
 
-  test "should get edit for creator" do
+  test "should get edit" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    advisor = council.advisors.create!(
+    advisor = @account.advisors.create!(
       name: "Test",
       system_prompt: "Test prompt",
       account: @account,
-      council: council,
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
-    get edit_council_advisor_url(council, advisor)
+    get edit_space_advisor_url(@space, advisor)
     assert_response :success
   end
 
-  test "should update advisor for creator" do
+  test "should update advisor" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    advisor = council.advisors.create!(
+    advisor = @account.advisors.create!(
       name: "Test",
       system_prompt: "Test prompt",
       account: @account,
-      council: council,
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
-    patch council_advisor_url(council, advisor), params: {
+    patch space_advisor_url(@space, advisor), params: {
       advisor: { name: "Updated Name" }
     }
-    assert_redirected_to council_url(council)
+    assert_redirected_to space_advisors_path(@space)
 
     advisor.reload
     assert_equal "Updated Name", advisor.name
   end
 
-  test "should destroy advisor for creator" do
+  test "should destroy advisor" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    advisor = council.advisors.create!(
+    advisor = @account.advisors.create!(
       name: "Test",
       system_prompt: "Test prompt",
       account: @account,
-      council: council,
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
     assert_difference("Advisor.count", -1) do
-      delete council_advisor_url(council, advisor)
+      delete space_advisor_url(@space, advisor)
     end
-    assert_redirected_to council_url(council)
+    assert_redirected_to space_advisors_path(@space)
   end
 
   test "create renders new on validation failure" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
 
-    post council_advisors_url(council), params: {
+    post space_advisors_url(@space), params: {
       advisor: { name: "", system_prompt: "" }
     }
     assert_response :unprocessable_entity
@@ -119,97 +113,69 @@ class AdvisorsControllerTest < ActionDispatch::IntegrationTest
   test "update renders edit on validation failure" do
     sign_in_as(@user)
     set_tenant(@account)
-    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    advisor = council.advisors.create!(
+    advisor = @account.advisors.create!(
       name: "Test",
       system_prompt: "Test prompt",
       account: @account,
-      council: council,
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
 
-    patch council_advisor_url(council, advisor), params: {
+    patch space_advisor_url(@space, advisor), params: {
       advisor: { name: "" }
     }
     assert_response :unprocessable_entity
   end
 
-  test "should redirect when non-creator tries to access new" do
+  test "should redirect when space not found" do
     sign_in_as(@user)
     set_tenant(@account)
-    other_user = @account.users.create!(email: "other@example.com", password: "password123")
-    council = @account.councils.create!(name: "Test Council", user: other_user, space: @space)
 
-    get new_council_advisor_url(council)
-    assert_redirected_to council_url(council)
-    assert_equal "Only the creator can manage advisors.", flash[:alert]
+    get new_space_advisor_url(space_id: 99999)
+    assert_redirected_to spaces_path
+    assert_equal "Space not found.", flash[:alert]
   end
 
-  test "should redirect when non-creator tries to create" do
+  test "should redirect when advisor not found in space" do
     sign_in_as(@user)
     set_tenant(@account)
-    other_user = @account.users.create!(email: "other@example.com", password: "password123")
-    council = @account.councils.create!(name: "Test Council", user: other_user, space: @space)
 
-    assert_no_difference("Advisor.count") do
-      post council_advisors_url(council), params: {
-        advisor: { name: "Test Advisor", system_prompt: "Test", llm_model_id: @llm_model.id }
-      }
-    end
-    assert_redirected_to council_url(council)
-  end
-
-  test "should redirect when non-creator tries to edit" do
-    sign_in_as(@user)
-    set_tenant(@account)
-    other_user = @account.users.create!(email: "other@example.com", password: "password123")
-    council = @account.councils.create!(name: "Test Council", user: other_user, space: @space)
-    advisor = council.advisors.create!(
-      name: "Test",
-      system_prompt: "Test prompt",
+    # Create advisor in a different space
+    other_space = @account.spaces.create!(name: "Other Space")
+    advisor_in_other_space = @account.advisors.create!(
+      name: "Other Advisor",
+      system_prompt: "Test",
       account: @account,
-      council: council,
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: other_space
     )
 
-    get edit_council_advisor_url(council, advisor)
-    assert_redirected_to council_url(council)
+    get edit_space_advisor_url(@space, advisor_in_other_space)
+    assert_redirected_to space_advisors_path(@space)
+    assert_equal "Advisor not found.", flash[:alert]
   end
 
-  test "should redirect when non-creator tries to update" do
+  test "should get index" do
     sign_in_as(@user)
     set_tenant(@account)
-    other_user = @account.users.create!(email: "other@example.com", password: "password123")
-    council = @account.councils.create!(name: "Test Council", user: other_user, space: @space)
-    advisor = council.advisors.create!(
-      name: "Test",
-      system_prompt: "Test prompt",
+
+    # Create a few advisors in the space
+    @account.advisors.create!(
+      name: "Advisor One",
+      system_prompt: "Test",
       account: @account,
-      council: council,
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
+    )
+    @account.advisors.create!(
+      name: "Advisor Two",
+      system_prompt: "Test",
+      account: @account,
+      llm_model: @llm_model,
+      space: @space
     )
 
-    patch council_advisor_url(council, advisor), params: { advisor: { name: "Updated" } }
-    assert_redirected_to council_url(council)
-    assert_equal "Test", advisor.reload.name
-  end
-
-  test "should redirect when non-creator tries to destroy" do
-    sign_in_as(@user)
-    set_tenant(@account)
-    other_user = @account.users.create!(email: "other@example.com", password: "password123")
-    council = @account.councils.create!(name: "Test Council", user: other_user, space: @space)
-    advisor = council.advisors.create!(
-      name: "Test",
-      system_prompt: "Test prompt",
-      account: @account,
-      council: council,
-      llm_model: @llm_model
-    )
-
-    assert_no_difference("Advisor.count") do
-      delete council_advisor_url(council, advisor)
-    end
-    assert_redirected_to council_url(council)
+    get space_advisors_url(@space)
+    assert_response :success
   end
 end

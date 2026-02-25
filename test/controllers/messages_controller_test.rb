@@ -81,7 +81,8 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
     council.advisors << advisor
     conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
@@ -100,7 +101,8 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      llm_model: @llm_model
+      llm_model: @llm_model,
+      space: @space
     )
     council.advisors << advisor
     conversation = @account.conversations.create!(council: council, user: @user, title: "Test")

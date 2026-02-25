@@ -98,10 +98,12 @@ class LLMModelTest < ActiveSupport::TestCase
 
   test "dependent nullify on advisors" do
     model = @provider.llm_models.create!(account: @account, name: "GPT-4", identifier: "gpt-4")
+    space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.create!(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
-      llm_model: model
+      llm_model: model,
+      space: space
     )
 
     model.destroy
