@@ -21,13 +21,42 @@ class AiClient
     return nil unless advisor.llm_model.enabled?
 
     with_retries do
+      # Build messages and system prompt for storage
+      messages = build_messages
+      system_prompt = advisor.system_prompt
+
+      # Store prompt data in the message before API call
+      message.update!(
+        prompt_text: system_prompt,
+        debug_data: {
+          request: {
+            model: advisor.llm_model.identifier,
+            temperature: advisor.model_config["temperature"] || 0.7,
+            max_tokens: advisor.model_config["max_tokens"] || 1000,
+            provider: advisor.llm_model.provider.provider_type,
+            messages_count: messages.length
+          }
+        }
+      )
+
       # Use the new unified client: model_instance.api.chat(...)
       result = advisor.llm_model.api.chat(
-        build_messages,
-        system_prompt: advisor.system_prompt,
+        messages,
+        system_prompt: system_prompt,
         temperature: advisor.model_config["temperature"] || 0.7,
         max_tokens: advisor.model_config["max_tokens"] || 1000
       )
+
+      # Update message with response debug data
+      if message.debug_data.present?
+        message.debug_data["response"] = {
+          input_tokens: result[:input_tokens],
+          output_tokens: result[:output_tokens],
+          model_used: result[:model],
+          timestamp: Time.current.iso8601
+        }
+        message.save!
+      end
 
       result
     end

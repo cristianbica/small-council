@@ -85,13 +85,18 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_difference("Conversation.count", 1) do
       assert_difference("Message.count", 1) do
         post council_conversations_url(council), params: {
-          conversation: { title: "New Conversation Topic" }
+          conversation: {
+            title: "New Conversation Topic",
+            initial_message: "This is the detailed initial message content",
+            rules_of_engagement: "round_robin"
+          }
         }
       end
     end
 
     conversation = Conversation.last
     assert_equal "New Conversation Topic", conversation.title
+    assert_equal "round_robin", conversation.rules_of_engagement
     assert_equal @user, conversation.user
     assert_equal council, conversation.council
 
@@ -99,7 +104,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal conversation, message.conversation
     assert_equal @user, message.sender
     assert_equal "user", message.role
-    assert_equal "New Conversation Topic", message.content
+    assert_equal "This is the detailed initial message content", message.content
 
     assert_redirected_to conversation_url(conversation)
   end
@@ -110,7 +115,11 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
 
     post council_conversations_url(council), params: {
-      conversation: { title: "Test" }
+      conversation: {
+        title: "Test",
+        initial_message: "Test initial message content",
+        rules_of_engagement: "round_robin"
+      }
     }
     assert_redirected_to conversation_url(Conversation.last)
   end
@@ -121,7 +130,11 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
 
     post council_conversations_url(council), params: {
-      conversation: { title: "" }
+      conversation: {
+        title: "",
+        initial_message: "",
+        rules_of_engagement: ""
+      }
     }
     assert_response :unprocessable_entity
     assert_select "h1", "Start New Conversation"
@@ -288,6 +301,8 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
       post council_conversations_url(council), params: {
         conversation: {
           title: "Test Conversation",
+          initial_message: "Test message",
+          rules_of_engagement: "round_robin",
           account_id: other_account.id  # Attempting to set account
         }
       }
@@ -310,6 +325,8 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
       post council_conversations_url(council), params: {
         conversation: {
           title: "Test Conversation",
+          initial_message: "Test message",
+          rules_of_engagement: "round_robin",
           user_id: other_user.id  # Attempting to set different user
         }
       }

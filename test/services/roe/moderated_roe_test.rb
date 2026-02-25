@@ -50,40 +50,64 @@ module RoE
       assert_equal [ @advisor1 ], responders
     end
 
-    test "scores advisors by keyword matching" do
-      # Advisor1 has "programming" in system_prompt
-      message = create_message("I need help with programming code")
-      responders = @roe.determine_responders(message)
-      assert_equal [ @advisor1 ], responders
-    end
-
-    test "returns advisor with fewest messages when no keywords match" do
-      # Create a message from advisor1
-      @account.messages.create!(
-        conversation: @conversation,
-        sender: @advisor1,
-        role: "advisor",
-        content: "Test message"
+    test "scribe advisor takes priority in moderated mode" do
+      # Create a scribe advisor
+      scribe = @account.advisors.create!(
+        name: "The Scribe",
+        system_prompt: "You are the scribe who moderates discussions",
+        llm_model: @llm_model
       )
+      @council.advisors << scribe
 
-      message = create_message("Something generic without keywords")
+      message = create_message("I need help with programming")
       responders = @roe.determine_responders(message)
-      # Should return advisor2 who has fewer messages
-      assert_equal [ @advisor2 ], responders
+      # Should return scribe, not the keyword-matching advisor
+      assert_equal [ scribe ], responders
     end
 
-    test "includes advisor name in scoring" do
-      # Advisor1 has "One" in name which matches "one"
-      message = create_message("Can someone help me with one specific issue")
+    test "scrib advisor name variant is detected" do
+      # Create a scrib advisor (alternative spelling)
+      scrib = @account.advisors.create!(
+        name: "Council Scrib",
+        system_prompt: "You are the scrib who moderates discussions",
+        llm_model: @llm_model
+      )
+      @council.advisors << scrib
+
+      message = create_message("I need help with programming")
       responders = @roe.determine_responders(message)
+      # Should return scrib
+      assert_equal [ scrib ], responders
+    end
+
+    test "creates scribe when none exists and uses it for moderation" do
+      message = create_message("I need help with programming")
+
+      # No scribe exists initially
+      assert_nil @council.advisors.find_by("LOWER(name) LIKE ? OR LOWER(name) LIKE ?", "%scribe%", "%scrib%")
+
+      responders = @roe.determine_responders(message)
+
+      # Scribe should be created and returned
+      scribe = @council.advisors.find_by("LOWER(name) LIKE ? OR LOWER(name) LIKE ?", "%scribe%", "%scrib%")
+      assert scribe.present?, "Scribe should be created"
+      assert_equal [ scribe ], responders
+    end
+
+    test "@mentions take priority over scribe selection" do
+      # Create a scribe advisor
+      scribe = @account.advisors.create!(
+        name: "The Scribe",
+        system_prompt: "You are the scribe who moderates discussions",
+        llm_model: @llm_model
+      )
+      @council.advisors << scribe
+
+      @advisor1.update!(name: "Alpha")
+      message = create_message("@Alpha please respond about programming")
+      responders = @roe.determine_responders(message)
+      # @mentions should still take priority over scribe
       assert_equal [ @advisor1 ], responders
-    end
-
-    test "returns empty when no advisors" do
-      @council.advisors.clear
-      message = create_message("Hello")
-      responders = @roe.determine_responders(message)
-      assert_empty responders
     end
 
     private

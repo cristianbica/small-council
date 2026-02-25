@@ -29,11 +29,11 @@
           </label>
           <%= form.text_field :title,
               class: "input input-bordered w-full #{'input-error' if form.object.errors[:title].any?}",
-              placeholder: "What would you like to discuss?",
+              placeholder: "What is this conversation about?",
               required: true,
               autofocus: true %>
           <label class="label">
-            <span class="label-text-alt text-base-content/60">This will be your first message</span>
+            <span class="label-text-alt text-base-content/60">A brief title for this conversation</span>
           </label>
           <% if form.object.errors[:title].any? %>
             <label class="label">
@@ -42,6 +42,85 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <%= form.object.errors[:title].first %>
+              </span>
+            </label>
+          <% end %>
+        </div>
+
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">
+              Initial Message
+              <span class="text-error" aria-label="required">*</span>
+            </span>
+          </label>
+          <%= form.text_area :initial_message,
+              class: "textarea textarea-bordered w-full #{'textarea-error' if form.object.errors[:initial_message].any?}",
+              placeholder: "What would you like to discuss? Provide details, context, or questions for the advisors.",
+              rows: 5,
+              required: true %>
+          <label class="label">
+            <span class="label-text-alt text-base-content/60">This will be your first message to the council</span>
+          </label>
+          <% if form.object.errors[:initial_message].any? %>
+            <label class="label">
+              <span class="label-text-alt text-error flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <%= form.object.errors[:initial_message].first %>
+              </span>
+            </label>
+          <% end %>
+        </div>
+
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">
+              Rules of Engagement
+              <span class="text-error" aria-label="required">*</span>
+            </span>
+          </label>
+          <p class="text-sm text-base-content/60 mb-3">
+            How advisors will participate in this conversation (cannot be changed later)
+          </p>
+          
+          <div class="space-y-3">
+            <% 
+              roe_descriptions = {
+                "round_robin" => "Advisors take turns responding one at a time. Each advisor speaks after the previous one finishes.",
+                "moderated" => "The Scribe advisor moderates and selects which advisor responds based on relevance. If no Scribe exists, the best-matching advisor responds.",
+                "on_demand" => "Advisors only respond when explicitly @mentioned by you. You control who speaks and when.",
+                "silent" => "No advisor responses. Use this for note-taking or when you want to record thoughts without advisor input.",
+                "consensus" => "All advisors respond to every message. You get input from everyone simultaneously."
+              }
+            %>
+            
+            <% Conversation.rules_of_engagements.keys.each do |mode| %>
+              <% mode_string = mode.to_s %>
+              <% is_checked = @conversation.rules_of_engagement == mode_string || (mode_string == "round_robin" && @conversation.rules_of_engagement.blank?) %>
+              <% label_class = is_checked ? "border-primary bg-primary/5" : "border-transparent bg-base-200 hover:bg-base-300" %>
+              <label class="cursor-pointer rounded-lg p-3 block border transition-colors <%= label_class %>">
+                <div class="flex items-start gap-3">
+                  <%= form.radio_button :rules_of_engagement, mode, 
+                      class: "radio radio-primary mt-0.5",
+                      required: true %>
+                  <div class="flex-1">
+                    <span class="font-medium block"><%= mode_string.humanize %></span>
+                    <span class="text-sm text-base-content/70 block mt-0.5"><%= roe_descriptions[mode_string] %></span>
+                  </div>
+                </div>
+              </label>
+            <% end %>
+          </div>
+          
+          <% if form.object.errors[:rules_of_engagement].any? %>
+            <label class="label mt-2">
+              <span class="label-text-alt text-error flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <%= form.object.errors[:rules_of_engagement].first %>
               </span>
             </label>
           <% end %>

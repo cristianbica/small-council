@@ -10,17 +10,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_20_200002) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_25_121000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.bigint "default_llm_model_id"
     t.string "name", null: false
     t.jsonb "settings", default: {}
     t.string "slug", null: false
     t.datetime "trial_ends_at"
     t.datetime "updated_at", null: false
+    t.index ["default_llm_model_id"], name: "index_accounts_on_default_llm_model_id"
     t.index ["settings"], name: "index_accounts_on_settings", using: :gin
     t.index ["slug"], name: "index_accounts_on_slug", unique: true
   end
@@ -124,7 +126,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_20_200002) do
     t.jsonb "content_blocks", default: []
     t.bigint "conversation_id", null: false
     t.datetime "created_at", null: false
+    t.jsonb "debug_data", default: {}
     t.jsonb "metadata", default: {}
+    t.text "prompt_text"
     t.string "role", null: false
     t.bigint "sender_id", null: false
     t.string "sender_type", null: false
@@ -133,6 +137,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_20_200002) do
     t.index ["account_id"], name: "index_messages_on_account_id"
     t.index ["conversation_id", "created_at"], name: "index_messages_on_conversation_id_and_created_at"
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
+    t.index ["debug_data"], name: "index_messages_on_debug_data", using: :gin
     t.index ["metadata"], name: "index_messages_on_metadata", using: :gin
     t.index ["sender_type", "sender_id"], name: "index_messages_on_sender"
   end
@@ -198,6 +203,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_20_200002) do
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
+  add_foreign_key "accounts", "llm_models", column: "default_llm_model_id"
   add_foreign_key "advisors", "accounts"
   add_foreign_key "advisors", "councils"
   add_foreign_key "advisors", "llm_models"

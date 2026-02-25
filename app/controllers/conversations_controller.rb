@@ -16,17 +16,18 @@ class ConversationsController < ApplicationController
   end
 
   def create
-    @conversation = @council.conversations.new(conversation_params)
+    @conversation = @council.conversations.new(conversation_params_for_create)
     @conversation.account = Current.account
     @conversation.user = Current.user
 
     if @conversation.save
-      # Create the first message with the conversation title as content
+      # Create the first message with the initial_message content
+      initial_content = conversation_params[:initial_message].presence || @conversation.title
       @conversation.messages.create!(
         account: Current.account,
         sender: Current.user,
         role: "user",
-        content: @conversation.title
+        content: initial_content
       )
 
       redirect_to @conversation, notice: "Conversation started successfully."
@@ -114,6 +115,10 @@ class ConversationsController < ApplicationController
   end
 
   def conversation_params
+    params.require(:conversation).permit(:title, :rules_of_engagement, :initial_message)
+  end
+
+  def conversation_params_for_create
     params.require(:conversation).permit(:title, :rules_of_engagement)
   end
 end

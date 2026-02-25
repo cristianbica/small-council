@@ -1,6 +1,7 @@
 class PromptGenerator
   class Error < StandardError; end
-  class NoFreeModelError < Error; end
+  class NoModelError < Error; end
+  class NoFreeModelError < NoModelError; end  # Backwards compatibility
   class GenerationError < Error; end
 
   # System prompt for generating advisor prompts
@@ -26,12 +27,12 @@ class PromptGenerator
   end
 
   def generate
-    free_model = find_free_model
-    raise NoFreeModelError, "No free AI model available. Please configure a free model in AI Providers." unless free_model
+    model = find_suitable_model
+    raise NoModelError, "No AI model available. Please configure a default model or enable a free model in AI Providers." unless model
 
     user_prompt = build_user_prompt
 
-    result = free_model.api.chat(
+    result = model.api.chat(
       [ { role: "user", content: user_prompt } ],
       system_prompt: PROMPT_GENERATOR_SYSTEM_PROMPT,
       temperature: 0.7,
@@ -39,7 +40,7 @@ class PromptGenerator
     )
 
     result&.[](:content) || raise(GenerationError, "Failed to generate prompt")
-  rescue NoFreeModelError
+  rescue NoModelError
     raise  # Re-raise our own errors
   rescue LLM::APIError => e
     Rails.logger.error "[PromptGenerator] API error: #{e.message}"
@@ -53,8 +54,9 @@ class PromptGenerator
 
   private
 
-  def find_free_model
-    @account.llm_models.enabled.free.first
+  def find_suitable_model
+    # Prefer account's default model, then fall back to free model
+    @account.default_llm_model&.enabled? ? @account.default_llm_model : @account.llm_models.enabled.free.first
   end
 
   def build_user_prompt

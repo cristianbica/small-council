@@ -60,6 +60,7 @@
             <span class="text-xs text-base-content/60">Signed in as</span>
             <span class="text-sm font-normal truncate"><%= Current.user.email %></span>
           </li>
+          <li><%= link_to "Settings", edit_settings_path, class: "justify-between" %></li>
           <li><%= button_to "Sign out", session_path(id: Current.session.id), method: :delete, class: "btn btn-ghost btn-sm justify-start w-full" %></li>
         </ul>
       </div>

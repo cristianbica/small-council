@@ -59,7 +59,7 @@ class AdvisorsControllerGeneratePromptTest < ActionDispatch::IntegrationTest
     assert_equal "Description is required", json_response["error"]
   end
 
-  test "generate_prompt returns error when no free model available" do
+  test "generate_prompt returns error when no suitable model available" do
     @free_model.update!(free: false)
 
     post generate_prompt_council_advisors_url(@council),
@@ -68,7 +68,7 @@ class AdvisorsControllerGeneratePromptTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     json_response = JSON.parse(response.body)
-    assert_match /No free AI model available/, json_response["error"]
+    assert_match /No AI model available/, json_response["error"]
   end
 
   test "generate_prompt returns error on API failure" do

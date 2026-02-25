@@ -20,27 +20,10 @@
           <%= @conversation.status %>
         </span>
 
-        <!-- RoE Dropdown (only when active) -->
-        <% if @conversation.active? %>
-          <div class="dropdown dropdown-end">
-            <label tabindex="0" class="btn btn-sm btn-outline">
-              <%= @conversation.rules_of_engagement.humanize %>
-              <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-              </svg>
-            </label>
-            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
-              <% Conversation.rules_of_engagements.keys.each do |mode| %>
-                <li>
-                  <%= button_to mode.humanize,
-                      conversation_path(@conversation, conversation: { rules_of_engagement: mode }),
-                      method: :patch,
-                      class: "#{@conversation.rules_of_engagement == mode ? 'active' : ''}" %>
-                </li>
-              <% end %>
-            </ul>
-          </div>
-        <% end %>
+        <!-- RoE Badge (read-only) -->
+        <span class="badge badge-outline badge-sm">
+          <%= @conversation.rules_of_engagement.humanize %>
+        </span>
       </div>
       <p class="text-sm text-base-content/60 mt-1">
         in <%= @conversation.council.name %> ·

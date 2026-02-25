@@ -15,6 +15,9 @@ Rails.application.routes.draw do
   # Protected app routes
   get "dashboard", to: "dashboard#index"
 
+  # Settings
+  resource :settings, only: [ :edit, :update ]
+
   # Spaces routes with nested councils
   resources :spaces do
     resources :councils, only: [ :index, :new, :create ]

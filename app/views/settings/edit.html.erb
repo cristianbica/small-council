@@ -1,0 +1,72 @@
+<div class="max-w-2xl mx-auto">
+  <h1 class="text-3xl font-bold mb-6">Account Settings</h1>
+
+  <section class="card bg-base-100 shadow">
+    <div class="card-body">
+      <%= form_with model: @account, url: settings_path, method: :patch, class: "space-y-6" do |form| %>
+        <% if @account.errors.any? %>
+          <div class="alert alert-error">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linecap="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <h3 class="font-bold"><%= pluralize(@account.errors.count, "error") %> prohibited this update:</h3>
+              <ul class="mt-1 list-disc list-inside text-sm">
+                <% @account.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            </div>
+          </div>
+        <% end %>
+
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">Default AI Model</span>
+          </label>
+          <p class="text-sm text-base-content/60 mb-2">
+            This model will be used for generic operations like conversation summaries and prompt generation.
+          </p>
+          <%= form.select :default_llm_model_id,
+              @account.llm_models.enabled.map { |m| ["#{m.name} (#{m.provider.provider_type})", m.id] },
+              { include_blank: "Select a default model..." },
+              class: "select select-bordered w-full #{'select-error' if @account.errors[:default_llm_model].any?}" %>
+          <% if @account.errors[:default_llm_model].any? %>
+            <label class="label">
+              <span class="label-text-alt text-error"><%= @account.errors[:default_llm_model].first %></span>
+            </label>
+          <% end %>
+        </div>
+
+        <div class="card-actions justify-end mt-4">
+          <%= link_to "Cancel", dashboard_path, class: "btn btn-ghost" %>
+          <%= form.submit "Save Settings", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <section class="card bg-base-100 shadow mt-6">
+    <div class="card-body">
+      <h2 class="card-title">Current Configuration</h2>
+      <div class="space-y-2 text-sm">
+        <p>
+          <span class="font-semibold">Account:</span> <%= @account.name %>
+        </p>
+        <p>
+          <span class="font-semibold">Default Model:</span>
+          <% if @account.default_llm_model.present? %>
+            <span class="badge badge-primary"><%= @account.default_llm_model.name %></span>
+            <span class="text-base-content/60">(<%= @account.default_llm_model.provider.provider_type %>)</span>
+          <% else %>
+            <span class="badge badge-ghost">Not configured</span>
+            <span class="text-base-content/60"> - Will use first available enabled model</span>
+          <% end %>
+        </p>
+        <p>
+          <span class="font-semibold">Enabled Models:</span> <%= @account.llm_models.enabled.count %>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>

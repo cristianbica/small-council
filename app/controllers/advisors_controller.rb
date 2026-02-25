@@ -45,7 +45,7 @@ class AdvisorsController < ApplicationController
     begin
       generated_prompt = PromptGenerator.generate(description: description, account: Current.account)
       render json: { prompt: generated_prompt }
-    rescue PromptGenerator::NoFreeModelError => e
+    rescue PromptGenerator::NoModelError => e
       render json: { error: e.message }, status: :unprocessable_entity
     rescue PromptGenerator::GenerationError => e
       render json: { error: e.message }, status: :unprocessable_entity

@@ -32,10 +32,10 @@ class PromptGeneratorTest < ActiveSupport::TestCase
     assert_equal "You are a helpful strategic advisor...", result
   end
 
-  test "raises NoFreeModelError when no free model exists" do
+  test "raises NoModelError when no suitable model exists" do
     @free_model.update!(free: false)
 
-    assert_raises(PromptGenerator::NoFreeModelError) do
+    assert_raises(PromptGenerator::NoModelError) do
       PromptGenerator.generate(
         description: "A strategic business advisor",
         account: @account
@@ -86,7 +86,7 @@ class PromptGeneratorTest < ActiveSupport::TestCase
   test "only considers enabled models" do
     @free_model.update!(enabled: false)
 
-    assert_raises(PromptGenerator::NoFreeModelError) do
+    assert_raises(PromptGenerator::NoModelError) do
       PromptGenerator.generate(description: "Test", account: @account)
     end
   end

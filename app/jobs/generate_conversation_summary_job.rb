@@ -5,28 +5,31 @@ class GenerateConversationSummaryJob < ApplicationJob
     conversation = Conversation.find_by(id: conversation_id)
     return unless conversation&.concluding?
 
+    # Store conversation as instance variable for use in other methods
+    @conversation = conversation
+
     # Set tenant context for background job
     ActsAsTenant.current_tenant = conversation.account
 
     # Build conversation transcript
-    transcript = build_transcript(conversation)
+    transcript = build_transcript
 
     # Generate summary
     summary = generate_summary(transcript)
 
     # Store draft summary (encrypted at rest)
-    conversation.update!(draft_memory: summary.to_json)
+    @conversation.update!(draft_memory: summary.to_json)
 
     # Notify user via Turbo Stream that summary is ready for review
-    broadcast_summary_ready(conversation)
+    broadcast_summary_ready(@conversation)
   ensure
     ActsAsTenant.current_tenant = nil
   end
 
   private
 
-  def build_transcript(conversation)
-    conversation.messages.chronological.map do |msg|
+  def build_transcript
+    @conversation.messages.chronological.map do |msg|
       sender_name = msg.sender.is_a?(User) ? msg.sender.email : msg.sender.name
       "#{sender_name}: #{msg.content}"
     end.join("\n\n")
@@ -62,8 +65,10 @@ class GenerateConversationSummaryJob < ApplicationJob
 
     return advisor if advisor.present?
 
-    # Create a basic scribe advisor with default model
-    llm_model = @conversation.account.llm_models.enabled.first
+    # Use account's default LLM model or fall back to first enabled
+    llm_model = @conversation.account.default_llm_model || @conversation.account.llm_models.enabled.first
+
+    raise "No LLM model available. Please configure a default model or enable at least one model." unless llm_model
 
     @conversation.account.advisors.create!(
       name: "Scribe",

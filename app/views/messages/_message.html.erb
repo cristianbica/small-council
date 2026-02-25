@@ -2,6 +2,7 @@
   <% is_current_user = message.sender == current_user %>
   <% is_pending = message.pending? %>
   <% is_error = message.error? %>
+  <% is_advisor = message.advisor? %>
   <% sender_name = message.sender.respond_to?(:name) ? message.sender.name : message.sender.email %>
 
   <div class="flex <%= is_current_user ? 'justify-end' : 'justify-start' %> gap-3 group">
@@ -22,6 +23,16 @@
         <% if is_pending %>
           <span class="loading loading-spinner loading-xs"></span>
         <% end %>
+        <% if is_advisor && message.prompt_text.present? %>
+          <button onclick="document.getElementById('debug-modal-<%= message.id %>').showModal()"
+                  class="btn btn-ghost btn-xs btn-circle"
+                  title="View debug info">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+        <% end %>
       </div>
 
       <div class="relative">
@@ -35,7 +46,16 @@
           else
             'bg-base-300'
           end %> rounded-2xl px-4 py-2 shadow-sm">
-          <div class="whitespace-pre-wrap <%= is_pending ? 'animate-pulse' : '' %>"><%= message.content %></div>
+          <% if is_advisor && message.content.present? && message.content.length > 500 %>
+            <div data-controller="message-expand" data-message-expand-max-length-value="500">
+              <div data-message-expand-target="content" class="whitespace-pre-wrap <%= is_pending ? 'animate-pulse' : '' %>"><%= message.content %></div>
+              <button data-message-expand-target="toggle" data-action="click->message-expand#toggle" class="btn btn-ghost btn-xs mt-2 hidden">
+                Read more
+              </button>
+            </div>
+          <% else %>
+            <div class="whitespace-pre-wrap <%= is_pending ? 'animate-pulse' : '' %>"><%= message.content %></div>
+          <% end %>
         </div>
 
         <!-- Copy button - appears on hover -->
@@ -50,4 +70,50 @@
       </div>
     </div>
   </div>
+
+  <!-- Debug Modal for Advisor Messages -->
+  <% if is_advisor && message.prompt_text.present? %>
+    <dialog id="debug-modal-<%= message.id %>" class="modal modal-bottom sm:modal-middle">
+      <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Debug Information</h3>
+        <div class="space-y-4">
+          <div>
+            <h4 class="text-sm font-semibold text-base-content/70 mb-1">System Prompt</h4>
+            <div class="bg-base-200 p-3 rounded-lg text-sm whitespace-pre-wrap max-h-40 overflow-y-auto"><%= message.prompt_text %></div>
+          </div>
+          <% if message.debug_data.present? %>
+            <div>
+              <h4 class="text-sm font-semibold text-base-content/70 mb-1">Request Details</h4>
+              <div class="bg-base-200 p-3 rounded-lg text-sm">
+                <% if message.debug_data["request"] %>
+                  <p><strong>Model:</strong> <%= message.debug_data["request"]["model"] %></p>
+                  <p><strong>Provider:</strong> <%= message.debug_data["request"]["provider"] %></p>
+                  <p><strong>Temperature:</strong> <%= message.debug_data["request"]["temperature"] %></p>
+                  <p><strong>Max Tokens:</strong> <%= message.debug_data["request"]["max_tokens"] %></p>
+                  <p><strong>Messages in Context:</strong> <%= message.debug_data["request"]["messages_count"] %></p>
+                <% end %>
+              </div>
+            </div>
+            <% if message.debug_data["response"] %>
+              <div>
+                <h4 class="text-sm font-semibold text-base-content/70 mb-1">Response Metadata</h4>
+                <div class="bg-base-200 p-3 rounded-lg text-sm">
+                  <p><strong>Input Tokens:</strong> <%= message.debug_data["response"]["input_tokens"] || "N/A" %></p>
+                  <p><strong>Output Tokens:</strong> <%= message.debug_data["response"]["output_tokens"] || "N/A" %></p>
+                  <p><strong>Model Used:</strong> <%= message.debug_data["response"]["model_used"] || "N/A" %></p>
+                  <p><strong>Timestamp:</strong> <%= message.debug_data["response"]["timestamp"] || "N/A" %></p>
+                </div>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+        <div class="modal-action">
+          <button onclick="document.getElementById('debug-modal-<%= message.id %>').close()" class="btn">Close</button>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+      </form>
+    </dialog>
+  <% end %>
 <% end %>
