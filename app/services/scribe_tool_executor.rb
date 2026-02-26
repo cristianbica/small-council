@@ -9,7 +9,8 @@ class ScribeToolExecutor
   SCRIBE_TOOLS = [
     ScribeTools::FinishConversationTool,
     ScribeTools::CreateMemoryTool,
-    ScribeTools::QueryMemoriesTool
+    ScribeTools::QueryMemoriesTool,
+    ScribeTools::BrowseWebTool
   ].freeze
 
   ADVISOR_TOOLS = [

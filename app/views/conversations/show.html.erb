@@ -1,6 +1,7 @@
 <%= turbo_stream_from "conversation_#{@conversation.id}" %>
 
-<div class="space-y-6" data-controller="conversation">
+<div class="space-y-6" data-controller="conversation mentions"
+     data-mentions-advisors-value='<%= @conversation.council.advisors.to_json(only: [:name]) %>'>
   <!-- Breadcrumbs -->
   <div class="breadcrumbs text-sm">
     <ul>
@@ -98,14 +99,15 @@
                 </div>
               <% end %>
 
-              <div class="form-control flex-1">
+              <div class="form-control flex-1 relative">
                 <%= form.text_area :content,
                     class: "textarea textarea-bordered w-full resize-none",
-                    placeholder: "Type your message... (Ctrl+Enter to send)",
+                    placeholder: "Type your message... (Ctrl+Enter to send, @ to mention)",
                     rows: 1,
                     required: true,
                     data: {
                       conversation_target: "textarea",
+                      mentions_target: "input",
                       action: "keydown->conversation#submitOnCtrlEnter input->conversation#autoExpand"
                     } %>
               </div>

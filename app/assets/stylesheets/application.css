@@ -29,3 +29,49 @@ html {
     transform: translateY(0);
   }
 }
+
+/* Tribute.js mentions - Clean, minimal design */
+.tribute-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: auto;
+  max-height: 200px;
+  max-width: 250px;
+  overflow: auto;
+  display: block;
+  z-index: 999999;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.tribute-container ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tribute-container li {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom: 1px solid #f3f4f6;
+  background: #ffffff;
+  color: #374151;
+}
+
+.tribute-container li:last-child {
+  border-bottom: none;
+}
+
+.tribute-container li:hover,
+.tribute-container li.highlight {
+  background: #3b82f6;
+  color: #ffffff;
+}

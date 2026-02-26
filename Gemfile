@@ -46,6 +46,10 @@ gem "acts_as_tenant", "~> 1.0"
 # AI/LLM API client (unified)
 gem "ruby_llm", "~> 1.3"
 
+# HTTP client for web browsing tool
+gem "faraday", "~> 2.0"
+gem "faraday-follow_redirects", "~> 0.3"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
