@@ -227,25 +227,37 @@ class AiClient
     context_parts.join("\n")
   end
 
-  # Build space memory context from resolved conversations and current conversation
+  # Build space memory context from the memories table
+  # ONLY the 'summary' memory type is auto-fed to AI agents
+  # Other memory types (conversation_summary, conversation_notes, knowledge)
+  # must be queried on-demand via the query_memories tool
   def build_memory_context
     space = conversation.council&.space
     return nil unless space
 
     context_parts = []
 
-    # Add space memory if available
-    if space.memory.present?
-      context_parts << "## Organizational Memory (Previous Decisions & Insights)"
-      # Truncate to keep prompt manageable
-      memory_text = space.memory.length > MAX_MEMORY_LENGTH ?
-        space.memory[0...MAX_MEMORY_LENGTH] + "...\n[Additional memory truncated for brevity]" :
-        space.memory
-      context_parts << memory_text
+    # Add the PRIMARY SUMMARY memory (ONLY this type is auto-fed)
+    summary_memory = Memory.primary_summary_for(space)
+    if summary_memory
+      context_parts << "## Space Knowledge & Decisions"
+      context_parts << "The following is the accumulated knowledge and key decisions for this space:"
+      context_parts << ""
+      summary_text = summary_memory.content.length > MAX_MEMORY_LENGTH ?
+        summary_memory.content[0...MAX_MEMORY_LENGTH] + "...\n[Additional memory truncated for brevity]" :
+        summary_memory.content
+      context_parts << summary_text
     end
 
-    # Add current conversation memory/draft if available
+    # Note: We intentionally do NOT auto-feed:
+    # - conversation_summary memories (too specific, query on-demand)
+    # - conversation_notes memories (too verbose, query on-demand)
+    # - knowledge memories (query on-demand when relevant)
+    # Advisors can use the query_memories tool to access these
+
+    # Add current conversation memory/draft if available (existing behavior)
     if conversation.memory.present? || conversation.draft_memory.present?
+      context_parts << ""
       context_parts << "## This Conversation's Context"
 
       if conversation.draft_memory.present?
@@ -260,41 +272,6 @@ class AiClient
           conversation.memory[0...500] + "..." :
           conversation.memory
         context_parts << memory_text
-      end
-    end
-
-    # Add recent resolved conversations from this council
-    recent_conversations = space.conversations
-      .where(council: conversation.council)
-      .where(status: :resolved)
-      .where.not(id: conversation.id)
-      .where.not(memory: nil)
-      .order(updated_at: :desc)
-      .limit(3)
-
-    if recent_conversations.any?
-      context_parts << "## Recent Resolved Conversations in This Council"
-
-      recent_conversations.each do |conv|
-        context_parts << "### #{conv.title || 'Untitled Conversation'}"
-
-        if conv.memory_data.present?
-          memory_data = conv.memory_data
-
-          if memory_data["key_decisions"].present?
-            context_parts << "Key Decisions: #{memory_data["key_decisions"].truncate(200)}"
-          end
-
-          if memory_data["action_items"].present?
-            context_parts << "Action Items: #{memory_data["action_items"].truncate(200)}"
-          end
-
-          if memory_data["insights"].present?
-            context_parts << "Insights: #{memory_data["insights"].truncate(200)}"
-          end
-        end
-
-        context_parts << "" # Empty line between conversations
       end
     end
 

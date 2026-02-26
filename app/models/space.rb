@@ -4,6 +4,7 @@ class Space < ApplicationRecord
   has_many :councils, dependent: :destroy
   has_many :conversations, through: :councils
   has_many :advisors, dependent: :destroy
+  has_many :memories, dependent: :destroy
 
   validates :name, presence: true
   validates :name, uniqueness: { scope: :account_id }
@@ -52,28 +53,6 @@ class Space < ApplicationRecord
     advisors.where.not("LOWER(name) LIKE ? OR LOWER(name) LIKE ?", "%scribe%", "%scrib%")
   end
 
-  # Append a conversation memory entry to the space's cumulative memory
-  def append_memory(conversation_memory)
-    Rails.logger.info "[Space#append_memory] Appending memory to space #{id}"
-
-    current = self.memory || ""
-    new_entry = format_memory_entry(conversation_memory)
-
-    update!(memory: current + "\n\n" + new_entry)
-
-    Rails.logger.info "[Space#append_memory] Successfully appended memory to space #{id}"
-  rescue ActiveRecord::RecordInvalid => e
-    Rails.logger.error "[Space#append_memory] Failed to append memory to space #{id}: #{e.message}"
-    raise
-  end
-
-  # Search the space memory for a query string
-  def search_memory(query)
-    return [] if memory.blank? || query.blank?
-
-    memory.lines.select { |line| line.downcase.include?(query.downcase) }
-  end
-
   private
 
   def create_scribe_advisor
@@ -81,24 +60,5 @@ class Space < ApplicationRecord
   rescue => e
     Rails.logger.error "[Space] Failed to create Scribe advisor: #{e.message}"
     # Don't prevent space creation if Scribe creation fails
-  end
-
-  def format_memory_entry(memory)
-    timestamp = Time.current.strftime("%Y-%m-%d %H:%M")
-    <<~MEMORY
-      ## Conversation Summary - #{timestamp}
-
-      **Key Decisions:**
-      #{memory["key_decisions"]}
-
-      **Action Items:**
-      #{memory["action_items"]}
-
-      **Insights:**
-      #{memory["insights"]}
-
-      **Open Questions:**
-      #{memory["open_questions"]}
-    MEMORY
   end
 end

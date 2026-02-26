@@ -86,6 +86,7 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - 2026-02-18: Conversation Memory Features - Structured AI-generated summaries with key decisions, action items, insights, and open questions. Space-level cumulative memory browser with search. Regenerate summary option available during review.
 - 2026-02-24: Created `dhh-coder` overlay (coding style) and `dhh-reviewer` overlay (code review persona) for 37signals/DHH Rails conventions
 - 2026-02-25: Fixed conversation summary parsing - The `extract_section` method in `GenerateConversationSummaryJob` now supports multiple header formats: `## Key Decisions`, `**Key Decisions:**`, `**Key Decisions**`, and `Key Decisions:`. Previously only worked with `##` headers, causing "- None identified" to be saved when AI used bold format.
+- 2026-02-26: Fixed `by_type` scope in Memory model - When type is blank (All tab), returns `all` instead of `where(memory_type: nil)` which returned no records
 
 ## Gems
 - `ruby-openai` (~> 7.0) - OpenAI API client
@@ -97,6 +98,7 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 ## UI Framework (2026-02-18)
 - Tailwind CSS v4.1.18 via `tailwindcss-rails` gem (no Node.js)
 - DaisyUI v5.5.18 for component classes (downloaded as .mjs plugin)
+- **Typography styles**: Custom prose styles added in `application.css` for markdown rendering (h1-h3, lists, code blocks, links, etc.)
 - Config: `app/assets/tailwind/application.css`
 - Output: `app/assets/builds/tailwind.css`
 - Theme: `data-theme="light"` on html tag
@@ -132,6 +134,16 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - Uses `LLM::ModelManager` service to sync model metadata from ruby_llm
 - Stores model capabilities, pricing, context window in JSONB metadata column
 - URLs: `/providers/:id/models` (per-provider), `/providers/models` (all models)
+
+## Memory Management System (2026-02-26)
+- New `memories` table with 4 memory types: summary, conversation_summary, conversation_notes, knowledge
+- ONLY `summary` type is auto-fed to AI agents; others require query_memories tool
+- Memory CRUD at `/spaces/:space_id/memories` with export (Markdown/JSON)
+- Scribe Chat Interface at `/spaces/:space_id/scribe` for structured conversations
+- Tool framework: ScribeTool (full access) and AdvisorTool (read-only base)
+- Available tools: finish_conversation, create_memory, query_memories
+- Data migration: Existing space.memory migrated to summary-type memories
+- Docs: `.ai/docs/features/memory-management.md`
 
 ## Ruby Version (2026-02-19)
 - **Ruby 4.0.1** (upgraded from 3.4.8) - Uses mise for version management

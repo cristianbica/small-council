@@ -1,0 +1,20 @@
+<div class="h-[calc(100vh-8rem)] flex flex-col">
+  <!-- Header - compact -->
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <div class="flex items-center gap-2 text-sm">
+        <%= link_to "Memories", space_memories_path(@space), class: "link" %>
+        <span class="text-base-content/40">/</span>
+        <%= link_to @memory.title, space_memory_path(@space, @memory), class: "link" %>
+        <span class="text-base-content/40">/</span>
+        <span class="font-medium">Edit</span>
+      </div>
+    </div>
+    <%= link_to "← Back to Memory", space_memory_path(@space, @memory), class: "btn btn-ghost btn-sm" %>
+  </div>
+
+  <!-- Form - takes remaining space -->
+  <div class="flex-1 card bg-base-100 shadow overflow-hidden">
+    <%= render "form", space: @space, memory: @memory %>
+  </div>
+</div>

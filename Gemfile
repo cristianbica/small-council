@@ -85,3 +85,6 @@ group :test do
 end
 
 gem "tailwindcss-rails", "~> 4.4"
+
+# Markdown rendering (GitHub Flavored Markdown)
+gem "commonmarker", "~> 2.0"

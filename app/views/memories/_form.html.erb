@@ -1,0 +1,92 @@
+<%= form_with model: [@space, memory], class: "h-full flex flex-col" do |f| %>
+  <% if memory.errors.any? %>
+    <div class="alert alert-error shrink-0 mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div>
+        <h3 class="font-bold"><%= pluralize(memory.errors.count, "error") %> prohibited this memory from being saved:</h3>
+        <ul class="mt-1 list-disc list-inside text-sm">
+          <% memory.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Top section with title, type, status - compact -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0 mb-4">
+    <div class="form-control">
+      <label class="label py-1">
+        <span class="label-text text-sm">
+          Title
+          <span class="text-error" aria-label="required">*</span>
+        </span>
+      </label>
+      <%= f.text_field :title,
+          class: "input input-bordered input-sm w-full #{'input-error' if memory.errors[:title].any?}",
+          placeholder: "e.g., API Authentication Decisions",
+          required: true %>
+    </div>
+
+    <div class="form-control">
+      <label class="label py-1">
+        <span class="label-text text-sm">
+          Memory Type
+          <span class="text-error" aria-label="required">*</span>
+        </span>
+      </label>
+      <%= f.select :memory_type,
+          Memory::MEMORY_TYPES.map { |t| [t.humanize, t] },
+          {},
+          class: "select select-bordered select-sm w-full #{'select-error' if memory.errors[:memory_type].any?}",
+          required: true %>
+    </div>
+
+    <div class="form-control">
+      <label class="label py-1">
+        <span class="label-text text-sm">Status</span>
+      </label>
+      <%= f.select :status,
+          Memory::STATUSES.map { |s| [s.humanize, s] },
+          {},
+          class: "select select-bordered select-sm w-full" %>
+    </div>
+  </div>
+
+  <!-- Content section - takes remaining space -->
+  <div class="form-control flex-1 min-h-0" data-controller="markdown-editor">
+    <label class="label py-1 shrink-0">
+      <span class="label-text text-sm">
+        Content
+        <span class="text-error" aria-label="required">*</span>
+      </span>
+      <span class="label-text-alt text-base-content/60 text-xs">Markdown supported</span>
+    </label>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
+      <!-- Editor -->
+      <div class="h-full min-h-0">
+        <%= f.text_area :content,
+            class: "textarea textarea-bordered w-full h-full font-mono text-sm resize-none #{'textarea-error' if memory.errors[:content].any?}",
+            placeholder: "Enter the memory content here...",
+            required: true,
+            data: { markdown_editor_target: "input", action: "input->markdown-editor#updatePreview" } %>
+      </div>
+      <!-- Preview -->
+      <div class="bg-base-200 rounded-box p-4 h-full overflow-y-auto">
+        <div class="text-xs text-base-content/50 mb-2 uppercase tracking-wide font-semibold">Preview</div>
+        <div class="prose max-w-none prose-sm" data-markdown-editor-target="preview">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%= f.hidden_field :position %>
+
+  <!-- Actions - compact bottom bar -->
+  <div class="flex justify-end gap-2 shrink-0 mt-4 pt-4 border-t border-base-200">
+    <%= link_to "Cancel", space_memories_path(@space), class: "btn btn-ghost btn-sm" %>
+    <%= f.submit class: "btn btn-primary btn-sm" %>
+  </div>
+<% end %>

@@ -380,7 +380,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Council not found.", flash[:alert]
   end
 
-  test "approve_summary saves structured memory and appends to space" do
+  test "approve_summary saves structured memory and creates conversation_summary record" do
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
@@ -391,6 +391,9 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
       status: :concluding,
       draft_memory: { "key_decisions" => "Decision 1" }.to_json
     )
+
+    # Count existing conversation summaries before the request
+    initial_count = @space.memories.conversation_summaries.count
 
     post approve_summary_conversation_url(conversation), params: {
       key_decisions: "Decision to proceed",
@@ -409,8 +412,12 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Follow up on Monday", memory["action_items"]
     assert memory["approved_at"].present?
 
-    # Check space memory was updated
-    assert @space.reload.memory.include?("Decision to proceed")
+    # Check conversation_summary memory was created in the new memories table
+    assert_equal initial_count + 1, @space.memories.conversation_summaries.count
+    memory_record = @space.memories.conversation_summaries.recent.first
+    assert memory_record.content.include?("Decision to proceed")
+    assert memory_record.content.include?("Follow up on Monday")
+    assert_equal conversation, memory_record.source
   end
 
   test "regenerate_summary clears draft and restarts job" do

@@ -17,8 +17,11 @@ class GenerateConversationSummaryJob < ApplicationJob
     # Generate summary
     summary = generate_summary(transcript)
 
-    # Store draft summary (encrypted at rest)
+    # Store draft summary (encrypted at rest) - still needed for review UI
     @conversation.update!(draft_memory: summary.to_json)
+
+    # ALSO create a memory entry for this conversation
+    create_conversation_memory(summary)
 
     # Notify user via Turbo Stream that summary is ready for review
     broadcast_summary_ready(@conversation)
@@ -197,5 +200,44 @@ class GenerateConversationSummaryJob < ApplicationJob
       partial: "conversations/summary_review",
       locals: { conversation: conversation }
     )
+  end
+
+  # Create a memory entry for this conversation
+  # This is saved as conversation_summary type (NOT auto-fed to agents)
+  def create_conversation_memory(summary)
+    space = @conversation.council&.space
+    return unless space
+
+    # Build memory content from structured summary
+    content = <<~CONTENT
+      ## Key Decisions
+      #{summary[:key_decisions]}
+
+      ## Action Items
+      #{summary[:action_items]}
+
+      ## Insights
+      #{summary[:insights]}
+
+      ## Open Questions
+      #{summary[:open_questions]}
+    CONTENT
+
+    # Find or create the Scribe advisor to use as creator
+    scribe = find_or_create_scribe_advisor
+
+    # Create the memory entry
+    memory = Memory.create_conversation_summary!(
+      conversation: @conversation,
+      title: "Conversation: #{@conversation.title}",
+      content: content,
+      creator: scribe
+    )
+
+    Rails.logger.info "[GenerateConversationSummaryJob] Created conversation_summary memory #{memory.id} for conversation #{@conversation.id}"
+  rescue => e
+    Rails.logger.error "[GenerateConversationSummaryJob] Failed to create memory: #{e.message}"
+    Rails.logger.error e.backtrace.first(5).join("\n")
+    # Don't raise - summary was already saved to draft_memory
   end
 end

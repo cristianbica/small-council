@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_25_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_26_010724) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -123,6 +123,35 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_25_130000) do
     t.index ["provider_id"], name: "index_llm_models_on_provider_id"
   end
 
+  create_table "memories", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.bigint "created_by_id"
+    t.string "created_by_type"
+    t.string "memory_type", default: "knowledge", null: false
+    t.jsonb "metadata", default: {}
+    t.integer "position", default: 0
+    t.bigint "source_id"
+    t.string "source_type"
+    t.bigint "space_id", null: false
+    t.string "status", default: "active"
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "updated_by_id"
+    t.string "updated_by_type"
+    t.index ["account_id", "created_at"], name: "index_memories_on_account_id_and_created_at"
+    t.index ["account_id"], name: "index_memories_on_account_id"
+    t.index ["created_by_type", "created_by_id"], name: "index_memories_on_created_by"
+    t.index ["metadata"], name: "index_memories_on_metadata", using: :gin
+    t.index ["source_type", "source_id"], name: "index_memories_on_source"
+    t.index ["space_id", "memory_type"], name: "index_memories_on_space_id_and_memory_type"
+    t.index ["space_id", "position"], name: "index_memories_on_space_id_and_position"
+    t.index ["space_id", "status"], name: "index_memories_on_space_id_and_status"
+    t.index ["space_id"], name: "index_memories_on_space_id"
+    t.index ["updated_by_type", "updated_by_id"], name: "index_memories_on_updated_by"
+  end
+
   create_table "messages", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.text "content"
@@ -220,6 +249,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_25_130000) do
   add_foreign_key "councils", "users"
   add_foreign_key "llm_models", "accounts"
   add_foreign_key "llm_models", "providers"
+  add_foreign_key "memories", "accounts"
+  add_foreign_key "memories", "spaces"
   add_foreign_key "messages", "accounts"
   add_foreign_key "messages", "conversations"
   add_foreign_key "providers", "accounts"

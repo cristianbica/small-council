@@ -1,5 +1,5 @@
 class SpacesController < ApplicationController
-  before_action :set_space, only: [ :show, :edit, :update, :memory, :search_memory ]
+  before_action :set_space, only: [ :show, :edit, :update ]
 
   def index
     @spaces = Current.account.spaces.order(created_at: :desc)
@@ -38,19 +38,6 @@ class SpacesController < ApplicationController
     else
       render :edit, status: :unprocessable_entity
     end
-  end
-
-  def memory
-    @resolved_conversations = @space.councils
-      .joins(:conversations)
-      .where(conversations: { status: :resolved })
-      .select("conversations.*, councils.name as council_name")
-      .order("conversations.updated_at DESC")
-  end
-
-  def search_memory
-    @query = params[:q]
-    @results = @space.search_memory(@query) if @query.present?
   end
 
   private

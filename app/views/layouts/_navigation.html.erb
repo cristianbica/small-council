@@ -26,12 +26,21 @@
             <% end %>
           </li>
           <li>
-            <%= link_to memory_space_path(Current.space),
-                class: "#{'active' if controller_name == 'spaces' && action_name == 'memory'}" do %>
+            <%= link_to space_memories_path(Current.space),
+                class: "#{'active' if controller_name == 'memories'}" do %>
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
-              Memory
+              Memories
+            <% end %>
+          </li>
+          <li>
+            <%= link_to space_scribe_path(Current.space),
+                class: "#{'active' if controller_name == 'space_scribe'}" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              Scribe
             <% end %>
           </li>
         <% else %>
@@ -100,12 +109,19 @@
           </svg>
           <span class="text-xs">Advisors</span>
         <% end %>
-        <%= link_to memory_space_path(Current.space),
-            class: "btn btn-ghost flex-1 rounded-none flex-col gap-1 py-2 #{'btn-active' if controller_name == 'spaces' && action_name == 'memory'}" do %>
+        <%= link_to space_memories_path(Current.space),
+            class: "btn btn-ghost flex-1 rounded-none flex-col gap-1 py-2 #{'btn-active' if controller_name == 'memories'}" do %>
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
           </svg>
-          <span class="text-xs">Memory</span>
+          <span class="text-xs">Memories</span>
+        <% end %>
+        <%= link_to space_scribe_path(Current.space),
+            class: "btn btn-ghost flex-1 rounded-none flex-col gap-1 py-2 #{'btn-active' if controller_name == 'space_scribe'}" do %>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+          <span class="text-xs">Scribe</span>
         <% end %>
       <% else %>
         <%= link_to spaces_path,

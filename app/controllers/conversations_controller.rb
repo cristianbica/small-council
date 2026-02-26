@@ -74,12 +74,17 @@ class ConversationsController < ApplicationController
       status: :resolved
     )
 
-    Rails.logger.info "[ConversationsController#approve_summary] Conversation memory saved, appending to space #{@conversation.council.space_id}"
+    Rails.logger.info "[ConversationsController#approve_summary] Conversation memory saved for space #{@conversation.council.space_id}"
 
-    # Append to space memory
-    @conversation.council.space.append_memory(memory)
+    # Create a proper conversation_summary memory record in the new system
+    Memory.create_conversation_summary!(
+      conversation: @conversation,
+      title: "Summary: #{@conversation.title}",
+      content: format_memory_content(memory),
+      creator: Current.user
+    )
 
-    Rails.logger.info "[ConversationsController#approve_summary] Space memory updated successfully"
+    Rails.logger.info "[ConversationsController#approve_summary] Created conversation_summary memory for conversation #{@conversation.id}"
 
     redirect_to @conversation, notice: "Conversation resolved and memory saved to space."
   rescue ActiveRecord::RecordInvalid => e
@@ -133,5 +138,28 @@ class ConversationsController < ApplicationController
 
   def conversation_params_for_create
     params.require(:conversation).permit(:title, :rules_of_engagement)
+  end
+
+  def format_memory_content(memory)
+    timestamp = Time.current.strftime("%Y-%m-%d %H:%M")
+    <<~CONTENT
+      ## Conversation Summary - #{timestamp}
+
+      **Key Decisions:**
+      #{memory["key_decisions"]}
+
+      **Action Items:**
+      #{memory["action_items"]}
+
+      **Insights:**
+      #{memory["insights"]}
+
+      **Open Questions:**
+      #{memory["open_questions"]}
+
+      ---
+      *Raw Summary:*
+      #{memory["raw_summary"]}
+    CONTENT
   end
 end

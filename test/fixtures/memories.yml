@@ -1,0 +1,62 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+# Standard knowledge memory
+one:
+  account: one
+  space: one
+  title: Test Knowledge Memory
+  content: This is a test knowledge memory for the space.
+  memory_type: knowledge
+  status: active
+  position: 1
+  created_at: <%= Time.current - 1.day %>
+  updated_at: <%= Time.current - 1.day %>
+
+# Summary memory - auto-fed to AI agents
+summary:
+  account: one
+  space: one
+  title: Space Summary
+  content: This is the primary space summary that accumulates key decisions and knowledge.
+  memory_type: summary
+  status: active
+  position: 0
+  created_at: <%= Time.current - 2.days %>
+  updated_at: <%= Time.current - 1.hour %>
+
+# Conversation summary - linked to a conversation
+conversation_summary:
+  account: one
+  space: one
+  source: one (Conversation)
+  title: Conversation Summary - API Discussion
+  content: Key decisions from the API architecture discussion.
+  memory_type: conversation_summary
+  status: active
+  position: 2
+  created_at: <%= Time.current - 3.days %>
+  updated_at: <%= Time.current - 3.days %>
+
+# Archived memory
+archived:
+  account: one
+  space: one
+  title: Old Archived Memory
+  content: This is an archived memory that is no longer active.
+  memory_type: knowledge
+  status: archived
+  position: 3
+  created_at: <%= Time.current - 10.days %>
+  updated_at: <%= Time.current - 5.days %>
+
+# Memory in a different space (for isolation testing)
+two:
+  account: two
+  space: two
+  title: Other Space Memory
+  content: This memory belongs to a different space.
+  memory_type: knowledge
+  status: active
+  position: 1
+  created_at: <%= Time.current - 1.day %>
+  updated_at: <%= Time.current - 1.day %>

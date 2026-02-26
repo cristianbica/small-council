@@ -1,0 +1,87 @@
+<!-- Memory Browser Sidebar -->
+<div class="flex flex-col h-full">
+  <!-- Browser Header -->
+  <div class="p-4 border-b border-base-300">
+    <h2 class="font-semibold mb-2">Memory Browser</h2>
+    <%= form_with url: search_space_memories_path(@space), method: :get, class: "relative" do |f| %>
+      <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/50">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </span>
+      <%= f.text_field :q,
+          placeholder: "Search memories...",
+          class: "input input-bordered input-sm w-full pl-9" %>
+    <% end %>
+  </div>
+
+  <!-- Type Filters -->
+  <div class="px-4 py-2">
+    <div class="flex flex-wrap gap-1">
+      <%= link_to "All", space_scribe_path(@space),
+          class: "badge badge-sm #{params[:type].blank? ? 'badge-primary' : 'badge-ghost'}" %>
+      <% @memory_types.each do |type| %>
+        <%= link_to type.humanize, space_scribe_path(@space, type: type),
+            class: "badge badge-sm #{params[:type] == type ? 'badge-primary' : 'badge-ghost'}" %>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Memories List -->
+  <div class="flex-1 overflow-y-auto p-4 space-y-2">
+    <% if @memories.any? %>
+      <% @memories.each do |memory| %>
+        <%= link_to space_memory_path(@space, memory),
+            class: "block p-3 rounded-lg bg-base-100 hover:bg-base-300 transition-colors group" do %>
+          <div class="flex items-start gap-2">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5 mb-1">
+                <span class="text-sm font-medium truncate"><%= memory.title %></span>
+                <span class="badge badge-xs <%= memory_type_badge_class(memory.memory_type) %>">
+                  <%= memory.memory_type_display %>
+                </span>
+              </div>
+              <p class="text-xs text-base-content/60 line-clamp-2">
+                <%= memory.content_preview(length: 100) %>
+              </p>
+              <p class="text-xs text-base-content/40 mt-1">
+                <%= time_ago_in_words(memory.updated_at) %> ago
+              </p>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+
+      <div class="pt-2">
+        <%= link_to "View All Memories →", space_memories_path(@space),
+            class: "text-sm link link-primary" %>
+      </div>
+    <% else %>
+      <div class="text-center py-8">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-base-content/30 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+        <p class="text-sm text-base-content/60">No memories yet</p>
+        <%= link_to "Create one", new_space_memory_path(@space), class: "text-xs link" %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="p-4 border-t border-base-300 bg-base-100">
+    <div class="grid grid-cols-2 gap-2 text-center">
+      <div class="p-2 rounded bg-base-200">
+        <div class="text-lg font-bold text-primary">
+          <%= @space.memories.summary_type.active.count %>
+        </div>
+        <div class="text-xs text-base-content/60">Summary</div>
+      </div>
+      <div class="p-2 rounded bg-base-200">
+        <div class="text-lg font-bold">
+          <%= @space.memories.active.count %>
+        </div>
+        <div class="text-xs text-base-content/60">Total</div>
+      </div>
+    </div>
+  </div>
+</div>

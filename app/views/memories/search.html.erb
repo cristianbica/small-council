@@ -1,0 +1,96 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold">Search Memories</h1>
+      <p class="text-sm text-base-content/60">
+        <%= @space.name %>
+      </p>
+    </div>
+    <%= link_to "← Back to Memories", space_memories_path(@space), class: "btn btn-ghost btn-sm" %>
+  </div>
+
+  <!-- Search Form -->
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <%= form_with url: search_space_memories_path(@space), method: :get, class: "flex gap-2" do |f| %>
+        <div class="form-control flex-1">
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/50">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <%= f.text_field :q,
+                value: @search_query,
+                placeholder: "Search memories by title or content...",
+                class: "input input-bordered w-full pl-10" %>
+          </div>
+        </div>
+        <%= f.submit "Search", class: "btn btn-primary" %>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="space-y-4">
+    <% if @search_query.present? %>
+      <p class="text-sm text-base-content/60">
+        Found <%= pluralize(@memories.count, "result") %> for "<%= @search_query %>"
+      </p>
+    <% end %>
+
+    <% if @memories.any? %>
+      <% @memories.each do |memory| %>
+        <div class="card bg-base-100 shadow hover:shadow-lg transition-shadow">
+          <div class="card-body">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <h3 class="card-title text-lg">
+                    <%= link_to memory.title, space_memory_path(@space, memory), class: "link link-hover" %>
+                  </h3>
+                  <span class="badge badge-sm <%= memory_type_badge_class(memory.memory_type) %>">
+                    <%= memory.memory_type_display %>
+                  </span>
+                </div>
+
+                <p class="text-sm text-base-content/60 mb-2">
+                  Created <%= time_ago_in_words(memory.created_at) %> ago
+                </p>
+
+                <p class="text-base-content/80 line-clamp-2">
+                  <%= memory.content_preview(length: 300) %>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% elsif @search_query.present? %>
+      <div class="card bg-base-100 shadow">
+        <div class="card-body text-center py-12">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <h3 class="text-xl font-semibold mb-2">No results found</h3>
+          <p class="text-base-content/60">
+            No memories match "<%= @search_query %>". Try a different search term.
+          </p>
+        </div>
+      </div>
+    <% else %>
+      <div class="card bg-base-100 shadow">
+        <div class="card-body text-center py-12">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <h3 class="text-xl font-semibold mb-2">Enter a search term</h3>
+          <p class="text-base-content/60">
+            Type a keyword to search through all memories in this space.
+          </p>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

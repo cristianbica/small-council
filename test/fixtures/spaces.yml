@@ -4,3 +4,8 @@ one:
   account: one
   name: General
   description: Default space for testing
+
+two:
+  account: two
+  name: Second Space
+  description: Another space for testing isolation

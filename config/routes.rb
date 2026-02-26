@@ -18,7 +18,7 @@ Rails.application.routes.draw do
   # Settings
   resource :settings, only: [ :edit, :update ]
 
-  # Spaces routes with nested councils and advisors
+  # Spaces routes with nested councils, advisors, memories, and scribe
   resources :spaces do
     resources :councils, only: [ :index, :new, :create ]
     resources :advisors do
@@ -26,9 +26,22 @@ Rails.application.routes.draw do
         post :generate_prompt
       end
     end
-    member do
-      get :memory
-      get :search_memory
+    resources :memories do
+      member do
+        post :archive
+        post :activate
+      end
+      collection do
+        get :search
+        get :export
+      end
+    end
+
+    # Scribe chat interface
+    resource :scribe, only: [ :show ], controller: "space_scribe" do
+      post :chat
+      post :execute_tool
+      get :suggest
     end
   end
 
