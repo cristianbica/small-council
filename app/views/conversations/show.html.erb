@@ -1,6 +1,6 @@
 <%= turbo_stream_from "conversation_#{@conversation.id}" %>
 
-<div class="space-y-6">
+<div class="space-y-6" data-controller="conversation">
   <!-- Breadcrumbs -->
   <div class="breadcrumbs text-sm">
     <ul>
@@ -63,7 +63,9 @@
       <section class="card bg-base-100 shadow">
         <div class="card-body">
           <% if @messages.any? %>
-            <div id="messages" class="space-y-4 max-h-[60vh] overflow-y-auto p-2">
+            <div id="messages"
+                 class="space-y-4 max-h-[60vh] overflow-y-auto p-2"
+                 data-conversation-target="messagesContainer">
               <% @messages.each do |message| %>
                 <%= render "messages/message", message: message, current_user: Current.user %>
               <% end %>
@@ -95,9 +97,13 @@
               <div class="form-control flex-1">
                 <%= form.text_area :content,
                     class: "textarea textarea-bordered w-full resize-none",
-                    placeholder: "Type your message...",
+                    placeholder: "Type your message... (Ctrl+Enter to send)",
                     rows: 1,
-                    required: true %>
+                    required: true,
+                    data: {
+                      conversation_target: "textarea",
+                      action: "keydown->conversation#submitOnCtrlEnter"
+                    } %>
               </div>
 
               <%= form.button type: :submit, class: "btn btn-primary btn-circle" do %>

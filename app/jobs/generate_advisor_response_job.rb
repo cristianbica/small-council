@@ -3,36 +3,54 @@ class GenerateAdvisorResponseJob < ApplicationJob
 
   # Job is idempotent - safe to retry
   def perform(advisor_id:, conversation_id:, message_id:)
+    Rails.logger.info "[GenerateAdvisorResponseJob] Starting job for advisor_id=#{advisor_id}, conversation_id=#{conversation_id}, message_id=#{message_id}"
+
     advisor = Advisor.find_by(id: advisor_id)
     conversation = Conversation.find_by(id: conversation_id)
     message = Message.find_by(id: message_id)
 
-    Rails.logger.info "[GenerateAdvisorResponseJob] Starting for advisor #{advisor_id}, message #{message_id}"
+    Rails.logger.debug "[GenerateAdvisorResponseJob] Loaded objects - advisor: #{advisor&.name || 'NOT FOUND'}, conversation: #{conversation&.id || 'NOT FOUND'}, message: #{message&.id || 'NOT FOUND'}"
 
-    return unless advisor && conversation && message
-    return unless message.pending? # Only process pending messages
+    unless advisor && conversation && message
+      Rails.logger.error "[GenerateAdvisorResponseJob] Missing required objects: advisor=#{advisor.present?}, conversation=#{conversation.present?}, message=#{message.present?}"
+      return
+    end
+
+    unless message.pending?
+      Rails.logger.info "[GenerateAdvisorResponseJob] Message #{message_id} is not pending (status: #{message.status}), skipping"
+      return
+    end
 
     # Set tenant context for background job
     ActsAsTenant.current_tenant = advisor.account
+    Rails.logger.debug "[GenerateAdvisorResponseJob] Set tenant context to account #{advisor.account_id}"
 
-    Rails.logger.info "[GenerateAdvisorResponseJob] Processing message #{message_id} for advisor #{advisor.name}"
+    Rails.logger.info "[GenerateAdvisorResponseJob] Processing message #{message_id} for advisor #{advisor.name} (ID: #{advisor.id})"
 
     begin
       # Call AI service
+      Rails.logger.debug "[GenerateAdvisorResponseJob] Initializing AiClient..."
       client = AiClient.new(advisor: advisor, conversation: conversation, message: message)
+
+      Rails.logger.info "[GenerateAdvisorResponseJob] Calling AI API for advisor #{advisor.name}..."
       result = client.generate_response
 
+      Rails.logger.debug "[GenerateAdvisorResponseJob] AI response received - content length: #{result&.[](:content)&.length || 0}, tokens: #{result&.[](:total_tokens) || 'N/A'}"
+
       if result && result[:content].present?
+        Rails.logger.info "[GenerateAdvisorResponseJob] Successfully got response from AI, delegating to lifecycle"
+
         # Delegate to ConversationLifecycle for state management
         lifecycle = ConversationLifecycle.new(conversation)
         lifecycle.advisor_responded(advisor, result[:content], message)
 
         # Record usage
+        Rails.logger.debug "[GenerateAdvisorResponseJob] Recording usage..."
         create_usage_record(message, advisor, result)
 
         Rails.logger.info "[GenerateAdvisorResponseJob] Successfully processed message #{message_id} for advisor #{advisor.name}"
       else
-        Rails.logger.error "[GenerateAdvisorResponseJob] Empty response for advisor #{advisor.id}, message #{message.id}"
+        Rails.logger.error "[GenerateAdvisorResponseJob] Empty response from AI for advisor #{advisor.id}, message #{message.id}"
         handle_error(message, "Empty response from AI - check LLM model configuration")
       end
     rescue AiClient::ApiError => e
@@ -44,6 +62,7 @@ class GenerateAdvisorResponseJob < ApplicationJob
       handle_error(message, "Unexpected error: #{e.message}")
     end
   ensure
+    Rails.logger.debug "[GenerateAdvisorResponseJob] Clearing tenant context"
     ActsAsTenant.current_tenant = nil
   end
 

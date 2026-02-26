@@ -114,6 +114,25 @@ module RoE
       assert_equal [ @advisor1 ], responders
     end
 
+    test "mentioning @scribe triggers scribe moderation, not direct response" do
+      # Create a scribe advisor
+      scribe = @account.advisors.create!(
+        name: "The Scribe",
+        system_prompt: "You are the scribe who moderates discussions",
+        llm_model: @llm_model,
+        space: @space
+      )
+      @council.advisors << scribe
+
+      # When user mentions @scribe, the Scribe should moderate (be returned to select an advisor)
+      # But since we filter out Scribe from mentions, it should behave like no mention
+      message = create_message("@scribe I need help with programming")
+      responders = @roe.determine_responders(message)
+
+      # Should return Scribe for moderation (not the mentioned Scribe directly)
+      assert_equal [ scribe ], responders
+    end
+
     private
 
     def create_message(content)

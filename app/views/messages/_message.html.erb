@@ -1,4 +1,4 @@
-<%= turbo_frame_tag "message_#{message.id}" do %>
+<%= turbo_frame_tag "message_#{message.id}", data: { action: "turbo:frame-load->conversation#messageRendered" } do %>
   <% is_current_user = message.sender == current_user %>
   <% is_pending = message.pending? %>
   <% is_error = message.error? %>

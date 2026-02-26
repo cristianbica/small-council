@@ -85,7 +85,7 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - 2026-02-18: Security test audit added 37 new security tests covering tenant isolation, parameter tampering, mass assignment, and cross-account access. See `.ai/docs/patterns/security-testing.md` for patterns.
 - 2026-02-18: Conversation Memory Features - Structured AI-generated summaries with key decisions, action items, insights, and open questions. Space-level cumulative memory browser with search. Regenerate summary option available during review.
 - 2026-02-24: Created `dhh-coder` overlay (coding style) and `dhh-reviewer` overlay (code review persona) for 37signals/DHH Rails conventions
-- 2026-02-25: Message truncation with "Read more" toggle via Stimulus controller (`message_expand_controller.js`). Debug modal shows prompt_text and debug_data for advisor messages. Scribe/Scrib moderator detection in ModeratedRoE.
+- 2026-02-25: Fixed conversation summary parsing - The `extract_section` method in `GenerateConversationSummaryJob` now supports multiple header formats: `## Key Decisions`, `**Key Decisions:**`, `**Key Decisions**`, and `Key Decisions:`. Previously only worked with `##` headers, causing "- None identified" to be saved when AI used bold format.
 
 ## Gems
 - `ruby-openai` (~> 7.0) - OpenAI API client

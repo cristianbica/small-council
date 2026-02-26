@@ -29,7 +29,12 @@ class GenerateConversationSummaryJob < ApplicationJob
   private
 
   def build_transcript
-    @conversation.messages.chronological.map do |msg|
+    @conversation.messages.chronological.filter_map do |msg|
+      # Skip placeholder/pending messages
+      next if msg.pending?
+      # Skip regular advisor "is thinking..." placeholders, but keep Scribe "selecting an advisor" messages
+      next if msg.content&.include?("is thinking...") && !msg.sender.respond_to?(:scribe?)
+
       sender_name = msg.sender.is_a?(User) ? msg.sender.email : msg.sender.name
       "#{sender_name}: #{msg.content}"
     end.join("\n\n")
@@ -160,11 +165,29 @@ class GenerateConversationSummaryJob < ApplicationJob
   end
 
   def extract_section(content, section_name)
-    # Match section header and capture content until next section or end
+    # Match section header in multiple formats:
+    # - ## Key Decisions
+    # - **Key Decisions:**
+    # - **Key Decisions**
+    # - Key Decisions:
     # Use negative lookahead to stop at any other section header
-    pattern = /##?\s*#{Regexp.escape(section_name)}[:\s]*\n?(.*?)(?=\n##?\s*(?:Key Decisions|Action Items|Insights|Open Questions)[:\s]*|\z)/mi
+
+    # Escape the section name for regex
+    escaped_name = Regexp.escape(section_name)
+
+    # Pattern matches: ## or **, optional whitespace, section name, optional :, optional **, optional \n
+    # Then captures everything until the next section header or end
+    pattern = /(?:##?|\*\*)\s*#{escaped_name}\s*:?\*?\s*\n?(.*?)(?=(?:\n\s*(?:##?|\*\*)?\s*(?:Key Decisions|Action Items|Insights|Open Questions)\s*:?\*?|\z))/mi
+
     match = content.match(pattern)
-    match ? match[1].strip : ""
+
+    if match
+      Rails.logger.debug "[GenerateConversationSummaryJob#extract_section] Found '#{section_name}' - length: #{match[1].length}"
+      match[1].strip
+    else
+      Rails.logger.debug "[GenerateConversationSummaryJob#extract_section] No match found for '#{section_name}'"
+      ""
+    end
   end
 
   def broadcast_summary_ready(conversation)

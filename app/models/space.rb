@@ -54,10 +54,17 @@ class Space < ApplicationRecord
 
   # Append a conversation memory entry to the space's cumulative memory
   def append_memory(conversation_memory)
+    Rails.logger.info "[Space#append_memory] Appending memory to space #{id}"
+
     current = self.memory || ""
     new_entry = format_memory_entry(conversation_memory)
 
     update!(memory: current + "\n\n" + new_entry)
+
+    Rails.logger.info "[Space#append_memory] Successfully appended memory to space #{id}"
+  rescue ActiveRecord::RecordInvalid => e
+    Rails.logger.error "[Space#append_memory] Failed to append memory to space #{id}: #{e.message}"
+    raise
   end
 
   # Search the space memory for a query string

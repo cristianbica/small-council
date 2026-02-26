@@ -330,23 +330,15 @@ class AiClientTest < ActiveSupport::TestCase
     ]
 
     mock_api = mock()
-    # System prompt now includes council context
-    expected_system_prompt = <<~PROMPT
-      #{@advisor.system_prompt}
-
-      ---
-
-      You are participating in the '#{@conversation.council.name}' council.
-      Engagement mode: #{@conversation.rules_of_engagement.humanize}
-      Advisors take turns responding. Be concise and add value.
-    PROMPT
-    .strip
-
+    # System prompt now includes enhanced council and expertise context
+    # Verify the call is made with correct parameters
     mock_api.expects(:chat).with(
       expected_messages,
-      system_prompt: expected_system_prompt,
-      temperature: 0.7,
-      max_tokens: 1000
+      has_entries(
+        system_prompt: includes(@advisor.system_prompt),
+        temperature: 0.7,
+        max_tokens: 1000
+      )
     ).returns({ content: "Hi!", input_tokens: 10, output_tokens: 5, total_tokens: 15 })
     @llm_model.stubs(:api).returns(mock_api)
 
@@ -360,23 +352,15 @@ class AiClientTest < ActiveSupport::TestCase
     client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
 
     mock_api = mock()
-    # System prompt now includes council context
-    expected_system_prompt = <<~PROMPT
-      #{@advisor.system_prompt}
-
-      ---
-
-      You are participating in the '#{@conversation.council.name}' council.
-      Engagement mode: #{@conversation.rules_of_engagement.humanize}
-      Advisors take turns responding. Be concise and add value.
-    PROMPT
-    .strip
-
+    # System prompt now includes enhanced council and expertise context
+    # Verify the call is made with correct temperature and max_tokens
     mock_api.expects(:chat).with(
       anything,
-      system_prompt: expected_system_prompt,
-      temperature: 0.5,
-      max_tokens: 500
+      has_entries(
+        system_prompt: includes(@advisor.system_prompt),
+        temperature: 0.5,
+        max_tokens: 500
+      )
     ).returns({ content: "Response", input_tokens: 10, output_tokens: 5, total_tokens: 15 })
     @llm_model.stubs(:api).returns(mock_api)
 

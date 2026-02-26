@@ -67,15 +67,28 @@ class ConversationsController < ApplicationController
       "conversation_id" => @conversation.id
     }
 
+    Rails.logger.info "[ConversationsController#approve_summary] Saving memory for conversation #{@conversation.id}"
+
     @conversation.update!(
       memory: memory.to_json,
       status: :resolved
     )
 
+    Rails.logger.info "[ConversationsController#approve_summary] Conversation memory saved, appending to space #{@conversation.council.space_id}"
+
     # Append to space memory
     @conversation.council.space.append_memory(memory)
 
+    Rails.logger.info "[ConversationsController#approve_summary] Space memory updated successfully"
+
     redirect_to @conversation, notice: "Conversation resolved and memory saved to space."
+  rescue ActiveRecord::RecordInvalid => e
+    Rails.logger.error "[ConversationsController#approve_summary] Failed to save: #{e.message}"
+    redirect_to @conversation, alert: "Failed to save memory: #{e.message}"
+  rescue => e
+    Rails.logger.error "[ConversationsController#approve_summary] Unexpected error: #{e.message}"
+    Rails.logger.error e.backtrace.first(5).join("\n")
+    redirect_to @conversation, alert: "An error occurred while saving memory."
   end
 
   def reject_summary

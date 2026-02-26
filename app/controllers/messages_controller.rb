@@ -3,15 +3,24 @@ class MessagesController < ApplicationController
   before_action :verify_conversation_in_current_space
 
   def create
+    Rails.logger.info "[MessagesController#create] User #{Current.user.id} posting message to conversation #{@conversation.id}"
+    Rails.logger.debug "[MessagesController#create] Message content: '#{params.dig(:message, :content)}'"
+
     @message = build_user_message
 
     if @message.save
+      Rails.logger.info "[MessagesController#create] Message #{@message.id} saved successfully"
+
       # Delegate to ConversationLifecycle
+      Rails.logger.debug "[MessagesController#create] Initializing ConversationLifecycle..."
       lifecycle = ConversationLifecycle.new(@conversation)
-      lifecycle.user_posted_message(@message)
+      responders = lifecycle.user_posted_message(@message)
+
+      Rails.logger.info "[MessagesController#create] Posted message triggered #{responders&.count || 0} advisor(s) to respond"
 
       redirect_to @conversation, notice: "Message posted successfully."
     else
+      Rails.logger.warn "[MessagesController#create] Failed to save message: #{@message.errors.full_messages.join(', ')}"
       @messages = @conversation.messages.chronological.includes(:sender)
       @new_message = @message
       render "conversations/show", status: :unprocessable_entity
