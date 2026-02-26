@@ -19,7 +19,8 @@ class Message < ApplicationRecord
   enum :status, {
     pending: "pending",
     complete: "complete",
-    error: "error"
+    error: "error",
+    cancelled: "cancelled"
   }, default: "complete"
 
   validates :account, presence: true

@@ -16,6 +16,11 @@ class GenerateAdvisorResponseJob < ApplicationJob
       return
     end
 
+    if message.cancelled?
+      Rails.logger.info "[GenerateAdvisorResponseJob] Message #{message_id} was cancelled, skipping"
+      return
+    end
+
     unless message.pending?
       Rails.logger.info "[GenerateAdvisorResponseJob] Message #{message_id} is not pending (status: #{message.status}), skipping"
       return

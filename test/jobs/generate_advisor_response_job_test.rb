@@ -259,4 +259,21 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
     @message.reload
     assert @message.error?
   end
+
+  test "skips processing if message is cancelled" do
+    @message.update!(status: "cancelled")
+
+    # Job should return early without calling AI
+    AiClient.expects(:new).never
+
+    GenerateAdvisorResponseJob.perform_now(
+      advisor_id: @advisor.id,
+      conversation_id: @conversation.id,
+      message_id: @message.id
+    )
+
+    # Message should remain cancelled (not changed to complete or error)
+    @message.reload
+    assert @message.cancelled?
+  end
 end

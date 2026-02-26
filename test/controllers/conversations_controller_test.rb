@@ -456,4 +456,121 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to conversation_url(conversation)
     assert_equal "Can only regenerate while reviewing.", flash[:alert]
   end
+
+  test "cancel_pending cancels all pending advisor messages" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    provider = @account.providers.create!(name: "Test Provider", provider_type: "openai", api_key: "test-key")
+    llm_model = provider.llm_models.create!(account: @account, name: "GPT-4", identifier: "gpt-4")
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    advisor = @account.advisors.create!(
+      name: "Test Advisor",
+      system_prompt: "You are helpful",
+      space: @space,
+      llm_model: llm_model
+    )
+    conversation = @account.conversations.create!(
+      council: council,
+      user: @user,
+      title: "Test",
+      status: :active
+    )
+    pending_message = @account.messages.create!(
+      conversation: conversation,
+      sender: advisor,
+      role: "system",
+      content: "[#{advisor.name}] is thinking...",
+      status: :pending
+    )
+
+    post cancel_pending_conversation_url(conversation)
+
+    assert_redirected_to conversation_url(conversation)
+    assert_equal "Stopped 1 advisor response(s).", flash[:notice]
+    assert pending_message.reload.cancelled?
+  end
+
+  test "cancel_pending fails when conversation is not active" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    provider = @account.providers.create!(name: "Test Provider", provider_type: "openai", api_key: "test-key")
+    llm_model = provider.llm_models.create!(account: @account, name: "GPT-4", identifier: "gpt-4")
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    advisor = @account.advisors.create!(
+      name: "Test Advisor",
+      system_prompt: "You are helpful",
+      space: @space,
+      llm_model: llm_model
+    )
+    conversation = @account.conversations.create!(
+      council: council,
+      user: @user,
+      title: "Test",
+      status: :resolved
+    )
+    pending_message = @account.messages.create!(
+      conversation: conversation,
+      sender: advisor,
+      role: "system",
+      content: "[#{advisor.name}] is thinking...",
+      status: :pending
+    )
+
+    post cancel_pending_conversation_url(conversation)
+
+    assert_redirected_to conversation_url(conversation)
+    assert_equal "Can only stop pending responses in active conversations.", flash[:alert]
+    assert pending_message.reload.pending?
+  end
+
+  test "cancel_pending fails for unauthorized users" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    provider = @account.providers.create!(name: "Test Provider", provider_type: "openai", api_key: "test-key")
+    llm_model = provider.llm_models.create!(account: @account, name: "GPT-4", identifier: "gpt-4")
+    other_user = @account.users.create!(email: "other@example.com", password: "password123")
+    council = @account.councils.create!(name: "Test Council", user: other_user, space: @space)
+    advisor = @account.advisors.create!(
+      name: "Test Advisor",
+      system_prompt: "You are helpful",
+      space: @space,
+      llm_model: llm_model
+    )
+    conversation = @account.conversations.create!(
+      council: council,
+      user: other_user,
+      title: "Test",
+      status: :active
+    )
+    pending_message = @account.messages.create!(
+      conversation: conversation,
+      sender: advisor,
+      role: "system",
+      content: "[#{advisor.name}] is thinking...",
+      status: :pending
+    )
+
+    post cancel_pending_conversation_url(conversation)
+
+    assert_redirected_to conversation_url(conversation)
+    assert_equal "Only the conversation starter or council creator can stop advisor responses.", flash[:alert]
+    assert pending_message.reload.pending?
+  end
+
+  test "cancel_pending shows alert when no pending messages" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    conversation = @account.conversations.create!(
+      council: council,
+      user: @user,
+      title: "Test",
+      status: :active
+    )
+
+    post cancel_pending_conversation_url(conversation)
+
+    assert_redirected_to conversation_url(conversation)
+    assert_equal "No pending advisor responses to stop.", flash[:alert]
+  end
 end

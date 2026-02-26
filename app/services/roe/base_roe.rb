@@ -59,11 +59,12 @@ module RoE
     end
 
     def name_matches?(advisor, mention)
-      advisor_name_normalized = advisor.name.downcase.gsub(/\s+/, "_")
-      normalized_match = advisor_name_normalized == mention.downcase
+      advisor_name_normalized = advisor.name.downcase.gsub(/[\s\-]+/, "_")
+      mention_normalized = mention.downcase.gsub(/[\s\-]+/, "_")
+      normalized_match = advisor_name_normalized == mention_normalized
       direct_match = advisor.name.downcase == mention.downcase
 
-      Rails.logger.debug "[RoE::#{self.class}#name_matches?] Comparing '#{advisor.name}' with mention '@#{mention}' - normalized: '#{advisor_name_normalized}' == '#{mention.downcase}' => #{normalized_match}, direct: #{direct_match}"
+      Rails.logger.debug "[RoE::#{self.class}#name_matches?] Comparing '#{advisor.name}' with mention '@#{mention}' - normalized: '#{advisor_name_normalized}' == '#{mention_normalized}' => #{normalized_match}, direct: #{direct_match}"
 
       normalized_match || direct_match
     end

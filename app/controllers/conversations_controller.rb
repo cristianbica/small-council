@@ -1,6 +1,6 @@
 class ConversationsController < ApplicationController
   before_action :set_council, only: [ :index, :new, :create ]
-  before_action :set_conversation, only: [ :show, :update, :finish, :approve_summary, :reject_summary, :regenerate_summary ]
+  before_action :set_conversation, only: [ :show, :update, :finish, :approve_summary, :reject_summary, :regenerate_summary, :cancel_pending ]
 
   def index
     @conversations = @council.conversations.recent
@@ -112,6 +112,29 @@ class ConversationsController < ApplicationController
       redirect_to @conversation, notice: "Regenerating summary..."
     else
       redirect_to @conversation, alert: "Can only regenerate while reviewing."
+    end
+  end
+
+  def cancel_pending
+    # Only allow for active conversations and authorized users
+    unless @conversation.active?
+      redirect_to @conversation, alert: "Can only stop pending responses in active conversations."
+      return
+    end
+
+    unless @conversation.user_id == Current.user.id || @conversation.council.user_id == Current.user.id
+      redirect_to @conversation, alert: "Only the conversation starter or council creator can stop advisor responses."
+      return
+    end
+
+    pending_messages = @conversation.messages.pending
+    count = pending_messages.count
+
+    if count > 0
+      pending_messages.update_all(status: :cancelled)
+      redirect_to @conversation, notice: "Stopped #{count} advisor response(s)."
+    else
+      redirect_to @conversation, alert: "No pending advisor responses to stop."
     end
   end
 

@@ -115,6 +115,30 @@ module RoE
       assert_includes mentioned, @advisor2
     end
 
+    test "parse_mentions finds advisors by name with hyphens" do
+      @advisor1.update!(name: "Systems Architect")
+      roe = RoundRobinRoE.new(@conversation)
+
+      message = create_message("Hey @systems-architect, help me out")
+      mentioned = roe.send(:parse_mentions, message.content)
+
+      assert_equal [ @advisor1 ], mentioned
+    end
+
+    test "parse_mentions handles mixed hyphens and underscores" do
+      @advisor1.update!(name: "Senior Systems Architect")
+      roe = RoundRobinRoE.new(@conversation)
+
+      # Should match regardless of whether user uses hyphens or underscores
+      message1 = create_message("@senior_systems_architect please help")
+      message2 = create_message("@senior-systems-architect please help")
+      message3 = create_message("@Senior-Systems-Architect please help")
+
+      assert_equal [ @advisor1 ], roe.send(:parse_mentions, message1.content)
+      assert_equal [ @advisor1 ], roe.send(:parse_mentions, message2.content)
+      assert_equal [ @advisor1 ], roe.send(:parse_mentions, message3.content)
+    end
+
     private
 
     def create_message(content)

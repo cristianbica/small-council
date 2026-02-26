@@ -72,6 +72,7 @@ Rails.application.routes.draw do
       post :approve_summary
       post :reject_summary
       post :regenerate_summary
+      post :cancel_pending
     end
   end
 
