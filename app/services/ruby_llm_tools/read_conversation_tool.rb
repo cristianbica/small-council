@@ -4,12 +4,15 @@ module RubyLLMTools
 
     param :conversation_id,
       desc: "The ID number of the conversation to read",
-      type: :integer,
-      required: true
+      type: :integer
 
-    def execute(conversation_id:)
+    def execute(conversation_id: nil)
       context = Thread.current[:scribe_context]
       return { error: "No context available" } unless context
+
+      if conversation_id.nil?
+        return { error: "conversation_id is required" }
+      end
 
       conversation = context[:space].conversations.find_by(id: conversation_id)
       return { error: "Conversation ##{conversation_id} not found" } unless conversation

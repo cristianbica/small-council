@@ -4,17 +4,19 @@ module RubyLLMTools
 
     param :query,
       desc: "Topic or keyword to search for in conversations",
-      type: :string,
-      required: true
+      type: :string
 
     param :limit,
       desc: "Maximum number of conversations to return (default: 5)",
-      type: :integer,
-      required: false
+      type: :integer
 
-    def execute(query:, limit: 5)
+    def execute(query: nil, limit: 5)
       context = Thread.current[:scribe_context]
       return { error: "No context available" } unless context
+
+      if query.blank?
+        return { error: "Query parameter is required" }
+      end
 
       limit = [ limit.to_i, 10 ].min
       query_down = query.downcase

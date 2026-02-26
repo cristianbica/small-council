@@ -140,10 +140,20 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - ONLY `summary` type is auto-fed to AI agents; others require query_memories tool
 - Memory CRUD at `/spaces/:space_id/memories` with export (Markdown/JSON)
 - Scribe Chat Interface at `/spaces/:space_id/scribe` for structured conversations
+- **Scribe Tools (RubyLLM-powered)**: Can create memories, query memories, search conversations, read conversation messages
 - Tool framework: ScribeTool (full access) and AdvisorTool (read-only base)
 - Available tools: finish_conversation, create_memory, query_memories
 - Data migration: Existing space.memory migrated to summary-type memories
 - Docs: `.ai/docs/features/memory-management.md`
+
+## Scribe Tool Capabilities (2026-02-26)
+The Scribe can now perform actions using RubyLLM's tool system:
+- **create_memory**: Creates a new memory with title, content, and type
+- **query_memories**: Searches existing memories by keyword
+- **query_conversations**: Finds past conversations by topic or keyword
+- **read_conversation**: Reads all messages from a specific conversation by ID
+- Tools are defined in `app/services/ruby_llm_tools/` and use `RubyLLM::Tool` base class
+- Context is passed via `Thread.current[:scribe_context]` for access to space, user, and advisor
 
 ## Ruby Version (2026-02-19)
 - **Ruby 4.0.1** (upgraded from 3.4.8) - Uses mise for version management

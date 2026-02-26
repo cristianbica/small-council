@@ -4,22 +4,23 @@ module RubyLLMTools
 
     param :query,
       desc: "Search term or keyword to find relevant memories",
-      type: :string,
-      required: true
+      type: :string
 
     param :memory_type,
       desc: "Optional: filter by type (summary, knowledge, conversation_summary, conversation_notes)",
-      type: :string,
-      required: false
+      type: :string
 
     param :limit,
       desc: "Maximum number of results to return (default: 5, max: 10)",
-      type: :integer,
-      required: false
+      type: :integer
 
-    def execute(query:, memory_type: nil, limit: 5)
+    def execute(query: nil, memory_type: nil, limit: 5)
       context = Thread.current[:scribe_context]
       return { error: "No context available" } unless context
+
+      if query.blank?
+        return { error: "Query parameter is required" }
+      end
 
       limit = [ limit.to_i, 10 ].min
       limit = 1 if limit < 1

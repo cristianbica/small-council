@@ -4,23 +4,24 @@ module RubyLLMTools
 
     param :title,
       desc: "The title of the memory (required)",
-      type: :string,
-      required: true
+      type: :string
 
     param :content,
       desc: "The content/body of the memory in markdown format (required)",
-      type: :string,
-      required: true
+      type: :string
 
     param :memory_type,
       desc: "Type of memory: summary, knowledge, conversation_summary, or conversation_notes (default: knowledge)",
-      type: :string,
-      required: false
+      type: :string
 
-    def execute(title:, content:, memory_type: "knowledge")
+    def execute(title: nil, content: nil, memory_type: "knowledge")
       # Get context from the chat context (set by controller)
       context = Thread.current[:scribe_context]
       return { error: "No context available" } unless context
+
+      if title.blank? || content.blank?
+        return { error: "Title and content are required" }
+      end
 
       memory = Memory.create!(
         account: context[:space].account,
