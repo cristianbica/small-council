@@ -7,8 +7,15 @@ class Memory < ApplicationRecord
   belongs_to :created_by, polymorphic: true, optional: true
   belongs_to :updated_by, polymorphic: true, optional: true
 
+  # Version history
+  has_many :versions, class_name: "MemoryVersion", dependent: :destroy
+
   # Encrypt content at rest
   encrypts :content
+
+  # Callbacks for versioning
+  after_create :create_initial_version
+  before_update :track_changes_for_versioning
 
   # Memory types
   MEMORY_TYPES = %w[summary conversation_summary conversation_notes knowledge].freeze
@@ -173,5 +180,62 @@ class Memory < ApplicationRecord
       created_by: creator,
       updated_by: creator
     )
+  end
+
+  # Versioning methods
+
+  # Get the next version number for this memory
+  def next_version_number
+    (versions.maximum(:version_number) || 0) + 1
+  end
+
+  # Get the latest version
+  def latest_version
+    versions.ordered.first
+  end
+
+  # Create a version from current state
+  def create_version!(created_by: nil, change_reason: nil)
+    versions.create!(
+      account: account,
+      version_number: next_version_number,
+      title: title,
+      content: content,
+      memory_type: memory_type,
+      metadata: metadata || {},
+      created_by: created_by,
+      change_reason: change_reason
+    )
+  end
+
+  # List all versions with their info
+  def version_history
+    versions.ordered.map(&:display_info)
+  end
+
+  # Restore to a specific version
+  def restore_version!(version_number, restored_by: nil, reason: nil)
+    version = versions.find_by(version_number: version_number)
+    return nil unless version
+
+    version.restore_to_memory!(restored_by, reason)
+  end
+
+  private
+
+  # Create initial version after memory is created
+  def create_initial_version
+    create_version!(
+      created_by: created_by,
+      change_reason: "Initial creation"
+    )
+  rescue => e
+    Rails.logger.error "[Memory] Failed to create initial version: #{e.message}"
+  end
+
+  # Track changes before update - versions are now created by the tools explicitly
+  def track_changes_for_versioning
+    # This callback is a hook for future auto-versioning if needed
+    # For now, versions are created explicitly by update_memory tool
   end
 end

@@ -1,6 +1,6 @@
 class MemoriesController < ApplicationController
   before_action :set_space
-  before_action :set_memory, only: [ :show, :edit, :update, :destroy, :archive, :activate ]
+  before_action :set_memory, only: [ :show, :edit, :update, :destroy, :archive, :activate, :versions, :version, :restore_version ]
 
   # GET /spaces/:space_id/memories
   def index
@@ -50,7 +50,20 @@ class MemoriesController < ApplicationController
   def update
     @memory.updated_by = Current.user
 
+    # Track what changed for the version
+    changes = []
+    changes << "title" if memory_params[:title].present? && memory_params[:title] != @memory.title
+    changes << "content" if memory_params[:content].present? && memory_params[:content] != @memory.content
+    changes << "type" if memory_params[:memory_type].present? && memory_params[:memory_type] != @memory.memory_type
+
     if @memory.update(memory_params)
+      # Create a version if content actually changed
+      if changes.any?
+        @memory.create_version!(
+          created_by: Current.user,
+          change_reason: "Manual update by user (#{changes.join(', ')})"
+        )
+      end
       redirect_to space_memory_path(@space, @memory), notice: "Memory was successfully updated."
     else
       render :edit, status: :unprocessable_entity
@@ -106,6 +119,68 @@ class MemoriesController < ApplicationController
           type: "application/json",
           disposition: "attachment"
       end
+    end
+  end
+
+  # GET /spaces/:space_id/memories/:id/versions
+  def versions
+    @versions = @memory.versions.ordered
+    @current_version = @memory.latest_version
+  end
+
+  # GET /spaces/:space_id/memories/:id/version?version_number=X
+  def version
+    @version_number = params[:version_number].to_i
+    @version = @memory.versions.find_by(version_number: @version_number)
+
+    unless @version
+      redirect_to versions_space_memory_path(@space, @memory), alert: "Version not found."
+      return
+    end
+
+    # Find the previous version for comparison
+    @previous_version = @memory.versions
+                               .where("version_number < ?", @version_number)
+                               .order(version_number: :desc)
+                               .first
+
+    # Calculate diffs
+    @title_changed = @previous_version && @version.title != @previous_version.title
+    @content_changed = @previous_version && @version.content != @previous_version.content
+    @type_changed = @previous_version && @version.memory_type != @previous_version.memory_type
+
+    # Generate side-by-side diffs
+    if @previous_version
+      @title_diff = DiffService.side_by_side_diff(@previous_version.title, @version.title) if @title_changed
+      @content_diff = DiffService.side_by_side_diff(@previous_version.content, @version.content) if @content_changed
+    end
+  end
+
+  # POST /spaces/:space_id/memories/:id/restore_version
+  def restore_version
+    version_number = params[:version_number].to_i
+
+    if version_number <= 0
+      redirect_to versions_space_memory_path(@space, @memory), alert: "Invalid version number."
+      return
+    end
+
+    version = @memory.versions.find_by(version_number: version_number)
+
+    unless version
+      redirect_to versions_space_memory_path(@space, @memory), alert: "Version not found."
+      return
+    end
+
+    begin
+      version.restore_to_memory!(
+        Current.user,
+        params[:reason].presence || "Restored by user"
+      )
+      redirect_to space_memory_path(@space, @memory), notice: "Memory restored to version #{version_number}."
+    rescue => e
+      Rails.logger.error "[MemoriesController] Restore failed: #{e.message}"
+      redirect_to versions_space_memory_path(@space, @memory), alert: "Failed to restore: #{e.message}"
     end
   end
 

@@ -74,14 +74,17 @@ class GenerateAdvisorResponseJob < ApplicationJob
   private
 
   def create_usage_record(message, advisor, result)
+    model = advisor.effective_llm_model
+    return unless model.present?
+
     UsageRecord.create!(
       account: advisor.account,
       message: message,
-      provider: advisor.llm_model.provider.provider_type,
-      model: advisor.llm_model.identifier,
+      provider: model.provider.provider_type,
+      model: model.identifier,
       input_tokens: result[:input_tokens] || 0,
       output_tokens: result[:output_tokens] || 0,
-      cost_cents: calculate_cost(advisor.llm_model, result),
+      cost_cents: calculate_cost(model, result),
       recorded_at: Time.current
     )
   end

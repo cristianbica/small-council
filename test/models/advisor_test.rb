@@ -52,15 +52,16 @@ class AdvisorTest < ActiveSupport::TestCase
     assert_includes advisor.errors[:system_prompt], "can't be blank"
   end
 
-  test "invalid without llm_model for non-simple advisor" do
+  test "valid without llm_model - falls back to account default" do
     space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.new(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
       space: space
     )
-    assert_not advisor.valid?
-    assert_includes advisor.errors[:llm_model], "can't be blank"
+    # Advisor is valid without llm_model because it will use account default
+    assert advisor.valid?
+    assert advisor.effective_llm_model.present?
   end
 
   test "invalid without account" do
@@ -192,7 +193,7 @@ class AdvisorTest < ActiveSupport::TestCase
     assert advisor.valid?
   end
 
-  test "advisor requires system_prompt and llm_model" do
+  test "advisor requires system_prompt but llm_model is optional" do
     space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.new(
       name: "Full Advisor",
@@ -200,7 +201,8 @@ class AdvisorTest < ActiveSupport::TestCase
     )
     assert_not advisor.valid?
     assert_includes advisor.errors[:system_prompt], "can't be blank"
-    assert_includes advisor.errors[:llm_model], "can't be blank"
+    # llm_model is now optional - it falls back to account default
+    assert_not_includes advisor.errors[:llm_model], "can't be blank"
   end
 
   test "delegates provider to llm_model" do

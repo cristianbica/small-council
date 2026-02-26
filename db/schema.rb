@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_26_010724) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_26_153632) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -25,6 +25,44 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_010724) do
     t.index ["default_llm_model_id"], name: "index_accounts_on_default_llm_model_id"
     t.index ["settings"], name: "index_accounts_on_settings", using: :gin
     t.index ["slug"], name: "index_accounts_on_slug", unique: true
+  end
+
+  create_table "action_text_rich_texts", force: :cascade do |t|
+    t.text "body"
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.bigint "record_id", null: false
+    t.string "record_type", null: false
+    t.datetime "updated_at", null: false
+    t.index ["record_type", "record_id", "name"], name: "index_action_text_rich_texts_uniqueness", unique: true
+  end
+
+  create_table "active_storage_attachments", force: :cascade do |t|
+    t.bigint "blob_id", null: false
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.bigint "record_id", null: false
+    t.string "record_type", null: false
+    t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
+    t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
+  end
+
+  create_table "active_storage_blobs", force: :cascade do |t|
+    t.bigint "byte_size", null: false
+    t.string "checksum"
+    t.string "content_type"
+    t.datetime "created_at", null: false
+    t.string "filename", null: false
+    t.string "key", null: false
+    t.text "metadata"
+    t.string "service_name", null: false
+    t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
+  end
+
+  create_table "active_storage_variant_records", force: :cascade do |t|
+    t.bigint "blob_id", null: false
+    t.string "variation_digest", null: false
+    t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
   create_table "advisors", force: :cascade do |t|
@@ -152,6 +190,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_010724) do
     t.index ["updated_by_type", "updated_by_id"], name: "index_memories_on_updated_by"
   end
 
+  create_table "memory_versions", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.text "change_reason"
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.bigint "created_by_id"
+    t.string "created_by_type"
+    t.bigint "memory_id", null: false
+    t.string "memory_type", null: false
+    t.jsonb "metadata", default: {}
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.integer "version_number", null: false
+    t.index ["account_id"], name: "index_memory_versions_on_account_id"
+    t.index ["created_by_type", "created_by_id"], name: "index_memory_versions_on_created_by"
+    t.index ["memory_id", "created_at"], name: "index_memory_versions_on_memory_id_and_created_at"
+    t.index ["memory_id", "version_number"], name: "index_memory_versions_on_memory_id_and_version_number", unique: true
+    t.index ["memory_id"], name: "index_memory_versions_on_memory_id"
+  end
+
   create_table "messages", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.text "content"
@@ -185,6 +243,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_010724) do
     t.index ["account_id", "name"], name: "index_providers_on_account_id_and_name", unique: true
     t.index ["account_id"], name: "index_providers_on_account_id"
     t.index ["credentials"], name: "index_providers_on_credentials", using: :gin
+  end
+
+  create_table "scribe_chat_messages", force: :cascade do |t|
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.jsonb "metadata", default: {}
+    t.string "role", null: false
+    t.bigint "space_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["space_id", "user_id", "created_at"], name: "idx_on_space_id_user_id_created_at_55079c19f6"
+    t.index ["space_id"], name: "index_scribe_chat_messages_on_space_id"
+    t.index ["user_id"], name: "index_scribe_chat_messages_on_user_id"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -236,6 +307,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_010724) do
   end
 
   add_foreign_key "accounts", "llm_models", column: "default_llm_model_id"
+  add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "advisors", "accounts"
   add_foreign_key "advisors", "llm_models"
   add_foreign_key "advisors", "spaces"
@@ -251,9 +324,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_010724) do
   add_foreign_key "llm_models", "providers"
   add_foreign_key "memories", "accounts"
   add_foreign_key "memories", "spaces"
+  add_foreign_key "memory_versions", "accounts"
+  add_foreign_key "memory_versions", "memories"
   add_foreign_key "messages", "accounts"
   add_foreign_key "messages", "conversations"
   add_foreign_key "providers", "accounts"
+  add_foreign_key "scribe_chat_messages", "spaces"
+  add_foreign_key "scribe_chat_messages", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "spaces", "accounts"
   add_foreign_key "usage_records", "accounts"

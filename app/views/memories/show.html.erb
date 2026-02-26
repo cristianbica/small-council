@@ -57,6 +57,19 @@
     </div>
   </div>
 
+  <!-- Version History -->
+  <% if @memory.versions.count > 1 %>
+    <div class="card bg-base-100 shadow border-l-4 border-info">
+      <div class="card-body">
+        <h3 class="card-title text-sm mb-2">Version History</h3>
+        <p class="text-sm text-base-content/60 mb-4">
+          This memory has <%= @memory.versions.count %> versions. You can view previous versions or restore to an earlier state if needed.
+        </p>
+        <%= link_to "View Version History", versions_space_memory_path(@space, @memory), class: "btn btn-info btn-sm" %>
+      </div>
+    </div>
+  <% end %>
+
   <!-- Actions -->
   <div class="card bg-base-100 shadow">
     <div class="card-body">

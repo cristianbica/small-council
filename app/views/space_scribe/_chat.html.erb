@@ -24,6 +24,42 @@
         </div>
       </div>
     </div>
+
+    <!-- Chat History -->
+    <% @chat_history.each do |message| %>
+      <% if message.role == "user" %>
+        <!-- User Message -->
+        <div class="flex gap-3 justify-end">
+          <div class="flex-1 flex justify-end">
+            <div class="bg-primary text-primary-content rounded-lg p-4 max-w-2xl">
+              <p><%= message.content %></p>
+            </div>
+          </div>
+          <div class="w-8 h-8 rounded-full bg-base-300 flex items-center justify-center text-base-content text-sm font-bold shrink-0">
+            U
+          </div>
+        </div>
+      <% elsif message.role == "assistant" %>
+        <!-- Scribe Message -->
+        <div class="flex gap-3">
+          <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-content text-sm font-bold shrink-0">
+            S
+          </div>
+          <div class="flex-1">
+            <div class="bg-base-200 rounded-lg p-4 max-w-2xl">
+              <div class="prose prose-sm max-w-none">
+                <%= markdown_to_html(message.content) %>
+              </div>
+              <% if message.metadata.present? && message.metadata["tool_calls"].present? %>
+                <div class="mt-2 text-xs text-base-content/60">
+                  <span class="badge badge-sm badge-ghost">Tools used</span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
   </div>
 
   <!-- Quick Suggestions -->

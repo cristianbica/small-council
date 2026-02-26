@@ -16,9 +16,9 @@ class Advisor < ApplicationRecord
   validates :account, presence: true
   validates :space, presence: true
 
-  # Advisors need system_prompt and llm_model unless they're simple (legacy check removed)
+  # Advisors need system_prompt but llm_model is optional (defaults to account default)
   validates :system_prompt, presence: true
-  validates :llm_model, presence: true
+  validate :llm_model_belongs_to_account, if: -> { llm_model_id.present? }
 
   scope :global, -> { where(global: true) }
   scope :custom, -> { where(global: false) }
@@ -29,6 +29,28 @@ class Advisor < ApplicationRecord
     name.downcase.include?("scribe") || name.downcase.include?("scrib")
   end
 
-  # Delegation to llm_model for convenience
-  delegate :provider, :provider_type, to: :llm_model, allow_nil: true
+  # Get the effective LLM model for this advisor
+  # Returns the advisor's specific model, or falls back to account default
+  def effective_llm_model
+    llm_model || account.default_llm_model || account.llm_models.enabled.first
+  end
+
+  # Check if this advisor has a valid LLM model (either specific or default)
+  def llm_model_configured?
+    effective_llm_model.present?
+  end
+
+  # Delegation to effective_llm_model for convenience
+  delegate :provider, :provider_type, to: :effective_llm_model, allow_nil: true
+
+  private
+
+  # Validate that if llm_model_id is provided, it belongs to the account
+  def llm_model_belongs_to_account
+    return unless llm_model_id.present?
+    return unless account.present?
+    return if account.llm_models.exists?(id: llm_model_id)
+
+    errors.add(:llm_model, "must belong to this account")
+  end
 end

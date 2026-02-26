@@ -18,8 +18,9 @@ class AiClient
 
   # Main entry point: calls LLM API and returns response content
   def generate_response
-    return nil unless advisor.llm_model.present?
-    return nil unless advisor.llm_model.enabled?
+    model = advisor.effective_llm_model
+    return nil unless model.present?
+    return nil unless model.enabled?
 
     with_retries do
       # Build enhanced system prompt with context
@@ -35,10 +36,10 @@ class AiClient
           prompt_text: system_prompt,
           debug_data: {
             request: {
-              model: advisor.llm_model.identifier,
+              model: model.identifier,
               temperature: advisor.model_config["temperature"] || 0.7,
               max_tokens: advisor.model_config["max_tokens"] || 1000,
-              provider: advisor.llm_model.provider.provider_type,
+              provider: model.provider.provider_type,
               messages_count: messages.length,
               memory_included: memory_context.present?,
               memory_context_length: memory_context&.length || 0,
@@ -57,7 +58,7 @@ class AiClient
       full_messages.concat(messages)
 
       # Use the new unified client: model_instance.api.chat(...)
-      result = advisor.llm_model.api.chat(
+      result = model.api.chat(
         full_messages,
         system_prompt: system_prompt,
         temperature: advisor.model_config["temperature"] || 0.7,

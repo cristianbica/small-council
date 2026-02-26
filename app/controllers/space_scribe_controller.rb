@@ -21,6 +21,12 @@ class SpaceScribeController < ApplicationController
                                    .where(status: :resolved)
                                    .recent
                                    .limit(5)
+
+    # Load chat history for this user
+    @chat_history = ScribeChatMessage
+                    .for_space_and_user(@space, Current.user)
+                    .recent
+                    .limit(50)
   end
 
   # POST /spaces/:space_id/scribe/chat
@@ -41,23 +47,34 @@ class SpaceScribeController < ApplicationController
     }
 
     begin
+      # Get the effective LLM model for the scribe
+      scribe_model = @scribe.effective_llm_model
+
+      unless scribe_model.present?
+        render json: { error: "No LLM model configured. Please set up an AI provider first." }, status: :unprocessable_entity
+        return
+      end
+
       # Configure RubyLLM with the advisor's provider
       context = RubyLLM.context do |config|
-        case @scribe.llm_model.provider.provider_type
+        case scribe_model.provider.provider_type
         when "openai"
-          config.openai_api_key = @scribe.llm_model.provider.api_key
-          config.openai_organization_id = @scribe.llm_model.provider.organization_id
+          config.openai_api_key = scribe_model.provider.api_key
+          config.openai_organization_id = scribe_model.provider.organization_id
         when "openrouter"
-          config.openrouter_api_key = @scribe.llm_model.provider.api_key
+          config.openrouter_api_key = scribe_model.provider.api_key
         end
       end
 
       # Create chat with tools
-      chat = context.chat(model: @scribe.llm_model.identifier).with_tools(
+      chat = context.chat(model: scribe_model.identifier).with_tools(
         RubyLLMTools::CreateMemoryTool,
+        RubyLLMTools::UpdateMemoryTool,
         RubyLLMTools::QueryMemoriesTool,
         RubyLLMTools::QueryConversationsTool,
-        RubyLLMTools::ReadConversationTool
+        RubyLLMTools::ReadConversationTool,
+        RubyLLMTools::BrowseWebTool,
+        RubyLLMTools::AskAdvisorTool
       )
 
       # Build system prompt with tool instructions
@@ -66,8 +83,30 @@ class SpaceScribeController < ApplicationController
       # Add system message
       chat.with_instructions(system_prompt)
 
+      # Load and add conversation history (last 20 messages)
+      conversation_history = ScribeChatMessage.to_conversation_history(@space, Current.user, limit: 20)
+      conversation_history.each do |msg|
+        chat.add_message(role: msg[:role], content: msg[:content])
+      end
+
       # Add user message and get response
       response = chat.ask(message_content)
+
+      # Store the conversation in the database
+      ScribeChatMessage.create!(
+        space: @space,
+        user: Current.user,
+        role: "user",
+        content: message_content
+      )
+
+      ScribeChatMessage.create!(
+        space: @space,
+        user: Current.user,
+        role: "assistant",
+        content: response.content,
+        metadata: { tool_calls: response.tool_calls || [] }
+      )
 
       render json: {
         message: response.content,
@@ -165,6 +204,7 @@ class SpaceScribeController < ApplicationController
   def build_chat_system_prompt_with_tools
     memory_context = build_memory_context_for_chat
     recent_conversations = build_conversation_context
+    advisors_list = build_advisors_context
 
     <<~PROMPT
       You are the Scribe, an expert assistant for managing space knowledge and memories.
@@ -172,15 +212,46 @@ class SpaceScribeController < ApplicationController
       ## Your Capabilities
       You have access to tools that let you:
       - create_memory: Create a new memory with title, content, and type
+      - update_memory: Update an existing memory
       - query_memories: Search existing memories by keyword
       - query_conversations: Find past conversations by topic
       - read_conversation: Read all messages from a specific conversation
+      - browse_web: Fetch and read web pages
+      - ask_advisor: Ask a question to a specific advisor in the council
 
       ## When to Use Tools
       - When a user asks you to "create a memory" or "save this" → use create_memory
       - When a user asks "what do we know about X?" → use query_memories
       - When a user asks "what did we discuss about Y?" → use query_conversations, then read_conversation
       - When a user gives you a conversation ID → use read_conversation
+      - When a user asks you to "ask [advisor]" or "get feedback from [advisor]" → use ask_advisor
+
+      ## Asking Advisors (CRITICAL - READ CAREFULLY)
+      When the user asks you to "ask [advisor]", "get feedback from advisors", or similar:
+
+      YOU MUST use the ask_advisor tool. DO NOT generate advisor responses yourself.
+
+      CRITICAL RULES:
+      1. You are the SCRIBE - you manage knowledge, you DO NOT speak for other advisors
+      2. You CANNOT and SHOULD NOT simulate what other advisors would say
+      3. When asked to gather feedback, ALWAYS use the ask_advisor tool
+      4. Never say "Here's what the Systems Architect would say" - that's wrong
+      5. Instead say "I'll ask Systems Architect and they'll respond in a conversation"
+
+      CORRECT WORKFLOW:
+      1. User: "Ask Systems Architect about using Docker"
+      2. You: Use ask_advisor tool with advisor_name="Systems Architect", question="What do you think about using Docker?"
+      3. You tell user: "I've asked Systems Architect. They'll respond in conversation #123."
+      4. The REAL Systems Architect (AI agent) generates their own response separately
+
+      WRONG (DO NOT DO THIS):
+      - Simulating: "Systems Architect says: You should use Docker because..."
+      - This is you pretending to be them, which defeats the purpose
+
+      Advisor responses happen asynchronously in separate conversations.
+
+      ## Available Advisors
+      #{advisors_list}
 
       ## Current Context
       #{memory_context}
@@ -192,6 +263,8 @@ class SpaceScribeController < ApplicationController
       2. After creating a memory, confirm it was created and mention its ID
       3. When searching, summarize what you found in natural language
       4. Memory types: summary (auto-fed to AI), knowledge, conversation_summary, conversation_notes
+      5. When asking advisors, ALWAYS use the ask_advisor tool. NEVER simulate their responses.
+      6. You are the Scribe - you manage knowledge. Other advisors give specialized advice. Don't blur these roles.
     PROMPT
   end
 
@@ -225,6 +298,18 @@ class SpaceScribeController < ApplicationController
       end
     end
 
+    parts.join("\n")
+  end
+
+  def build_advisors_context
+    advisors = @space.advisors.active.where.not(id: @scribe.id) # Exclude self
+    return "No other advisors available in this space." if advisors.empty?
+
+    parts = [ "Other advisors available in this space (use ask_advisor tool to communicate with them):" ]
+    advisors.each do |advisor|
+      desc = advisor.short_description.present? ? " - #{advisor.short_description}" : ""
+      parts << "- #{advisor.name}#{desc}"
+    end
     parts.join("\n")
   end
 end

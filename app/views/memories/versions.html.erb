@@ -1,0 +1,82 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <%= link_to "Memories", space_memories_path(@space), class: "text-sm link" %>
+        <span class="text-base-content/40">/</span>
+        <%= link_to @memory.title, space_memory_path(@space, @memory), class: "text-sm link" %>
+        <span class="text-base-content/40">/</span>
+        <h1 class="text-3xl font-bold">Version History</h1>
+      </div>
+      <p class="text-sm text-base-content/60">
+        <%= @memory.versions.count %> version(s) · Click a version to see changes
+      </p>
+    </div>
+    <div class="flex gap-2">
+      <%= link_to "← Back to Memory", space_memory_path(@space, @memory), class: "btn btn-ghost btn-sm" %>
+    </div>
+  </div>
+
+  <% if @versions.any? %>
+    <!-- Version List -->
+    <div class="card bg-base-100 shadow">
+      <div class="card-body">
+        <div class="overflow-x-auto">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Version</th>
+                <th>Date</th>
+                <th>Changed By</th>
+                <th>Change Reason</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @versions.each do |version| %>
+                <tr class="hover:bg-base-200 cursor-pointer" onclick="window.location='<%= version_space_memory_path(@space, @memory, version_number: version.version_number) %>'">
+                  <td>
+                    <span class="badge <%= version == @memory.latest_version ? 'badge-primary' : 'badge-ghost' %> badge-sm">
+                      v<%= version.version_number %>
+                    </span>
+                    <% if version == @memory.latest_version %>
+                      <span class="badge badge-success badge-sm ml-1">Current</span>
+                    <% end %>
+                  </td>
+                  <td>
+                    <span class="text-sm" title="<%= version.created_at.strftime('%Y-%m-%d %H:%M:%S') %>">
+                      <%= version.created_at.strftime('%b %d, %Y') %>
+                    </span>
+                    <span class="text-xs text-base-content/60 block">
+                      <%= version.created_at.strftime('%H:%M') %>
+                    </span>
+                  </td>
+                  <td>
+                    <span class="text-sm"><%= version.created_by_display %></span>
+                  </td>
+                  <td>
+                    <span class="text-sm text-base-content/70 truncate max-w-xs block" title="<%= version.change_reason %>">
+                      <%= version.change_reason || "No reason provided" %>
+                    </span>
+                  </td>
+                  <td class="text-right">
+                    <%= link_to "View Diff", version_space_memory_path(@space, @memory, version_number: version.version_number), 
+                        class: "btn btn-sm btn-ghost" %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <% else %>
+    <div class="alert alert-info">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <span>No version history available for this memory.</span>
+    </div>
+  <% end %>
+</div>

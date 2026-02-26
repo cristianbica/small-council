@@ -36,14 +36,18 @@ class AiClientTest < ActiveSupport::TestCase
     assert_equal @message, client.message
   end
 
-  test "generate_response returns nil without llm_model" do
-    # Create advisor without llm_model (skipping validation)
+  test "generate_response returns nil when no llm_model is available" do
+    # Create advisor without llm_model and ensure account has no default
     advisor_without_model = @account.advisors.new(
       name: "Test Advisor No Model",
       system_prompt: "You are a helpful assistant.",
       space: @space
     )
     advisor_without_model.save(validate: false)
+
+    # Ensure account has no default model and no enabled models
+    @account.update!(default_llm_model: nil)
+    @account.llm_models.update_all(enabled: false)
 
     client = AiClient.new(advisor: advisor_without_model, conversation: @conversation, message: @message)
     assert_nil client.generate_response

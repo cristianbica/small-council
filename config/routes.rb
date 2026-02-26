@@ -30,6 +30,9 @@ Rails.application.routes.draw do
       member do
         post :archive
         post :activate
+        get :versions
+        get :version
+        post :restore_version
       end
       collection do
         get :search
