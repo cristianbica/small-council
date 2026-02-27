@@ -1,6 +1,6 @@
 class ConversationsController < ApplicationController
   before_action :set_council, only: [ :index, :new, :create ]
-  before_action :set_conversation, only: [ :show, :update, :finish, :approve_summary, :reject_summary, :regenerate_summary, :cancel_pending ]
+  before_action :set_conversation, only: [ :show, :update, :destroy, :finish, :approve_summary, :reject_summary, :regenerate_summary, :cancel_pending ]
 
   def index
     @conversations = @council.conversations.recent
@@ -136,6 +136,25 @@ class ConversationsController < ApplicationController
     else
       redirect_to @conversation, alert: "No pending advisor responses to stop."
     end
+  end
+
+  def destroy
+    # Only conversation starter or council creator can delete
+    unless @conversation.user_id == Current.user.id || @conversation.council.user_id == Current.user.id
+      redirect_to @conversation, alert: "Only the conversation starter or council creator can delete this conversation."
+      return
+    end
+
+    council = @conversation.council
+    @conversation.destroy!
+
+    respond_to do |format|
+      format.html { redirect_to council_conversations_path(council), notice: "Conversation deleted successfully." }
+      format.turbo_stream { head :no_content }
+    end
+  rescue => e
+    Rails.logger.error "[ConversationsController#destroy] Error deleting conversation #{@conversation.id}: #{e.message}"
+    redirect_to @conversation, alert: "Failed to delete conversation: #{e.message}"
   end
 
   private

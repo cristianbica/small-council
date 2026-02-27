@@ -23,8 +23,8 @@ class AiClient
     return nil unless model.enabled?
 
     with_retries do
-      # Build enhanced system prompt with context
-      system_prompt = build_enhanced_system_prompt
+      # Build enhanced system prompt with context and tool instructions
+      system_prompt = build_enhanced_system_prompt_with_tools
 
       # Build messages and space memory context
       messages = build_messages
@@ -44,39 +44,88 @@ class AiClient
               memory_included: memory_context.present?,
               memory_context_length: memory_context&.length || 0,
               council_context_included: system_prompt.include?("council"),
-              conversation_context_included: system_prompt.include?("Current Conversation")
+              conversation_context_included: system_prompt.include?("Current Conversation"),
+              tools_enabled: true,
+              tools_count: ScribeToolExecutor.available_tools(for_scribe: false).count
             }
           }
         )
       end
 
-      # Prepend memory context as a system message if available
-      full_messages = []
-      if memory_context.present?
-        full_messages << { role: "system", content: memory_context }
+      # Configure RubyLLM with the advisor's provider
+      context = RubyLLM.context do |config|
+        case model.provider.provider_type
+        when "openai"
+          config.openai_api_key = model.provider.api_key
+          config.openai_organization_id = model.provider.organization_id
+        when "openrouter"
+          config.openrouter_api_key = model.provider.api_key
+        end
       end
-      full_messages.concat(messages)
 
-      # Use the new unified client: model_instance.api.chat(...)
-      result = model.api.chat(
-        full_messages,
-        system_prompt: system_prompt,
-        temperature: advisor.model_config["temperature"] || 0.7,
-        max_tokens: advisor.model_config["max_tokens"] || 1000
+      # Create chat with advisor tools
+      chat = context.chat(model: model.identifier).with_tools(
+        RubyLLMTools::AdvisorQueryMemoriesTool,
+        RubyLLMTools::AdvisorQueryConversationsTool,
+        RubyLLMTools::AdvisorReadConversationTool,
+        RubyLLMTools::AdvisorAskAdvisorTool
       )
 
-      # Update message with response debug data (only if persisted)
-      if message.persisted? && message.debug_data.present?
-        message.debug_data["response"] = {
-          input_tokens: result[:input_tokens],
-          output_tokens: result[:output_tokens],
-          model_used: result[:model],
-          timestamp: Time.current.iso8601
-        }
-        message.save!
+      # Add system instructions
+      chat.with_instructions(system_prompt)
+
+      # Add memory context as first message if available
+      if memory_context.present?
+        chat.add_message(role: "system", content: memory_context)
       end
 
-      result
+      # Add conversation history
+      messages.each do |msg|
+        chat.add_message(role: msg[:role], content: msg[:content])
+      end
+
+      # Set up tool execution context via Thread.current (tools access this)
+      tool_context = ToolExecutionContext.new(
+        conversation: conversation,
+        space: conversation.council&.space,
+        advisor: advisor,
+        user: conversation.user
+      )
+      Thread.current[:advisor_tool_context] = tool_context
+
+      begin
+        # Execute chat and get response
+        response = chat.complete
+
+        # Handle any tool calls
+        tool_results = handle_tool_calls(response, chat)
+
+        # Update message with response debug data (only if persisted)
+        if message.persisted? && message.debug_data.present?
+          message.debug_data["response"] = {
+            input_tokens: response.input_tokens,
+            output_tokens: response.output_tokens,
+            model_used: response.model_id,
+            timestamp: Time.current.iso8601,
+            tool_calls: response.tool_calls&.map { |tc| { name: tc.name, params: tc.params } } || [],
+            tool_results: tool_results
+          }
+          message.save!
+        end
+
+        {
+          content: response.content,
+          input_tokens: response.input_tokens,
+          output_tokens: response.output_tokens,
+          total_tokens: response.input_tokens.to_i + response.output_tokens.to_i,
+          model: response.model_id,
+          provider: model.provider.provider_type,
+          tool_calls: response.tool_calls || [],
+          tool_results: tool_results
+        }
+      ensure
+        Thread.current[:advisor_tool_context] = nil
+      end
     end
   rescue LLM::APIError => e
     log_error(e)
@@ -318,5 +367,114 @@ class AiClient
   def log_error(error)
     Rails.logger.error "[AiClient] Error for advisor #{advisor.id}: #{error.message}"
     Rails.logger.error error.backtrace.first(5).join("\n") if error.backtrace
+  end
+
+  # Handle tool calls from the LLM response
+  def handle_tool_calls(response, chat)
+    return [] unless response.tool_calls&.any?
+
+    results = []
+
+    response.tool_calls.each do |tool_call|
+      tool_name = tool_call.name
+      tool_params = tool_call.params
+
+      Rails.logger.info "[AiClient] Tool call: #{tool_name} with params: #{tool_params}"
+
+      begin
+        # Create execution context
+        context = ToolExecutionContext.new(
+          conversation: conversation,
+          space: conversation.council&.space,
+          advisor: advisor,
+          user: conversation.user
+        )
+
+        # Execute the tool via ScribeToolExecutor
+        result = ScribeToolExecutor.execute_and_format(
+          tool_name: tool_name,
+          params: tool_params,
+          context: context,
+          for_scribe: false
+        )
+
+        results << {
+          tool: tool_name,
+          params: tool_params,
+          result: result
+        }
+
+        # Add tool result back to the conversation for potential follow-up
+        if result.is_a?(Hash) && result[:success]
+          chat.add_message(
+            role: "tool",
+            content: result[:message] || "Tool executed successfully",
+            tool_call_id: tool_call.id
+          )
+        else
+          error_msg = result.is_a?(Hash) ? result[:error] : "Tool execution failed"
+          chat.add_message(
+            role: "tool",
+            content: "Error: #{error_msg}",
+            tool_call_id: tool_call.id
+          )
+        end
+      rescue => e
+        Rails.logger.error "[AiClient] Tool execution error: #{e.message}"
+        results << {
+          tool: tool_name,
+          params: tool_params,
+          error: e.message
+        }
+
+        chat.add_message(
+          role: "tool",
+          content: "Error: #{e.message}",
+          tool_call_id: tool_call.id
+        )
+      end
+    end
+
+    results
+  end
+
+  # Build enhanced system prompt with tool instructions
+  def build_enhanced_system_prompt_with_tools
+    base_prompt = build_enhanced_system_prompt
+
+    # Add tool instructions
+    tool_instructions = build_tool_instructions
+
+    [ base_prompt, tool_instructions ].compact.join("\n\n---\n\n")
+  end
+
+  # Build tool usage instructions for advisors
+  def build_tool_instructions
+    tools = ScribeToolExecutor.available_tools(for_scribe: false)
+
+    parts = []
+    parts << "## Available Tools"
+    parts << "You have access to the following tools:"
+    parts << ""
+
+    tools.each do |tool_class|
+      tool = tool_class.new
+      parts << "- **#{tool.name}**: #{tool.description}"
+    end
+
+    parts << ""
+    parts << "## When to Use Tools"
+    parts << "- Use **query_memories** when you need additional context beyond the auto-fed summary"
+    parts << "- Use **query_conversations** to find past discussions on specific topics"
+    parts << "- Use **read_conversation** to get full details from a specific conversation ID"
+    parts << "- Use **ask_advisor** to communicate with other advisors in the council"
+    parts << ""
+    parts << "## Tool Usage Guidelines"
+    parts << "1. Tools are optional - only use them when you need additional information"
+    parts << "2. After using ask_advisor, the other advisor will respond separately in a conversation"
+    parts << "3. Do not simulate advisor responses - always use ask_advisor to let them respond"
+    parts << "4. You can use multiple tools in sequence if needed"
+
+    parts.join("\n")
   end
 end

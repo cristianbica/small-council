@@ -573,4 +573,95 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to conversation_url(conversation)
     assert_equal "No pending advisor responses to stop.", flash[:alert]
   end
+
+  # ============================================================================
+  # DELETE TESTS
+  # ============================================================================
+
+  test "destroy deletes conversation for conversation starter" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    conversation = @account.conversations.create!(
+      council: council,
+      user: @user,
+      title: "Test Conversation"
+    )
+
+    assert_difference("Conversation.count", -1) do
+      delete conversation_url(conversation)
+    end
+
+    assert_redirected_to council_conversations_path(council)
+    assert_equal "Conversation deleted successfully.", flash[:notice]
+  end
+
+  test "destroy deletes conversation for council creator" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    other_user = @account.users.create!(email: "other@example.com", password: "password123")
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    conversation = @account.conversations.create!(
+      council: council,
+      user: other_user,
+      title: "Test Conversation"
+    )
+
+    assert_difference("Conversation.count", -1) do
+      delete conversation_url(conversation)
+    end
+
+    assert_redirected_to council_conversations_path(council)
+    assert_equal "Conversation deleted successfully.", flash[:notice]
+  end
+
+  test "destroy fails for unauthorized users" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    other_user = @account.users.create!(email: "other@example.com", password: "password123")
+    other_council_creator = @account.users.create!(email: "creator@example.com", password: "password123")
+    council = @account.councils.create!(name: "Test Council", user: other_council_creator, space: @space)
+    conversation = @account.conversations.create!(
+      council: council,
+      user: other_user,
+      title: "Test Conversation"
+    )
+
+    assert_no_difference("Conversation.count") do
+      delete conversation_url(conversation)
+    end
+
+    assert_redirected_to conversation_url(conversation)
+    assert_equal "Only the conversation starter or council creator can delete this conversation.", flash[:alert]
+  end
+
+  test "destroy requires authentication" do
+    set_tenant(@account)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    conversation = @account.conversations.create!(
+      council: council,
+      user: @user,
+      title: "Test Conversation"
+    )
+
+    delete conversation_url(conversation)
+    assert_redirected_to sign_in_url
+  end
+
+  test "destroy handles turbo_stream format" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    conversation = @account.conversations.create!(
+      council: council,
+      user: @user,
+      title: "Test Conversation"
+    )
+
+    assert_difference("Conversation.count", -1) do
+      delete conversation_url(conversation), as: :turbo_stream
+    end
+
+    assert_response :no_content
+  end
 end

@@ -16,7 +16,8 @@ class ScribeToolExecutor
   ADVISOR_TOOLS = [
     AdvisorTools::QueryMemoriesTool,
     AdvisorTools::QueryConversationsTool,
-    AdvisorTools::ReadConversationTool
+    AdvisorTools::ReadConversationTool,
+    AdvisorTools::AskAdvisorTool
   ].freeze
 
   ALL_TOOLS = (SCRIBE_TOOLS + ADVISOR_TOOLS).freeze
@@ -24,7 +25,7 @@ class ScribeToolExecutor
   class << self
     # Get all available tools
     def available_tools(for_scribe: false)
-      for_scribe ? SCRIBE_TOOLS : ADVISOR_TOOLS
+      for_scribe ? ALL_TOOLS : ADVISOR_TOOLS
     end
 
     # Get all tools as function definitions for AI

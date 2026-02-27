@@ -24,4 +24,9 @@ module ApplicationHelper
     # Show finish button for manual conclusion in these modes
     conversation.on_demand? || conversation.silent? || conversation.round_robin? || conversation.moderated?
   end
+
+  # Check if user can delete the conversation
+  def can_delete_conversation?(conversation)
+    conversation.user_id == Current.user.id || conversation.council.user_id == Current.user.id
+  end
 end

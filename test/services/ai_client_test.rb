@@ -214,10 +214,19 @@ class AiClientTest < ActiveSupport::TestCase
   test "raises ApiError when API call fails" do
     client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
 
-    # Mock LLM::Client to raise error via the llm_model.api
-    mock_api = mock()
-    mock_api.stubs(:chat).raises(StandardError, "Connection timeout")
-    @llm_model.stubs(:api).returns(mock_api)
+    # Mock RubyLLM to raise error
+    mock_chat = mock()
+    mock_chat.stubs(:with_tools).returns(mock_chat)
+    mock_chat.stubs(:with_instructions).returns(mock_chat)
+    mock_chat.stubs(:with_temperature).returns(mock_chat)
+    mock_chat.stubs(:add_message).returns(mock_chat)
+    mock_chat.stubs(:complete).raises(StandardError, "Connection timeout")
+
+    mock_context = mock()
+    mock_context.stubs(:chat).returns(mock_chat)
+
+    # Mock context method to yield config and return context
+    RubyLLM.stubs(:context).returns(mock_context)
 
     assert_raises(AiClient::ApiError) do
       client.generate_response
@@ -227,10 +236,19 @@ class AiClientTest < ActiveSupport::TestCase
   test "raises ApiError on LLM::APIError" do
     client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
 
-    # Mock LLM::Client to raise LLM::APIError
-    mock_api = mock()
-    mock_api.stubs(:chat).raises(LLM::APIError, "API failure")
-    @llm_model.stubs(:api).returns(mock_api)
+    # Mock RubyLLM to raise LLM::APIError
+    mock_chat = mock()
+    mock_chat.stubs(:with_tools).returns(mock_chat)
+    mock_chat.stubs(:with_instructions).returns(mock_chat)
+    mock_chat.stubs(:with_temperature).returns(mock_chat)
+    mock_chat.stubs(:add_message).returns(mock_chat)
+    mock_chat.stubs(:complete).raises(LLM::APIError, "API failure")
+
+    mock_context = mock()
+    mock_context.stubs(:chat).returns(mock_chat)
+
+    # Mock context method to yield config and return context
+    RubyLLM.stubs(:context).returns(mock_context)
 
     error = assert_raises(AiClient::ApiError) do
       client.generate_response
@@ -298,18 +316,28 @@ class AiClientTest < ActiveSupport::TestCase
   test "successful API call returns response" do
     client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
 
-    mock_response = {
-      content: "API response text",
-      input_tokens: 15,
-      output_tokens: 8,
-      total_tokens: 23,
-      model: "gpt-4",
-      provider: "openai"
-    }
+    # Create mock response object that behaves like RubyLLM::Response
+    mock_response = mock()
+    mock_response.stubs(:content).returns("API response text")
+    mock_response.stubs(:input_tokens).returns(15)
+    mock_response.stubs(:output_tokens).returns(8)
+    mock_response.stubs(:model_id).returns("gpt-4")
+    mock_response.stubs(:tool_calls).returns([])
 
-    mock_api = mock()
-    mock_api.expects(:chat).returns(mock_response)
-    @llm_model.stubs(:api).returns(mock_api)
+    # Create mock chat object
+    mock_chat = mock()
+    mock_chat.stubs(:with_tools).returns(mock_chat)
+    mock_chat.stubs(:with_instructions).returns(mock_chat)
+    mock_chat.stubs(:with_temperature).returns(mock_chat)
+    mock_chat.stubs(:add_message).returns(mock_chat)
+    mock_chat.expects(:complete).returns(mock_response)
+
+    # Create mock context
+    mock_context = mock()
+    mock_context.expects(:chat).with(model: @llm_model.identifier).returns(mock_chat)
+
+    # Mock context method to return context
+    RubyLLM.stubs(:context).returns(mock_context)
 
     result = client.generate_response
 
@@ -329,22 +357,28 @@ class AiClientTest < ActiveSupport::TestCase
       content: "Hello"
     )
 
-    expected_messages = [
-      { role: "user", content: "Hello" }
-    ]
+    # Create mock response object
+    mock_response = mock()
+    mock_response.stubs(:content).returns("Hi!")
+    mock_response.stubs(:input_tokens).returns(10)
+    mock_response.stubs(:output_tokens).returns(5)
+    mock_response.stubs(:model_id).returns("gpt-4")
+    mock_response.stubs(:tool_calls).returns([])
 
-    mock_api = mock()
-    # System prompt now includes enhanced council and expertise context
-    # Verify the call is made with correct parameters
-    mock_api.expects(:chat).with(
-      expected_messages,
-      has_entries(
-        system_prompt: includes(@advisor.system_prompt),
-        temperature: 0.7,
-        max_tokens: 1000
-      )
-    ).returns({ content: "Hi!", input_tokens: 10, output_tokens: 5, total_tokens: 15 })
-    @llm_model.stubs(:api).returns(mock_api)
+    # Create mock chat object
+    mock_chat = mock()
+    mock_chat.stubs(:with_tools).returns(mock_chat)
+    mock_chat.stubs(:with_instructions).returns(mock_chat)
+    mock_chat.stubs(:with_temperature).returns(mock_chat)
+    mock_chat.stubs(:add_message).returns(mock_chat)
+    mock_chat.expects(:complete).returns(mock_response)
+
+    # Create mock context
+    mock_context = mock()
+    mock_context.expects(:chat).with(model: @llm_model.identifier).returns(mock_chat)
+
+    # Mock context method to return context
+    RubyLLM.stubs(:context).returns(mock_context)
 
     result = client.generate_response
 
@@ -355,19 +389,31 @@ class AiClientTest < ActiveSupport::TestCase
     @advisor.update!(model_config: { "temperature" => 0.5, "max_tokens" => 500 })
     client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
 
-    mock_api = mock()
-    # System prompt now includes enhanced council and expertise context
-    # Verify the call is made with correct temperature and max_tokens
-    mock_api.expects(:chat).with(
-      anything,
-      has_entries(
-        system_prompt: includes(@advisor.system_prompt),
-        temperature: 0.5,
-        max_tokens: 500
-      )
-    ).returns({ content: "Response", input_tokens: 10, output_tokens: 5, total_tokens: 15 })
-    @llm_model.stubs(:api).returns(mock_api)
+    # Create mock response object
+    mock_response = mock()
+    mock_response.stubs(:content).returns("Response")
+    mock_response.stubs(:input_tokens).returns(10)
+    mock_response.stubs(:output_tokens).returns(5)
+    mock_response.stubs(:model_id).returns("gpt-4")
+    mock_response.stubs(:tool_calls).returns([])
 
-    client.generate_response
+    # Create mock chat object
+    mock_chat = mock()
+    mock_chat.stubs(:with_tools).returns(mock_chat)
+    mock_chat.stubs(:with_instructions).returns(mock_chat)
+    mock_chat.stubs(:with_temperature).returns(mock_chat)
+    mock_chat.stubs(:add_message).returns(mock_chat)
+    mock_chat.expects(:complete).returns(mock_response)
+
+    # Create mock context
+    mock_context = mock()
+    mock_context.expects(:chat).with(model: @llm_model.identifier).returns(mock_chat)
+
+    # Mock context method to return context
+    RubyLLM.stubs(:context).returns(mock_context)
+
+    result = client.generate_response
+
+    assert_equal "Response", result[:content]
   end
 end

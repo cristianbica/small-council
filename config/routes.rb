@@ -57,7 +57,7 @@ Rails.application.routes.draw do
         post :add_existing
       end
     end
-    resources :conversations, only: [ :index, :show, :new, :create, :update ]
+    resources :conversations, only: [ :index, :show, :new, :create, :update, :destroy ]
 
     collection do
       post :generate_description
