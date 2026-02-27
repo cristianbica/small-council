@@ -102,6 +102,46 @@ message.sender_type  # "Advisor"
 message.sender_id    # advisor.id
 ```
 
+## Tool Access
+
+Advisors have access to 4 tools for interacting with the system:
+
+| Tool | Purpose | Access |
+|------|---------|--------|
+| `query_memories` | Search space memories by keyword | Read-only |
+| `query_conversations` | Find past conversations by topic | Read-only |
+| `read_conversation` | Read messages from a specific conversation | Read-only |
+| `ask_advisor` | Send a question to another advisor in the council | Write (creates messages) |
+
+### ask_advisor Tool
+
+The `ask_advisor` tool is the **only** way for advisors to communicate with each other:
+
+```ruby
+# Example tool usage
+{
+  advisor_name: "Systems Architect",
+  question: "What do you think about using Docker for deployment?"
+}
+```
+
+**Key behaviors:**
+- Creates a message mentioning the target advisor
+- Creates a pending placeholder for the advisor's response
+- Enqueues `GenerateAdvisorResponseJob` for async response
+- Prevents advisors from asking themselves
+- Posts responses in the **same conversation** (changed from creating new conversations)
+
+### Tool Implementation
+
+Tools are implemented in `app/services/advisor_tools/`:
+- `AskAdvisorTool` - Inter-advisor communication
+- `QueryMemoriesTool` - Memory search
+- `QueryConversationsTool` - Conversation search  
+- `ReadConversationTool` - Read conversation messages
+
+Tools use `AdvisorTool` base class (read-only by default, override `read_only?` for write access).
+
 ## Implementation Notes
 
 - Advisors are scoped to account (acts_as_tenant)
@@ -109,3 +149,4 @@ message.sender_id    # advisor.id
 - System prompts can be overridden per council via `council_advisors.custom_prompt_override`
 - Deleting an advisor soft-removes from future use but preserves message history
 - LLM model must belong to the same account (security validation needed)
+- Tools are registered in `ScribeToolExecutor::ADVISOR_TOOLS` and passed to RubyLLM chat

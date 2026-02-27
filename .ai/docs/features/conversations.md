@@ -21,13 +21,21 @@ Conversations are chat sessions tied to a specific council. Each conversation ha
 4. Message appears in the chat area (user messages on right, others on left)
 5. AI advisors generate responses asynchronously; placeholders show "thinking..."
 
+### Deleting a conversation
+1. Open the conversation or view it in the conversation list
+2. Click "Delete" button (only visible to conversation starter or council creator)
+3. Confirm deletion (cannot be undone)
+4. Conversation and all messages are permanently deleted
+
 ## Technical
 
 ### Routes
 ```
 /councils/:council_id/conversations     # index, new, create
-/conversations/:id                        # show, update (PATCH for RoE)
+/conversations/:id                        # show, update (PATCH for RoE), destroy
 /conversations/:conversation_id/messages  # create
+/conversations/:id/finish                 # Begin conclusion process
+/conversations/:id/cancel_pending         # Stop pending advisor responses
 ```
 
 ### Models
@@ -37,7 +45,7 @@ Conversations are chat sessions tied to a specific council. Each conversation ha
 - `LlmModel`: Available models per provider (GPT-4, Claude, etc.)
 
 ### Controllers
-- `ConversationsController`: index, show, new, create, update
+- `ConversationsController`: index, show, new, create, update, destroy, finish, approve_summary, reject_summary, regenerate_summary, cancel_pending
 - `MessagesController`: create (enqueues AI response jobs)
 - `ProvidersController`: manage AI provider credentials
 
@@ -51,6 +59,8 @@ Conversations are chat sessions tied to a specific council. Each conversation ha
 ### Access Control
 - All authenticated account users can view all conversations in their councils
 - Any account user can post to any conversation in their councils
+- **Delete permission**: Only conversation starter or council creator can delete
+- **Finish/cancel permission**: Only conversation starter or council creator can finish or cancel pending responses
 - Provider management available to all account users (Phase 1)
 
 ### Styling
@@ -98,6 +108,15 @@ Use `@Advisor_Name` in messages to trigger specific advisors:
    - Broadcasts via Turbo Streams to update UI in real-time
 6. User sees live message replacement without page refresh
 
+### Canceling Pending Responses
+
+Users can stop pending advisor responses if they were triggered by mistake or are no longer needed:
+
+1. Click "Stop Responses" button (visible when pending messages exist)
+2. Controller updates all `pending` messages to `cancelled` status
+3. Jobs for cancelled messages are skipped when they execute
+4. Only conversation starter or council creator can cancel
+
 ### Error Handling
 
 - API errors: Message updated with error content and `error` status
@@ -110,9 +129,11 @@ Use `@Advisor_Name` in messages to trigger specific advisors:
 - Default: `round_robin`
 - State tracking (round robin position) in `conversations.context` jsonb
 - `ScribeCoordinator` service determines responders
-- `AiClient` handles OpenAI, Anthropic, and GitHub Models APIs
+- `AiClient` handles OpenAI, Anthropic, and GitHub Models APIs with tool access for advisors
 - Credentials encrypted with Rails encrypted attributes
 - Turbo Streams provide real-time UI updates
+- Delete action uses `destroy!` with authorization check
+- Cancel pending updates messages from `pending` to `cancelled` status
 
 ## AI Provider Setup
 

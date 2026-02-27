@@ -17,7 +17,7 @@ The platform tracks AI usage per account with encrypted provider credentials, su
 | Jobs | Solid Queue |
 | Cache | Solid Cache |
 | Cable | Solid Cable |
-| Tests | Minitest (417 tests, 99.85% coverage) |
+| Tests | Minitest (565 tests, ~48% coverage) |
 | Auth | authentication-zero |
 | Multi-tenancy | acts_as_tenant (active) |
 | AI APIs | ruby-openai, anthropic |
@@ -42,7 +42,7 @@ app/
 ├── jobs/           # GenerateAdvisorResponseJob (Solid Queue)
 └── assets/         # Tailwind CSS v4 + DaisyUI
 
-test/               # 455 tests: models, controllers, integration, security
+test/               # 565 tests: models, controllers, integration, security, services
 config/
 ├── routes.rb       # All app routes
 └── initializers/   # App configuration

@@ -57,20 +57,22 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - Spaces: contextual workspaces containing councils
 - Councils: groups of AI advisors that collaborate
 - Conversations: chat sessions with advisor participation
-- Advisors: AI personas with configurable LLM models
+- Advisors: AI personas with configurable LLM models and tool access
+- Tool System: RubyLLM-powered tools for advisors and scribe
 - Usage tracking: per-account billing and observability
 - AI Providers: OpenAI, Anthropic, GitHub Models with encrypted API credentials
 - LlmModels: Per-account model configuration (GPT-4, Claude, etc.)
 
-## Data Layer (2026-02-18)
-- 11 migrations, 11 models
-- Key tables: accounts, users, spaces, advisors, councils, council_advisors, conversations, messages, usage_records, providers, llm_models
+## Data Layer (2026-02-27)
+- 12 migrations, 12 models (added Memory, MemoryVersion)
+- Key tables: accounts, users, spaces, advisors, councils, council_advisors, conversations, messages, usage_records, providers, llm_models, memories
 - acts_as_tenant gem is enabled and active (automatic tenant scoping on all queries)
 - JSONB columns: settings, preferences, model_config, metadata, configuration, content_blocks, context, custom_prompt_override, credentials
 - GIN indexes on all JSONB columns
 - Polymorphic sender on messages table (sender_type, sender_id)
 - Encrypted credentials: `Provider.credentials` uses Rails encrypted attributes for API keys
 - Current attributes: `Current.session`, `Current.user`, `Current.account`, `Current.space`
+- Message statuses: `pending`, `complete`, `error`, `cancelled`
 
 ## Discovered quirks
 - 2026-02-10: Initialized `.ai/` template structure and core roles/workflows.
@@ -87,6 +89,9 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - 2026-02-24: Created `dhh-coder` overlay (coding style) and `dhh-reviewer` overlay (code review persona) for 37signals/DHH Rails conventions
 - 2026-02-25: Fixed conversation summary parsing - The `extract_section` method in `GenerateConversationSummaryJob` now supports multiple header formats: `## Key Decisions`, `**Key Decisions:**`, `**Key Decisions**`, and `Key Decisions:`. Previously only worked with `##` headers, causing "- None identified" to be saved when AI used bold format.
 - 2026-02-26: Fixed `by_type` scope in Memory model - When type is blank (All tab), returns `all` instead of `where(memory_type: nil)` which returned no records
+- 2026-02-27: **Tool System** - Advisors now have 4 tools: `query_memories`, `query_conversations`, `read_conversation` (read-only), and `ask_advisor` (write). Scribe has 4 tools: `finish_conversation`, `create_memory`, `query_memories`, `browse_web`. Tools use `RubyLLM::Tool` base class with `AdvisorTool`/`ScribeTool` wrappers.
+- 2026-02-27: **ask_advisor behavior change** - Now posts in the same conversation instead of creating new conversations. Creates a mention message + pending placeholder, then enqueues response job.
+- 2026-02-27: **Delete conversation** - Added destroy action. Only conversation starter or council creator can delete. Available in both conversation list and detail views.
 
 ## Gems
 - `ruby-openai` (~> 7.0) - OpenAI API client
@@ -146,14 +151,24 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - Data migration: Existing space.memory migrated to summary-type memories
 - Docs: `.ai/docs/features/memory-management.md`
 
-## Scribe Tool Capabilities (2026-02-26)
-The Scribe can now perform actions using RubyLLM's tool system:
+## Scribe Tool Capabilities (2026-02-27)
+The Scribe has access to 8 tools using RubyLLM's tool system:
+
+**Scribe Tools (4):**
+- **finish_conversation**: Conclude conversation and generate summary
 - **create_memory**: Creates a new memory with title, content, and type
 - **query_memories**: Searches existing memories by keyword
-- **query_conversations**: Finds past conversations by topic or keyword
-- **read_conversation**: Reads all messages from a specific conversation by ID
-- Tools are defined in `app/services/ruby_llm_tools/` and use `RubyLLM::Tool` base class
-- Context is passed via `Thread.current[:scribe_context]` for access to space, user, and advisor
+- **browse_web**: Web search capabilities
+
+**Advisor Tools (4) - Scribe can also use these:**
+- **query_memories**: Search space memories
+- **query_conversations**: Find past conversations
+- **read_conversation**: Read messages from a specific conversation
+- **ask_advisor**: Send questions to other advisors
+
+- Tools are defined in `app/services/scribe_tools/` and `app/services/advisor_tools/`
+- RubyLLM tool wrappers in `app/services/ruby_llm_tools/`
+- Context is passed via `Thread.current[:scribe_context]` for scribe, `Thread.current[:advisor_tool_context]` for advisors
 
 ## Ruby Version (2026-02-19)
 - **Ruby 4.0.1** (upgraded from 3.4.8) - Uses mise for version management

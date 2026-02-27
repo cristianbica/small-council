@@ -18,6 +18,7 @@ Rules:
 - [Background Jobs](background-jobs.md) - Solid Queue with multi-tenancy
 - [Turbo Streams](turbo-streams.md) - Real-time UI updates
 - [Custom RB Config](custom-rb-config.md) - Rails configuration override pattern
+- [Tool System](tool-system.md) - RubyLLM-powered AI agent tools
 
 ## Security Patterns
 

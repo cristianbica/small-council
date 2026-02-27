@@ -115,27 +115,39 @@ client.chat(messages)  # Raises MissingModelError
 ```ruby
 client = AiClient.new(advisor: advisor, conversation: conversation, message: message)
 result = client.generate_response
-# Returns: { content: "...", input_tokens: N, output_tokens: M, total_tokens: P }
+# Returns: { content: "...", input_tokens: N, output_tokens: M, total_tokens: P, tool_calls: [], tool_results: [] }
 ```
 
 ### How AiClient Uses the Wrapper
 
-AiClient now uses the unified LLM::Client through the model DSL:
+AiClient uses RubyLLM for chat with tool support:
 
 ```ruby
-# In AiClient#generate_response
-result = advisor.llm_model.api.chat(
-  build_messages,
-  system_prompt: advisor.system_prompt,
-  temperature: advisor.model_config["temperature"] || 0.7,
-  max_tokens: advisor.model_config["max_tokens"] || 1000
+# Configure RubyLLM context
+context = RubyLLM.context do |config|
+  config.openai_api_key = model.provider.api_key
+end
+
+# Create chat with tools
+chat = context.chat(model: model.identifier).with_tools(
+  RubyLLMTools::AdvisorQueryMemoriesTool,
+  RubyLLMTools::AdvisorAskAdvisorTool
 )
+
+# Add system instructions and messages
+chat.with_instructions(system_prompt)
+messages.each { |msg| chat.add_message(role: msg[:role], content: msg[:content]) }
+
+# Execute and handle tool calls
+response = chat.complete
+results = handle_tool_calls(response, chat)
 ```
 
 ### Features
 - Unified provider interface via LLM::Client
+- **Tool system integration** - Advisors can use 4 tools (query_memories, query_conversations, read_conversation, ask_advisor)
 - Automatic retry with exponential backoff
-- Conversation context building (system prompt + history)
+- Conversation context building (system prompt + history + memory context)
 - Error handling with custom exception classes
 
 ## Background Jobs
