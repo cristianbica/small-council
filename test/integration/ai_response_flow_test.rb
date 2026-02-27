@@ -64,14 +64,16 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "usage record created after AI response" do
-    # Mock AI response
-    mock_response = {
+    # Mock AI response with new AI system
+    token_usage = AI::Model::TokenUsage.new(input: 50, output: 25)
+    mock_response = AI::Model::Response.new(
       content: "Here's my response!",
-      input_tokens: 50,
-      output_tokens: 25,
-      total_tokens: 75
-    }
-    AIClient.any_instance.stubs(:generate_response).returns(mock_response)
+      usage: token_usage
+    )
+
+    mock_generator = mock("generator")
+    mock_generator.expects(:generate_advisor_response).returns(mock_response)
+    AI::ContentGenerator.expects(:new).returns(mock_generator)
 
     # Create pending message
     message = @conversation.messages.create!(
@@ -100,13 +102,15 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "message updated after AI response" do
-    mock_response = {
+    token_usage = AI::Model::TokenUsage.new(input: 10, output: 5)
+    mock_response = AI::Model::Response.new(
       content: "AI generated response",
-      input_tokens: 10,
-      output_tokens: 5,
-      total_tokens: 15
-    }
-    AIClient.any_instance.stubs(:generate_response).returns(mock_response)
+      usage: token_usage
+    )
+
+    mock_generator = mock("generator")
+    mock_generator.expects(:generate_advisor_response).returns(mock_response)
+    AI::ContentGenerator.expects(:new).returns(mock_generator)
 
     message = @conversation.messages.create!(
       account: @account,

@@ -53,7 +53,11 @@ module AI
     # @return [AI::Model::Response]
     def chat(messages:, context: {}, &stream_handler)
       with_retry do
+        @tool_adapters = []
         ruby_llm_chat = build_ruby_llm_chat
+
+        # Set context on all tool adapters so they can pass it to tools
+        @tool_adapters.each { |adapter| adapter.context = context }
 
         # Add messages to chat
         messages.each do |msg|
@@ -76,9 +80,9 @@ module AI
     rescue RubyLLM::Error => e
       Rails.logger.error "[AI::Client] LLM error: #{e.message}"
       raise APIError, "AI service error: #{e.message}"
-    rescue StandardError => e
-      Rails.logger.error "[AI::Client] Error: #{e.message}"
-      raise APIError, "AI service error: #{e.message}"
+    # rescue StandardError => e
+    #   Rails.logger.error "[AI::Client] Error: #{e.message}"
+    #   raise APIError, "AI service error: #{e.message}"
     end
 
     # Single-turn completion (convenience method)
@@ -102,13 +106,10 @@ module AI
       chat.with_temperature(temperature) if temperature
 
       # Convert tools to adapters and set context on each
-      if tools.any?
-        tool_adapters = tools.map do |tool|
-          adapter = tool.to_ruby_llm_tool
-          # Note: context will be set just before execution
-          adapter
-        end
-        chat.with_tools(*tool_adapters)
+      tools.each do |tool|
+        adapter = tool.to_ruby_llm_tool
+        chat.with_tools(adapter.to_ruby_llm_tool)
+        @tool_adapters << adapter
       end
 
       chat

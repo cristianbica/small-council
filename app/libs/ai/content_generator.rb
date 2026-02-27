@@ -76,6 +76,23 @@ module AI
         Provide a detailed summary (3-5 sentences) including key discussion points and conclusions.
         <% elsif style == :bullet_points %>
         Provide a summary in bullet points highlighting the main topics and decisions.
+        <% elsif style == :structured %>
+        Provide a structured summary with the following sections:
+        ## Key Decisions
+        - [decision 1]
+        - [decision 2]
+
+        ## Action Items
+        - [action 1]
+        - [action 2]
+
+        ## Insights
+        - [insight 1]
+        - [insight 2]
+
+        ## Open Questions
+        - [question 1]
+        - [question 2]
         <% end %>
 
         Conversation:

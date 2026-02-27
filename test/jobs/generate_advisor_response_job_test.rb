@@ -43,7 +43,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
     @message.update!(status: "complete")
 
     # Job should return early without calling AI
-    AIClient.expects(:new).never
+    AI::ContentGenerator.expects(:new).never
 
     GenerateAdvisorResponseJob.perform_now(
       advisor_id: @advisor.id,
@@ -87,14 +87,20 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
   end
 
   test "creates usage record after successful generation" do
-    mock_response = {
+    # Create mock response with token usage
+    token_usage = AI::Model::TokenUsage.new(
+      input: 100,
+      output: 50
+    )
+    mock_response = AI::Model::Response.new(
       content: "Hello! I'm here to help!",
-      input_tokens: 100,
-      output_tokens: 50,
-      total_tokens: 150
-    }
+      usage: token_usage
+    )
 
-    AIClient.any_instance.stubs(:generate_response).returns(mock_response)
+    # Create a mock generator
+    mock_generator = mock("generator")
+    mock_generator.expects(:generate_advisor_response).returns(mock_response)
+    AI::ContentGenerator.expects(:new).returns(mock_generator)
 
     assert_difference "UsageRecord.count", 1 do
       GenerateAdvisorResponseJob.perform_now(
@@ -115,14 +121,18 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
   end
 
   test "marks message as complete on success" do
-    mock_response = {
+    token_usage = AI::Model::TokenUsage.new(
+      input: 50,
+      output: 25
+    )
+    mock_response = AI::Model::Response.new(
       content: "Here's my response!",
-      input_tokens: 50,
-      output_tokens: 25,
-      total_tokens: 75
-    }
+      usage: token_usage
+    )
 
-    AIClient.any_instance.stubs(:generate_response).returns(mock_response)
+    mock_generator = mock("generator")
+    mock_generator.expects(:generate_advisor_response).returns(mock_response)
+    AI::ContentGenerator.expects(:new).returns(mock_generator)
 
     GenerateAdvisorResponseJob.perform_now(
       advisor_id: @advisor.id,
@@ -137,7 +147,11 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
   end
 
   test "marks message as error on API failure" do
-    AIClient.any_instance.stubs(:generate_response).raises(AIClient::ApiError, "API Error")
+    mock_generator = mock("generator")
+    mock_generator.expects(:generate_advisor_response).raises(
+      AI::Client::APIError, "API Error"
+    )
+    AI::ContentGenerator.expects(:new).returns(mock_generator)
 
     GenerateAdvisorResponseJob.perform_now(
       advisor_id: @advisor.id,
@@ -151,7 +165,10 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
   end
 
   test "marks message as error on empty response" do
-    AIClient.any_instance.stubs(:generate_response).returns({ content: nil })
+    mock_response = AI::Model::Response.new(content: "")
+    mock_generator = mock("generator")
+    mock_generator.expects(:generate_advisor_response).returns(mock_response)
+    AI::ContentGenerator.expects(:new).returns(mock_generator)
 
     GenerateAdvisorResponseJob.perform_now(
       advisor_id: @advisor.id,
@@ -165,12 +182,18 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
   end
 
   test "clears tenant after job" do
-    AIClient.any_instance.stubs(:generate_response).returns({
+    token_usage = AI::Model::TokenUsage.new(
+      input: 10,
+      output: 5
+    )
+    mock_response = AI::Model::Response.new(
       content: "Hello!",
-      input_tokens: 10,
-      output_tokens: 5,
-      total_tokens: 15
-    })
+      usage: token_usage
+    )
+
+    mock_generator = mock("generator")
+    mock_generator.expects(:generate_advisor_response).returns(mock_response)
+    AI::ContentGenerator.expects(:new).returns(mock_generator)
 
     GenerateAdvisorResponseJob.perform_now(
       advisor_id: @advisor.id,
@@ -182,7 +205,11 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
   end
 
   test "marks message as error on unexpected error" do
-    AIClient.any_instance.stubs(:generate_response).raises(StandardError, "Unexpected failure")
+    mock_generator = mock("generator")
+    mock_generator.expects(:generate_advisor_response).raises(
+      StandardError, "Unexpected failure"
+    )
+    AI::ContentGenerator.expects(:new).returns(mock_generator)
 
     GenerateAdvisorResponseJob.perform_now(
       advisor_id: @advisor.id,
@@ -220,14 +247,18 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
       status: "pending"
     )
 
-    mock_response = {
+    token_usage = AI::Model::TokenUsage.new(
+      input: 1000,
+      output: 500
+    )
+    mock_response = AI::Model::Response.new(
       content: "Hello from Claude via OpenRouter!",
-      input_tokens: 1000,
-      output_tokens: 500,
-      total_tokens: 1500
-    }
+      usage: token_usage
+    )
 
-    AIClient.any_instance.stubs(:generate_response).returns(mock_response)
+    mock_generator = mock("generator")
+    mock_generator.expects(:generate_advisor_response).returns(mock_response)
+    AI::ContentGenerator.expects(:new).returns(mock_generator)
 
     assert_difference "UsageRecord.count", 1 do
       GenerateAdvisorResponseJob.perform_now(
@@ -245,7 +276,11 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
   end
 
   test "logs error on unexpected exception" do
-    AIClient.any_instance.stubs(:generate_response).raises(StandardError, "Something went wrong")
+    mock_generator = mock("generator")
+    mock_generator.expects(:generate_advisor_response).raises(
+      StandardError, "Something went wrong"
+    )
+    AI::ContentGenerator.expects(:new).returns(mock_generator)
 
     # Just verify job completes without raising and logs the error
     assert_nothing_raised do
@@ -264,7 +299,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
     @message.update!(status: "cancelled")
 
     # Job should return early without calling AI
-    AIClient.expects(:new).never
+    AI::ContentGenerator.expects(:new).never
 
     GenerateAdvisorResponseJob.perform_now(
       advisor_id: @advisor.id,
@@ -275,5 +310,23 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
     # Message should remain cancelled (not changed to complete or error)
     @message.reload
     assert @message.cancelled?
+  end
+
+  test "marks message as error on NoModelError" do
+    mock_generator = mock("generator")
+    mock_generator.expects(:generate_advisor_response).raises(
+      AI::ContentGenerator::NoModelError, "No model configured"
+    )
+    AI::ContentGenerator.expects(:new).returns(mock_generator)
+
+    GenerateAdvisorResponseJob.perform_now(
+      advisor_id: @advisor.id,
+      conversation_id: @conversation.id,
+      message_id: @message.id
+    )
+
+    @message.reload
+    assert @message.error?
+    assert_match(/No AI Model/, @message.content)
   end
 end

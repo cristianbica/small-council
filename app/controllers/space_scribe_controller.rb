@@ -39,13 +39,6 @@ class SpaceScribeController < ApplicationController
       return
     end
 
-    # Set up context for tools (accessible via Thread.current)
-    Thread.current[:scribe_context] = {
-      space: @space,
-      user: Current.user,
-      advisor: @scribe
-    }
-
     begin
       # Get the effective LLM model for the scribe
       scribe_model = @scribe.effective_llm_model
@@ -55,42 +48,39 @@ class SpaceScribeController < ApplicationController
         return
       end
 
-      # Configure RubyLLM with the advisor's provider
-      context = RubyLLM.context do |config|
-        case scribe_model.provider.provider_type
-        when "openai"
-          config.openai_api_key = scribe_model.provider.api_key
-          config.openai_organization_id = scribe_model.provider.organization_id
-        when "openrouter"
-          config.openrouter_api_key = scribe_model.provider.api_key
-        end
+      # Build conversation history
+      conversation_history = ScribeChatMessage.to_conversation_history(@space, Current.user, limit: 20)
+      messages = conversation_history.map do |msg|
+        { role: msg[:role], content: msg[:content] }
       end
+      messages << { role: "user", content: message_content }
 
-      # Create chat with tools
-      chat = context.chat(model: scribe_model.identifier).with_tools(
-        RubyLLMTools::CreateMemoryTool,
-        RubyLLMTools::UpdateMemoryTool,
-        RubyLLMTools::QueryMemoriesTool,
-        RubyLLMTools::QueryConversationsTool,
-        RubyLLMTools::ReadConversationTool,
-        RubyLLMTools::BrowseWebTool,
-        RubyLLMTools::AskAdvisorTool
+      # Create AI client with tools
+      client = AI::Client.new(
+        model: scribe_model,
+        system_prompt: build_chat_system_prompt_with_tools,
+        tools: [
+          AI::Tools::Internal::CreateMemoryTool.new,
+          AI::Tools::Internal::UpdateMemoryTool.new,
+          AI::Tools::Internal::ListMemoriesTool.new,
+          AI::Tools::Internal::QueryMemoriesTool.new,
+          AI::Tools::Internal::ListConversationsTool.new,
+          AI::Tools::Internal::QueryConversationsTool.new,
+          AI::Tools::Internal::ReadConversationTool.new,
+          AI::Tools::External::BrowseWebTool.new,
+          AI::Tools::Conversations::AskAdvisorTool.new
+        ]
       )
 
-      # Build system prompt with tool instructions
-      system_prompt = build_chat_system_prompt_with_tools
+      # Build context for tools
+      context = {
+        space: @space,
+        user: Current.user,
+        advisor: @scribe
+      }
 
-      # Add system message
-      chat.with_instructions(system_prompt)
-
-      # Load and add conversation history (last 20 messages)
-      conversation_history = ScribeChatMessage.to_conversation_history(@space, Current.user, limit: 20)
-      conversation_history.each do |msg|
-        chat.add_message(role: msg[:role], content: msg[:content])
-      end
-
-      # Add user message and get response
-      response = chat.ask(message_content)
+      # Get response from AI
+      response = client.chat(messages: messages, context: context)
 
       # Store the conversation in the database
       ScribeChatMessage.create!(
@@ -105,12 +95,12 @@ class SpaceScribeController < ApplicationController
         user: Current.user,
         role: "assistant",
         content: response.content,
-        metadata: { tool_calls: response.tool_calls || [] }
+        metadata: { tool_calls: response.tool_calls&.map(&:to_h) || [] }
       )
 
       render json: {
         message: response.content,
-        tool_calls: response.tool_calls || []
+        tool_calls: response.tool_calls&.map(&:to_h) || []
       }
     rescue => e
       Rails.logger.error "[SpaceScribeController#chat] Error: #{e.message}"
@@ -119,8 +109,6 @@ class SpaceScribeController < ApplicationController
       render json: {
         error: "Failed to generate response: #{e.message}"
       }, status: :internal_server_error
-    ensure
-      Thread.current[:scribe_context] = nil
     end
   end
 

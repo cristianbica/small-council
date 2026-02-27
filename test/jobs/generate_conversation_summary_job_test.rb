@@ -21,8 +21,8 @@ class GenerateConversationSummaryJobTest < ActiveJob::TestCase
   end
 
   test "should generate structured summary with fallback on AI error" do
-    # Mock the AI client to raise an error
-    AIClient.any_instance.stubs(:generate_response).raises(StandardError, "API Error")
+    # Mock the AI content generator to raise an error
+    AI::ContentGenerator.any_instance.stubs(:generate_conversation_summary).raises(StandardError, "API Error")
 
     job = GenerateConversationSummaryJob.new
     job.instance_variable_set(:@conversation, @conversation)

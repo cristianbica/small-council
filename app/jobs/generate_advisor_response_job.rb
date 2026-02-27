@@ -33,32 +33,38 @@ class GenerateAdvisorResponseJob < ApplicationJob
     Rails.logger.info "[GenerateAdvisorResponseJob] Processing message #{message_id} for advisor #{advisor.name} (ID: #{advisor.id})"
 
     begin
-      # Call AI service
-      Rails.logger.debug "[GenerateAdvisorResponseJob] Initializing AIClient..."
-      client = AIClient.new(advisor: advisor, conversation: conversation, message: message)
+      # Call AI service using new AI system
+      Rails.logger.debug "[GenerateAdvisorResponseJob] Initializing AI::ContentGenerator..."
+      generator = AI::ContentGenerator.new
 
       Rails.logger.info "[GenerateAdvisorResponseJob] Calling AI API for advisor #{advisor.name}..."
-      result = client.generate_response
+      response = generator.generate_advisor_response(
+        advisor: advisor,
+        conversation: conversation
+      )
 
-      Rails.logger.debug "[GenerateAdvisorResponseJob] AI response received - content length: #{result&.[](:content)&.length || 0}, tokens: #{result&.[](:total_tokens) || 'N/A'}"
+      Rails.logger.debug "[GenerateAdvisorResponseJob] AI response received - content length: #{response.content&.length || 0}"
 
-      if result && result[:content].present?
+      if response.content.present?
         Rails.logger.info "[GenerateAdvisorResponseJob] Successfully got response from AI, delegating to lifecycle"
 
         # Delegate to ConversationLifecycle for state management
         lifecycle = ConversationLifecycle.new(conversation)
-        lifecycle.advisor_responded(advisor, result[:content], message)
+        lifecycle.advisor_responded(advisor, response.content, message)
 
         # Record usage
         Rails.logger.debug "[GenerateAdvisorResponseJob] Recording usage..."
-        create_usage_record(message, advisor, result)
+        create_usage_record_from_response(message, advisor, response)
 
         Rails.logger.info "[GenerateAdvisorResponseJob] Successfully processed message #{message_id} for advisor #{advisor.name}"
       else
         Rails.logger.error "[GenerateAdvisorResponseJob] Empty response from AI for advisor #{advisor.id}, message #{message.id}"
         handle_error(message, "Empty response from AI - check LLM model configuration")
       end
-    rescue AIClient::ApiError => e
+    rescue AI::ContentGenerator::NoModelError => e
+      Rails.logger.error "[GenerateAdvisorResponseJob] No Model Error for advisor #{advisor.id}: #{e.message}"
+      handle_error(message, "No AI Model: #{e.message}")
+    rescue AI::Client::APIError => e
       Rails.logger.error "[GenerateAdvisorResponseJob] API Error for advisor #{advisor.id}: #{e.message}"
       handle_error(message, "API Error: #{e.message}")
     rescue => e
@@ -72,6 +78,27 @@ class GenerateAdvisorResponseJob < ApplicationJob
   end
 
   private
+
+  def create_usage_record_from_response(message, advisor, response)
+    model = advisor.effective_llm_model
+    return unless model.present?
+
+    # Extract token usage from response
+    token_usage = response.usage
+    input_tokens = token_usage&.input_tokens || 0
+    output_tokens = token_usage&.output_tokens || 0
+
+    UsageRecord.create!(
+      account: advisor.account,
+      message: message,
+      provider: model.provider.provider_type,
+      model: model.identifier,
+      input_tokens: input_tokens,
+      output_tokens: output_tokens,
+      cost_cents: calculate_cost_from_tokens(model, input_tokens, output_tokens),
+      recorded_at: Time.current
+    )
+  end
 
   def create_usage_record(message, advisor, result)
     model = advisor.effective_llm_model
@@ -87,6 +114,26 @@ class GenerateAdvisorResponseJob < ApplicationJob
       cost_cents: calculate_cost(model, result),
       recorded_at: Time.current
     )
+  end
+
+  def calculate_cost_from_tokens(llm_model, input_tokens, output_tokens)
+    # Placeholder rates - should be stored in llm_models table
+    # OpenAI GPT-4: $0.03/1K input, $0.06/1K output
+    # Anthropic Claude: $0.008/1K input, $0.024/1K output
+
+    # Default rates (dollars per token)
+    input_rate = 0.03 / 1000
+    output_rate = 0.06 / 1000
+
+    # Adjust for provider
+    case llm_model.provider.provider_type
+    when "anthropic"
+      input_rate = 0.008 / 1000
+      output_rate = 0.024 / 1000
+    end
+
+    cost_dollars = (input_tokens * input_rate) + (output_tokens * output_rate)
+    (cost_dollars * 100).round # Convert to cents
   end
 
   def calculate_cost(llm_model, result)

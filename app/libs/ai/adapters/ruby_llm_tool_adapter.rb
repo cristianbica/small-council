@@ -28,6 +28,11 @@ module AI
       # Access the wrapped tool
       attr_reader :ai_tool
 
+      # Delegate name to the wrapped tool
+      def name
+        @ai_tool.name
+      end
+
       private
 
       def create_tool_class(ai_tool)
@@ -35,6 +40,11 @@ module AI
         context_holder = self
 
         Class.new(RubyLLM::Tool) do
+          # Override name to return the AI tool's name (required for tool lookup)
+          define_method :name do
+            tool_instance.name
+          end
+
           # Set description at class level
           description tool_instance.description
 
