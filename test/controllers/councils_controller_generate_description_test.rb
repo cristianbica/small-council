@@ -27,8 +27,10 @@ class CouncilsControllerGenerateDescriptionTest < ActionDispatch::IntegrationTes
   end
 
   test "generate_description returns generated name and description for creator" do
-    mock_result = { content: '{"name":"Engineering Leadership Council","description":"A strategic council focused on engineering leadership and technical decisions."}' }
-    LLM::Client.any_instance.stubs(:chat).returns(mock_result)
+    AI::ContentGenerator.any_instance.stubs(:generate_council_description).returns({
+      name: "Engineering Leadership Council",
+      description: "A strategic council focused on engineering leadership and technical decisions."
+    })
 
     post generate_description_council_url(@council),
          params: { concept: "A council for engineering leadership and technical decisions" },
@@ -41,8 +43,10 @@ class CouncilsControllerGenerateDescriptionTest < ActionDispatch::IntegrationTes
   end
 
   test "generate_description on collection route works for new councils" do
-    mock_result = { content: '{"name":"Product Strategy Council","description":"A council for product strategy discussions and roadmap planning."}' }
-    LLM::Client.any_instance.stubs(:chat).returns(mock_result)
+    AI::ContentGenerator.any_instance.stubs(:generate_council_description).returns({
+      name: "Product Strategy Council",
+      description: "A council for product strategy discussions and roadmap planning."
+    })
 
     post generate_description_councils_url,
          params: { concept: "A council for product strategy discussions" },
@@ -87,7 +91,9 @@ class CouncilsControllerGenerateDescriptionTest < ActionDispatch::IntegrationTes
   end
 
   test "generate_description returns error on API failure" do
-    LLM::Client.any_instance.stubs(:chat).raises(LLM::APIError.new("API Error"))
+    AI::ContentGenerator.any_instance.stubs(:generate_council_description).raises(
+      AI::ContentGenerator::GenerationError.new("AI API error")
+    )
 
     post generate_description_council_url(@council),
          params: { concept: "Test Council for technical decisions" },
@@ -114,8 +120,10 @@ class CouncilsControllerGenerateDescriptionTest < ActionDispatch::IntegrationTes
   test "generate_description works with valid concept and free model" do
     expected_name = "Strategic Planning Council"
     expected_description = "A council dedicated to strategic decision-making and technical excellence."
-    mock_result = { content: "{\"name\":\"#{expected_name}\",\"description\":\"#{expected_description}\"}" }
-    LLM::Client.any_instance.stubs(:chat).returns(mock_result)
+    AI::ContentGenerator.any_instance.stubs(:generate_council_description).returns({
+      name: expected_name,
+      description: expected_description
+    })
 
     post generate_description_council_url(@council),
          params: { concept: "A council for strategic planning and technical excellence" },

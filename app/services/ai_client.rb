@@ -1,4 +1,4 @@
-class AiClient
+class AIClient
   class Error < StandardError; end
   class ApiError < Error; end
   class RateLimitError < Error; end
@@ -365,7 +365,7 @@ class AiClient
   end
 
   def log_error(error)
-    Rails.logger.error "[AiClient] Error for advisor #{advisor.id}: #{error.message}"
+    Rails.logger.error "[AIClient] Error for advisor #{advisor.id}: #{error.message}"
     Rails.logger.error error.backtrace.first(5).join("\n") if error.backtrace
   end
 
@@ -379,7 +379,7 @@ class AiClient
       tool_name = tool_call.name
       tool_params = tool_call.params
 
-      Rails.logger.info "[AiClient] Tool call: #{tool_name} with params: #{tool_params}"
+      Rails.logger.info "[AIClient] Tool call: #{tool_name} with params: #{tool_params}"
 
       begin
         # Create execution context
@@ -420,7 +420,7 @@ class AiClient
           )
         end
       rescue => e
-        Rails.logger.error "[AiClient] Tool execution error: #{e.message}"
+        Rails.logger.error "[AIClient] Tool execution error: #{e.message}"
         results << {
           tool: tool_name,
           params: tool_params,

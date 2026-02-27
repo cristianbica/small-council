@@ -113,14 +113,14 @@ client.chat(messages)  # Raises MissingModelError
 `app/services/ai_client.rb` handles high-level advisor interactions:
 
 ```ruby
-client = AiClient.new(advisor: advisor, conversation: conversation, message: message)
+client = AIClient.new(advisor: advisor, conversation: conversation, message: message)
 result = client.generate_response
 # Returns: { content: "...", input_tokens: N, output_tokens: M, total_tokens: P, tool_calls: [], tool_results: [] }
 ```
 
-### How AiClient Uses the Wrapper
+### How AIClient Uses the Wrapper
 
-AiClient uses RubyLLM for chat with tool support:
+AIClient uses RubyLLM for chat with tool support:
 
 ```ruby
 # Configure RubyLLM context
@@ -202,7 +202,7 @@ Every API call creates a UsageRecord:
 ### Service Tests
 - LLM::Client: provider operations, chat, error handling
 - LLM::ModelManager: enable/disable, model discovery
-- AiClient: message building, response parsing, error handling
+- AIClient: message building, response parsing, error handling
 - Uses Mocha for mocking API calls
 
 ### Job Tests

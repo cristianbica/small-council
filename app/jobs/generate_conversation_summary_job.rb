@@ -47,7 +47,7 @@ class GenerateConversationSummaryJob < ApplicationJob
     # Create a system advisor for summarization if one doesn't exist
     scribe = find_or_create_scribe_advisor
 
-    client = AiClient.new(
+    client = AIClient.new(
       advisor: scribe,
       conversation: @conversation,
       message: build_summary_prompt(transcript)

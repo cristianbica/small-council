@@ -1,8 +1,8 @@
 # Memory Management Overhaul Plan
 
-**Date**: 2026-02-25  
-**Status**: Draft  
-**Scope**: Major architectural enhancement  
+**Date**: 2026-02-25
+**Status**: Draft
+**Scope**: Major architectural enhancement
 **Estimated Effort**: 3-4 weeks
 
 ## Executive Summary
@@ -32,27 +32,27 @@ class CreateMemories < ActiveRecord::Migration[8.0]
     create_table :memories do |t|
       t.references :account, null: false, foreign_key: true
       t.references :space, null: false, foreign_key: true
-      
+
       # Polymorphic source (optional)
       t.references :source, polymorphic: true, null: true
-      
+
       # Memory metadata
       t.string :title, null: false
       t.text :content, null: false
       t.string :memory_type, null: false  # summary, conversation_summary, conversation_notes, knowledge
       t.jsonb :metadata, default: {}
       t.string :status, default: "active" # active, archived, draft
-      
+
       # For page-like ordering
       t.integer :position, default: 0
-      
+
       # Timestamps & tracking
       t.datetime :created_at
       t.datetime :updated_at
       t.references :created_by, polymorphic: true  # User or Advisor
       t.references :updated_by, polymorphic: true
     end
-    
+
     add_index :memories, [:space_id, :memory_type]
     add_index :memories, [:space_id, :status]
     add_index :memories, :metadata, using: :gin
@@ -81,7 +81,7 @@ The Scribe becomes a tool-enabled agent that can:
 ```ruby
 class ScribeTool
   attr_reader :name, :description, :parameters
-  
+
   def execute(params, context)
     # Tool implementation
   end
@@ -97,12 +97,12 @@ class FinishConversationTool < ScribeTool
       reason: { type: "string", required: false }
     }
   end
-  
+
   def execute(params, context)
     conversation = context.conversation
     lifecycle = ConversationLifecycle.new(conversation)
     lifecycle.begin_conclusion_process
-    
+
     { success: true, message: "Conversation conclusion initiated" }
   end
 end
@@ -118,16 +118,16 @@ class QueryMemoriesTool < AdvisorTool
       limit: { type: "integer", required: false, default: 5 }
     }
   end
-  
+
   def execute(params, context)
     scope = context.space.memories.where(status: "active")
     scope = scope.where(memory_type: params[:memory_type]) if params[:memory_type].present?
     scope = scope.where("title ILIKE ? OR content ILIKE ?", "%#{params[:query]}%", "%#{params[:query]}%")
-    
+
     memories = scope.order(updated_at: :desc).limit(params[:limit] || 5)
-    
-    { 
-      success: true, 
+
+    {
+      success: true,
       count: memories.size,
       memories: memories.map { |m| { id: m.id, title: m.title, type: m.memory_type, content: m.content.truncate(500) } }
     }
@@ -150,7 +150,7 @@ end
 User: "Summarize what we decided about the API last week"
 Scribe: [queries memories] "Based on 3 conversations from last week:
 - REST API chosen over GraphQL (Feb 20)
-- Authentication will use JWT tokens (Feb 21)  
+- Authentication will use JWT tokens (Feb 21)
 - Rate limiting set to 1000 req/min (Feb 22)
 Would you like me to create a consolidated decision document?"
 
@@ -184,7 +184,7 @@ Backend Advisor: "Based on the JWT decision record from Feb 21, I recommend..."
 
 **Context Feeding Rules:**
 ```ruby
-# In AiClient#build_memory_context
+# In AIClient#build_memory_context
 # ONLY the summary memory is auto-fed
 # Other memories must be explicitly queried
 
@@ -195,7 +195,7 @@ def load_memories_for_context
     .where(memory_type: "summary")
     .order(updated_at: :desc)
     .first
-  
+
   # Return just the summary content (or empty if none)
   summary_memory&.content.to_s
 end
@@ -203,10 +203,10 @@ end
 def query_memories(query:, filters: {})
   # On-demand query for advisors to request specific memories
   scope = space.memories.where(status: "active")
-  
+
   scope = scope.where(memory_type: filters[:type]) if filters[:type].present?
   scope = scope.where("title ILIKE ? OR content ILIKE ?", "%#{query}%", "%#{query}%")
-  
+
   scope.order(updated_at: :desc).limit(filters[:limit] || 5)
 end
 ```
@@ -219,10 +219,10 @@ Advisors can request additional memories via a tool call:
 class QueryMemoriesTool < AdvisorTool
   def execute(query:, memory_type: nil, limit: 5)
     memories = query_memories(
-      query: query, 
+      query: query,
       filters: { type: memory_type, limit: limit }
     )
-    
+
     memories.map { |m| { id: m.id, title: m.title, type: m.memory_type, content: m.content } }
   end
 end

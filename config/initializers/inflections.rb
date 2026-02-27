@@ -15,4 +15,5 @@ ActiveSupport::Inflector.inflections(:en) do |inflect|
   # RoE = Rules of Engagement (acronym)
   inflect.acronym "RoE"
   inflect.acronym "LLM"
+  inflect.acronym "AI"
 end

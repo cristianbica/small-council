@@ -38,7 +38,7 @@ app/
 ├── controllers/    # Request handling
 ├── models/         # 10 models (Account, User, Space, Council, Advisor, etc.)
 ├── views/          # ERB templates with DaisyUI components
-├── services/       # AiClient, ScribeCoordinator
+├── services/       # AIClient, ScribeCoordinator
 ├── jobs/           # GenerateAdvisorResponseJob (Solid Queue)
 └── assets/         # Tailwind CSS v4 + DaisyUI
 

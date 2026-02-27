@@ -63,11 +63,16 @@ class CouncilsController < ApplicationController
     end
 
     begin
-      result = ContentGenerator.generate(profile: :council, context: concept, account: Current.account)
+      generator = AI::ContentGenerator.new
+      result = generator.generate_council_description(
+        name: concept,
+        purpose: concept,
+        account: Current.account
+      )
       render json: { name: result[:name], description: result[:description] }
-    rescue ContentGenerator::NoModelError => e
+    rescue AI::ContentGenerator::NoModelError => e
       render json: { error: e.message }, status: :unprocessable_entity
-    rescue ContentGenerator::GenerationError => e
+    rescue AI::ContentGenerator::GenerationError => e
       render json: { error: e.message }, status: :unprocessable_entity
     end
   end

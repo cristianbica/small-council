@@ -67,7 +67,7 @@ All queries automatically scoped
 
 Used for complex orchestration:
 
-- `AiClient` - LLM API abstraction
+- `AIClient` - LLM API abstraction
 - `ScribeCoordinator` - Rules of Engagement logic
 
 Pattern:

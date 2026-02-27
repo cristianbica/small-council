@@ -100,7 +100,7 @@ ADVISOR_TOOLS = [
 
 ### Execution Flow
 
-1. **AI Response Generation**: `AiClient` sets up RubyLLM chat with tools
+1. **AI Response Generation**: `AIClient` sets up RubyLLM chat with tools
 2. **Tool Call**: AI decides to use a tool, RubyLLM parses the request
 3. **Context Setup**: `ToolExecutionContext` created with conversation, space, advisor, user
 4. **Execution**: `ScribeToolExecutor.execute` finds tool, validates params, executes
@@ -166,7 +166,7 @@ test "query_memories finds matching memories" do
   context = mock_tool_context(space: @space)
   tool = AdvisorTools::QueryMemoriesTool.new
   result = tool.execute({ "query" => "API" }, context)
-  
+
   assert result[:success]
   assert_includes result[:message], "Found"
 end

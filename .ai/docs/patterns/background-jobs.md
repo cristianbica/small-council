@@ -15,9 +15,9 @@ class GenerateAdvisorResponseJob < ApplicationJob
   def perform(advisor_id:, conversation_id:, message_id:)
     # Set tenant for multi-tenancy
     ActsAsTenant.current_tenant = Advisor.find(advisor_id).account
-    
+
     # Do work...
-    
+
   ensure
     ActsAsTenant.current_tenant = nil
   end
@@ -47,7 +47,7 @@ def perform(message_id:)
   message = Message.find_by(id: message_id)
   return unless message          # Skip if deleted
   return unless message.pending? # Skip if already processed
-  
+
   # Do work...
 end
 ```
@@ -84,7 +84,7 @@ test "enqueues job on message create" do
 end
 
 test "updates message status" do
-  AiClient.any_instance.stubs(:generate_response).returns({ content: "Hi" })
+  AIClient.any_instance.stubs(:generate_response).returns({ content: "Hi" })
   GenerateAdvisorResponseJob.perform_now(message_id: message.id)
   assert message.reload.complete?
 end

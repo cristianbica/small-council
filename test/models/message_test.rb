@@ -288,8 +288,8 @@ class MessageTest < ActiveSupport::TestCase
     end
   end
 
-  test "valid status values are pending, complete, and error" do
-    assert_equal({ "pending" => "pending", "complete" => "complete", "error" => "error" }, Message.statuses)
+  test "valid status values are pending, complete, error, and cancelled" do
+    assert_equal({ "pending" => "pending", "complete" => "complete", "error" => "error", "cancelled" => "cancelled" }, Message.statuses)
   end
 
   # Scope tests

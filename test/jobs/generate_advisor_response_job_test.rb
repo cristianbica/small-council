@@ -43,7 +43,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
     @message.update!(status: "complete")
 
     # Job should return early without calling AI
-    AiClient.expects(:new).never
+    AIClient.expects(:new).never
 
     GenerateAdvisorResponseJob.perform_now(
       advisor_id: @advisor.id,
@@ -94,7 +94,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
       total_tokens: 150
     }
 
-    AiClient.any_instance.stubs(:generate_response).returns(mock_response)
+    AIClient.any_instance.stubs(:generate_response).returns(mock_response)
 
     assert_difference "UsageRecord.count", 1 do
       GenerateAdvisorResponseJob.perform_now(
@@ -122,7 +122,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
       total_tokens: 75
     }
 
-    AiClient.any_instance.stubs(:generate_response).returns(mock_response)
+    AIClient.any_instance.stubs(:generate_response).returns(mock_response)
 
     GenerateAdvisorResponseJob.perform_now(
       advisor_id: @advisor.id,
@@ -137,7 +137,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
   end
 
   test "marks message as error on API failure" do
-    AiClient.any_instance.stubs(:generate_response).raises(AiClient::ApiError, "API Error")
+    AIClient.any_instance.stubs(:generate_response).raises(AIClient::ApiError, "API Error")
 
     GenerateAdvisorResponseJob.perform_now(
       advisor_id: @advisor.id,
@@ -151,7 +151,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
   end
 
   test "marks message as error on empty response" do
-    AiClient.any_instance.stubs(:generate_response).returns({ content: nil })
+    AIClient.any_instance.stubs(:generate_response).returns({ content: nil })
 
     GenerateAdvisorResponseJob.perform_now(
       advisor_id: @advisor.id,
@@ -165,7 +165,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
   end
 
   test "clears tenant after job" do
-    AiClient.any_instance.stubs(:generate_response).returns({
+    AIClient.any_instance.stubs(:generate_response).returns({
       content: "Hello!",
       input_tokens: 10,
       output_tokens: 5,
@@ -182,7 +182,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
   end
 
   test "marks message as error on unexpected error" do
-    AiClient.any_instance.stubs(:generate_response).raises(StandardError, "Unexpected failure")
+    AIClient.any_instance.stubs(:generate_response).raises(StandardError, "Unexpected failure")
 
     GenerateAdvisorResponseJob.perform_now(
       advisor_id: @advisor.id,
@@ -227,7 +227,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
       total_tokens: 1500
     }
 
-    AiClient.any_instance.stubs(:generate_response).returns(mock_response)
+    AIClient.any_instance.stubs(:generate_response).returns(mock_response)
 
     assert_difference "UsageRecord.count", 1 do
       GenerateAdvisorResponseJob.perform_now(
@@ -245,7 +245,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
   end
 
   test "logs error on unexpected exception" do
-    AiClient.any_instance.stubs(:generate_response).raises(StandardError, "Something went wrong")
+    AIClient.any_instance.stubs(:generate_response).raises(StandardError, "Something went wrong")
 
     # Just verify job completes without raising and logs the error
     assert_nothing_raised do
@@ -264,7 +264,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
     @message.update!(status: "cancelled")
 
     # Job should return early without calling AI
-    AiClient.expects(:new).never
+    AIClient.expects(:new).never
 
     GenerateAdvisorResponseJob.perform_now(
       advisor_id: @advisor.id,

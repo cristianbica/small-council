@@ -23,6 +23,11 @@ module SmallCouncil
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+
+    # Autoload AI module from app/libs/ai
+    # This keeps AI code separate from standard Rails app structure
+    config.autoload_paths << Rails.root.join("app/libs")
+    config.eager_load_paths << Rails.root.join("app/libs")
   end
 end
 

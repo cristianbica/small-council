@@ -51,7 +51,7 @@ Conversations are chat sessions tied to a specific council. Each conversation ha
 
 ### Services
 - `ScribeCoordinator`: Determines which advisors should respond based on RoE mode and @mentions
-- `AiClient`: Calls LLM APIs (OpenAI, Anthropic, GitHub Models) with conversation context
+- `AIClient`: Calls LLM APIs (OpenAI, Anthropic, GitHub Models) with conversation context
 
 ### Jobs
 - `GenerateAdvisorResponseJob`: Async AI response generation, usage tracking, Turbo Stream broadcasts
@@ -102,7 +102,7 @@ Use `@Advisor_Name` in messages to trigger specific advisors:
 3. Placeholder messages created with `pending` status and "thinking..." content
 4. `GenerateAdvisorResponseJob` enqueued for each responder
 5. Background job:
-   - Calls LLM API via `AiClient`
+   - Calls LLM API via `AIClient`
    - Updates placeholder with AI response and `complete` status
    - Creates `UsageRecord` with token count and cost
    - Broadcasts via Turbo Streams to update UI in real-time
@@ -129,7 +129,7 @@ Users can stop pending advisor responses if they were triggered by mistake or ar
 - Default: `round_robin`
 - State tracking (round robin position) in `conversations.context` jsonb
 - `ScribeCoordinator` service determines responders
-- `AiClient` handles OpenAI, Anthropic, and GitHub Models APIs with tool access for advisors
+- `AIClient` handles OpenAI, Anthropic, and GitHub Models APIs with tool access for advisors
 - Credentials encrypted with Rails encrypted attributes
 - Turbo Streams provide real-time UI updates
 - Delete action uses `destroy!` with authorization check

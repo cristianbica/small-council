@@ -80,7 +80,7 @@ When an advisor is triggered to respond:
 
 1. `GenerateAdvisorResponseJob` enqueues
 2. Job sets tenant context
-3. `AiClient` called with advisor's LLM model configuration
+3. `AIClient` called with advisor's LLM model configuration
 4. API call made with:
    - System prompt as system message
    - Conversation history as context
@@ -137,7 +137,7 @@ The `ask_advisor` tool is the **only** way for advisors to communicate with each
 Tools are implemented in `app/services/advisor_tools/`:
 - `AskAdvisorTool` - Inter-advisor communication
 - `QueryMemoriesTool` - Memory search
-- `QueryConversationsTool` - Conversation search  
+- `QueryConversationsTool` - Conversation search
 - `ReadConversationTool` - Read conversation messages
 
 Tools use `AdvisorTool` base class (read-only by default, override `read_only?` for write access).

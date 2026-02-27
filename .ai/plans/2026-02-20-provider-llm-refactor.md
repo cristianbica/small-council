@@ -79,7 +79,7 @@ module LLM
     def self.for_tenant(account)
       # Build context from account's providers
       providers = account.providers.enabled
-      
+
       RubyLLM.context do |config|
         providers.each do |provider|
           case provider.provider_type
@@ -143,7 +143,7 @@ module LLM
     def test_connection
       chat = build_context.chat(model: test_model_id)
       response = chat.ask("Test connection")
-      
+
       { success: true, model: response.model }
     rescue => e
       { success: false, error: e.message }
@@ -152,7 +152,7 @@ module LLM
     # Model-level: Get model info from registry
     def info
       raise MissingModelError, "Client initialized without a model" unless @model
-      
+
       RubyLLM.models.find(api_identifier)
     rescue
       nil
@@ -161,10 +161,10 @@ module LLM
     # Model-level: Check capability support
     def supports?(capability)
       raise MissingModelError, "Client initialized without a model" unless @model
-      
+
       model_info = info
       return false unless model_info
-      
+
       case capability
       when :vision then model_info.vision?
       when :json_mode then model_info.json_mode?
@@ -180,15 +180,15 @@ module LLM
 
       context = build_context
       chat = context.chat(model: api_identifier)
-      
+
       chat.with_system_message(system_prompt) if system_prompt
-      
+
       messages.each do |msg|
         chat.add_message(role: msg[:role], content: msg[:content])
       end
 
       response = chat.complete
-      
+
       {
         content: response.content,
         input_tokens: response.input_tokens,
@@ -266,11 +266,11 @@ class LlmModel < ApplicationRecord
 end
 ```
 
-### 4. Refactored AiClient Service
+### 4. Refactored AIClient Service
 
 ```ruby
 # app/services/ai_client.rb (refactored)
-class AiClient
+class AIClient
   class Error < StandardError; end
   class ApiError < Error; end
   class RateLimitError < Error; end
@@ -343,7 +343,7 @@ class AiClient
   end
 
   def log_error(error)
-    Rails.logger.error "[AiClient] Error for advisor #{advisor.id}: #{error.message}"
+    Rails.logger.error "[AIClient] Error for advisor #{advisor.id}: #{error.message}"
     Rails.logger.error error.backtrace.first(5).join("\n") if error.backtrace
   end
 end
@@ -408,7 +408,7 @@ Run: `bundle install`
 ActiveSupport::Inflector.inflections(:en) do |inflect|
   # RoE = Rules of Engagement (acronym)
   inflect.acronym "RoE"
-  
+
   # LLM = Large Language Model (acronym)
   inflect.acronym "LLM"
 end
@@ -440,7 +440,7 @@ module LLM
     # Creates isolated RubyLLM context for a tenant account
     def self.for_tenant(account)
       providers = account.providers.enabled
-      
+
       RubyLLM.context do |config|
         providers.each do |provider|
           case provider.provider_type
@@ -497,7 +497,7 @@ module LLM
     def test_connection
       chat = build_context.chat(model: test_model_id)
       response = chat.ask("Test connection")
-      
+
       { success: true, model: response.model }
     rescue => e
       { success: false, error: e.message }
@@ -506,7 +506,7 @@ module LLM
     # Model-level: Get model info from registry (fails if no model)
     def info
       raise MissingModelError, "Client initialized without a model" unless @model
-      
+
       RubyLLM.models.find(api_identifier)
     rescue
       nil
@@ -515,10 +515,10 @@ module LLM
     # Model-level: Check capability support (fails if no model)
     def supports?(capability)
       raise MissingModelError, "Client initialized without a model" unless @model
-      
+
       model_info = info
       return false unless model_info
-      
+
       case capability
       when :vision then model_info.vision?
       when :json_mode then model_info.json_mode?
@@ -534,15 +534,15 @@ module LLM
 
       context = build_context
       chat = context.chat(model: api_identifier)
-      
+
       chat.with_system_message(system_prompt) if system_prompt
-      
+
       messages.each do |msg|
         chat.add_message(role: msg[:role], content: msg[:content])
       end
 
       response = chat.complete
-      
+
       {
         content: response.content,
         input_tokens: response.input_tokens,
@@ -693,7 +693,7 @@ class LlmModel < ApplicationRecord
 end
 ```
 
-### Step 8: Refactor AiClient Service
+### Step 8: Refactor AIClient Service
 
 **File**: `app/services/ai_client.rb`
 
@@ -717,9 +717,9 @@ class ProviderConnectionTester
       provider_type: provider_type,
       credentials: { "api_key" => api_key, "organization_id" => organization_id }
     )
-    
+
     result = temp_provider.api.test_connection
-    
+
     if result[:success]
       # Also return available models
       models = temp_provider.api.list_models
@@ -737,7 +737,7 @@ end
 
 **File**: `app/jobs/generate_advisor_response_job.rb`
 
-No changes needed - continues to use `AiClient` which now uses ruby_llm internally.
+No changes needed - continues to use `AIClient` which now uses ruby_llm internally.
 
 ### Step 11: Create Migration for Provider Type Update
 
@@ -828,7 +828,7 @@ Run this checklist after implementation:
 - [ ] LLM inflection works: `LlmModel` → `LLMModel` in code
 - [ ] `bin/rails db:migrate` runs successfully
 - [ ] Client tests pass: `bin/rails test test/services/llm/client_test.rb`
-- [ ] AiClient tests pass: `bin/rails test test/services/ai_client_test.rb`
+- [ ] AIClient tests pass: `bin/rails test test/services/ai_client_test.rb`
 - [ ] All tests pass: `bin/rails test`
 - [ ] Manual test: Create OpenAI provider via UI
 - [ ] Manual test: Create LlmModel with OpenAI identifier
@@ -854,7 +854,7 @@ If implementation fails:
    bundle install
    ```
 
-2. **Restore AiClient**: Revert to previous implementation using direct gems
+2. **Restore AIClient**: Revert to previous implementation using direct gems
 
 3. **Remove new files**:
    - `app/services/llm/context.rb`
@@ -864,7 +864,7 @@ If implementation fails:
 
 4. **Remove LLM inflection**: Revert `config/initializers/inflections.rb`
 
-5. **Database rollback**: 
+5. **Database rollback**:
    ```
    bin/rails db:rollback STEP=1  # For provider_type migration
    ```

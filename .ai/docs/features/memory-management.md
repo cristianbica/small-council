@@ -108,7 +108,7 @@ memories = MemorySearch.quick(space: space, query: "database", limit: 5)
 Advisors can query memories on-demand:
 
 ```ruby
-# In AiClient or tool execution
+# In AIClient or tool execution
 context = ToolExecutionContext.new(
   conversation: conversation,
   space: space,
@@ -126,7 +126,7 @@ memories = context.query_memories(
 
 ## Memory Context in AI
 
-The `AiClient#build_memory_context` method **only includes the summary memory**:
+The `AIClient#build_memory_context` method **only includes the summary memory**:
 
 ```ruby
 def build_memory_context

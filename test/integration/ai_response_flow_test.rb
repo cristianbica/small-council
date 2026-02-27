@@ -71,7 +71,7 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
       output_tokens: 25,
       total_tokens: 75
     }
-    AiClient.any_instance.stubs(:generate_response).returns(mock_response)
+    AIClient.any_instance.stubs(:generate_response).returns(mock_response)
 
     # Create pending message
     message = @conversation.messages.create!(
@@ -106,7 +106,7 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
       output_tokens: 5,
       total_tokens: 15
     }
-    AiClient.any_instance.stubs(:generate_response).returns(mock_response)
+    AIClient.any_instance.stubs(:generate_response).returns(mock_response)
 
     message = @conversation.messages.create!(
       account: @account,

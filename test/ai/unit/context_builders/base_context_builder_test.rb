@@ -1,0 +1,220 @@
+# frozen_string_literal: true
+
+require "test_helper"
+
+module AI
+  module ContextBuilders
+    class BaseContextBuilderTest < ActiveSupport::TestCase
+      setup do
+        @account = accounts(:one)
+        set_tenant(@account)
+
+        @space = @account.spaces.first || @account.spaces.create!(name: "Test Space")
+        @user = users(:one)
+
+        # Create a council and conversation
+        @council = @account.councils.create!(
+          name: "Test Council",
+          user: @user,
+          space: @space
+        )
+        @conversation = @account.conversations.create!(
+          council: @council,
+          user: @user,
+          title: "Test Conversation"
+        )
+
+        # Create some memories
+        5.times do |i|
+          @space.memories.create!(
+            account: @account,
+            title: "Memory #{i}",
+            content: "Content #{i}",
+            memory_type: "knowledge",
+            status: "active"
+          )
+        end
+
+        # Create an archived memory (should not appear)
+        @space.memories.create!(
+          account: @account,
+          title: "Archived Memory",
+          content: "Archived content",
+          memory_type: "knowledge",
+          status: "archived"
+        )
+      end
+
+      test "initializes with space and conversation" do
+        builder = TestBuilder.new(@space, @conversation)
+        assert_equal @space, builder.instance_variable_get(:@space)
+        assert_equal @conversation, builder.instance_variable_get(:@conversation)
+      end
+
+      test "initializes with space only" do
+        builder = TestBuilder.new(@space)
+        assert_equal @space, builder.instance_variable_get(:@space)
+        assert_nil builder.instance_variable_get(:@conversation)
+      end
+
+      test "initializes with options" do
+        builder = TestBuilder.new(@space, @conversation, memory_limit: 5, custom: true)
+        assert_equal({ memory_limit: 5, custom: true }, builder.instance_variable_get(:@options))
+      end
+
+    test "recent_memories returns active memories only" do
+      builder = TestBuilder.new(@space)
+      memories = builder.send(:recent_memories)
+
+      # Fixtures have 3 active memories in space(:one), we created 5 more
+      # But we also created 1 archived which shouldn't appear
+      assert memories.all? { |m| m.status == "active" }
+      assert memories.none? { |m| m.title == "Archived Memory" }
+      assert memories.count >= 5  # At least our 5 created memories
+    end
+
+      test "recent_memories respects limit option" do
+        builder = TestBuilder.new(@space, nil, memory_limit: 3)
+        memories = builder.send(:recent_memories)
+
+        assert_equal 3, memories.count
+      end
+
+      test "recent_memories uses default limit when not specified" do
+        # Create more memories to test default limit
+        10.times do |i|
+          @space.memories.create!(
+            account: @account,
+            title: "Extra Memory #{i}",
+            content: "Extra content #{i}",
+            memory_type: "knowledge",
+            status: "active"
+          )
+        end
+
+        builder = TestBuilder.new(@space)
+        memories = builder.send(:recent_memories)
+
+        assert_equal 10, memories.count
+      end
+
+      test "recent_memories returns empty array when space is nil" do
+        builder = TestBuilder.new(nil)
+        assert_empty builder.send(:recent_memories)
+      end
+
+      test "recent_conversations returns conversations from space" do
+        # Create additional conversations
+        3.times do |i|
+          @account.conversations.create!(
+            council: @council,
+            user: @user,
+            title: "Conversation #{i}"
+          )
+        end
+
+        builder = TestBuilder.new(@space, @conversation)
+        conversations = builder.send(:recent_conversations)
+
+        # Should exclude the current conversation
+        assert_equal 3, conversations.count
+        assert conversations.none? { |c| c.id == @conversation.id }
+      end
+
+      test "recent_conversations includes all conversations when no current conversation" do
+        @account.conversations.create!(
+          council: @council,
+          user: @user,
+          title: "Another Conversation"
+        )
+
+        builder = TestBuilder.new(@space)
+        conversations = builder.send(:recent_conversations)
+
+        # Should include the conversation created in setup and the new one
+        assert_equal 2, conversations.count
+      end
+
+      test "recent_conversations returns empty array when space is nil" do
+        builder = TestBuilder.new(nil)
+        assert_empty builder.send(:recent_conversations)
+      end
+
+      test "space_advisors returns non-scribe advisors" do
+        # Create a scribe advisor
+        @space.advisors.create!(
+          account: @account,
+          name: "Scribe",
+          system_prompt: "You are the scribe"
+        )
+
+        # Create a regular advisor
+        regular_advisor = @space.advisors.create!(
+          account: @account,
+          name: "Expert Advisor",
+          system_prompt: "You are an expert"
+        )
+
+        builder = TestBuilder.new(@space)
+        advisors = builder.send(:space_advisors)
+
+        assert_equal 1, advisors.count
+        assert_equal regular_advisor.id, advisors.first.id
+      end
+
+      test "primary_summary returns summary memory" do
+        summary = @space.memories.create!(
+          account: @account,
+          title: "Primary Summary",
+          content: "Space summary content",
+          memory_type: "summary",
+          status: "active"
+        )
+
+        builder = TestBuilder.new(@space)
+        result = builder.send(:primary_summary)
+
+        assert_equal summary.id, result.id
+      end
+
+      test "primary_summary returns nil when no summary exists" do
+        # Use a new space that doesn't have the summary fixture
+        new_space = @account.spaces.create!(name: "Empty Space")
+        builder = TestBuilder.new(new_space)
+        assert_nil builder.send(:primary_summary)
+      end
+
+      test "validate_space! raises when space is nil" do
+        builder = TestBuilder.new(nil)
+        assert_raises(ArgumentError) do
+          builder.send(:validate_space!)
+        end
+      end
+
+      test "validate_conversation! raises when conversation is nil" do
+        builder = TestBuilder.new(@space)
+        assert_raises(ArgumentError) do
+          builder.send(:validate_conversation!)
+        end
+      end
+
+      test "council returns conversation's council" do
+        builder = TestBuilder.new(@space, @conversation)
+        assert_equal @council.id, builder.send(:council).id
+      end
+
+      test "council returns nil when no conversation" do
+        builder = TestBuilder.new(@space)
+        assert_nil builder.send(:council)
+      end
+    end
+
+    # Test builder for testing base class methods
+    class TestBuilder < BaseContextBuilder
+      def build
+        # Minimal implementation for testing
+        {}
+      end
+    end
+  end
+end

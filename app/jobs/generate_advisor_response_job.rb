@@ -34,8 +34,8 @@ class GenerateAdvisorResponseJob < ApplicationJob
 
     begin
       # Call AI service
-      Rails.logger.debug "[GenerateAdvisorResponseJob] Initializing AiClient..."
-      client = AiClient.new(advisor: advisor, conversation: conversation, message: message)
+      Rails.logger.debug "[GenerateAdvisorResponseJob] Initializing AIClient..."
+      client = AIClient.new(advisor: advisor, conversation: conversation, message: message)
 
       Rails.logger.info "[GenerateAdvisorResponseJob] Calling AI API for advisor #{advisor.name}..."
       result = client.generate_response
@@ -58,7 +58,7 @@ class GenerateAdvisorResponseJob < ApplicationJob
         Rails.logger.error "[GenerateAdvisorResponseJob] Empty response from AI for advisor #{advisor.id}, message #{message.id}"
         handle_error(message, "Empty response from AI - check LLM model configuration")
       end
-    rescue AiClient::ApiError => e
+    rescue AIClient::ApiError => e
       Rails.logger.error "[GenerateAdvisorResponseJob] API Error for advisor #{advisor.id}: #{e.message}"
       handle_error(message, "API Error: #{e.message}")
     rescue => e

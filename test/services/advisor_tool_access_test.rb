@@ -155,8 +155,8 @@ class AdvisorToolAccessTest < ActiveSupport::TestCase
     assert tool.description.present?
   end
 
-  test "AiClient sets advisor tool context in thread" do
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+  test "AIClient sets advisor tool context in thread" do
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
 
     # Create mock response
     mock_response = mock()

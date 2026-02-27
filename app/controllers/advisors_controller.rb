@@ -55,11 +55,15 @@ class AdvisorsController < ApplicationController
     end
 
     begin
-      result = ContentGenerator.generate(profile: :advisor, context: concept, account: Current.account)
+      generator = AI::ContentGenerator.new
+      result = generator.generate_advisor_profile(
+        description: concept,
+        account: Current.account
+      )
       render json: result
-    rescue ContentGenerator::NoModelError => e
+    rescue AI::ContentGenerator::NoModelError => e
       render json: { error: e.message }, status: :unprocessable_entity
-    rescue ContentGenerator::GenerationError => e
+    rescue AI::ContentGenerator::GenerationError => e
       render json: { error: e.message }, status: :unprocessable_entity
     end
   end

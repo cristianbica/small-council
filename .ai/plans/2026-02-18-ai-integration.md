@@ -1,6 +1,6 @@
 # Plan: AI Integration - Multi-Provider LLM Support
 
-**Date**: 2026-02-18  
+**Date**: 2026-02-18
 **Goal**: Connect advisors to actual LLMs with multi-provider support (OpenAI, Anthropic, etc.)
 
 ---
@@ -28,7 +28,7 @@
 Enable advisors to actually call LLM APIs and generate real responses:
 1. Create Provider and LlmModel tables for multi-provider support
 2. Migrate Advisor to reference LlmModel instead of string fields
-3. Build AiClient service to call OpenAI/Anthropic APIs
+3. Build AIClient service to call OpenAI/Anthropic APIs
 4. Create GenerateAdvisorResponseJob for async processing
 5. Add Turbo Streams for real-time message updates
 6. Implement usage tracking with token counting
@@ -269,12 +269,12 @@ class Advisor < ApplicationRecord
 end
 ```
 
-### Step 7: Create AiClient Service
+### Step 7: Create AIClient Service
 
 **File**: `app/services/ai_client.rb`
 
 ```ruby
-class AiClient
+class AIClient
   class Error < StandardError; end
   class ApiError < Error; end
   class RateLimitError < Error; end
@@ -427,7 +427,7 @@ class AiClient
   end
 
   def log_error(error)
-    Rails.logger.error "[AiClient] Error for advisor #{advisor.id}: #{error.message}"
+    Rails.logger.error "[AIClient] Error for advisor #{advisor.id}: #{error.message}"
     Rails.logger.error error.backtrace.first(5).join("\n") if error.backtrace
   end
 end
@@ -463,7 +463,7 @@ class GenerateAdvisorResponseJob < ApplicationJob
 
     begin
       # Call AI service
-      client = AiClient.new(advisor: advisor, conversation: conversation, message: message)
+      client = AIClient.new(advisor: advisor, conversation: conversation, message: message)
       result = client.generate_response
 
       if result && result[:content].present?
@@ -482,7 +482,7 @@ class GenerateAdvisorResponseJob < ApplicationJob
       else
         handle_error(message, "Empty response from AI")
       end
-    rescue AiClient::ApiError => e
+    rescue AIClient::ApiError => e
       handle_error(message, "API Error: #{e.message}")
     rescue => e
       handle_error(message, "Unexpected error: #{e.message}")
@@ -650,15 +650,15 @@ Add Turbo Stream subscription at top:
   <% is_error = message.error? %>
 
   <div class="flex <%= is_current_user ? 'justify-end' : 'justify-start' %>">
-    <div class="max-w-[80%] <%= 
-      if is_current_user 
-        'bg-primary text-primary-content' 
+    <div class="max-w-[80%] <%=
+      if is_current_user
+        'bg-primary text-primary-content'
       elsif is_error
         'bg-error text-error-content'
-      elsif is_pending 
-        'bg-base-200 italic opacity-70' 
-      else 
-        'bg-base-300' 
+      elsif is_pending
+        'bg-base-200 italic opacity-70'
+      else
+        'bg-base-300'
       end %> rounded-lg p-3">
 
       <div class="text-xs <%= is_current_user ? 'text-primary-content/70' : 'text-base-content/60' %> mb-1">
@@ -824,14 +824,14 @@ class LlmModelTest < ActiveSupport::TestCase
 end
 ```
 
-### Step 14: Create AiClient Service Tests
+### Step 14: Create AIClient Service Tests
 
 **File**: `test/services/ai_client_test.rb`
 
 ```ruby
 require "test_helper"
 
-class AiClientTest < ActiveSupport::TestCase
+class AIClientTest < ActiveSupport::TestCase
   setup do
     @account = accounts(:one)
     set_tenant(@account)
@@ -858,7 +858,7 @@ class AiClientTest < ActiveSupport::TestCase
   end
 
   test "initialize with advisor, conversation, message" do
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
     assert_equal @advisor, client.advisor
     assert_equal @conversation, client.conversation
     assert_equal @message, client.message
@@ -866,12 +866,12 @@ class AiClientTest < ActiveSupport::TestCase
 
   test "generate_response returns nil without llm_model" do
     @advisor.update!(llm_model: nil)
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
     assert_nil client.generate_response
   end
 
   test "build_messages includes system prompt" do
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
     messages = client.send(:build_messages)
     assert_equal "system", messages.first[:role]
     assert_equal @advisor.system_prompt, messages.first[:content]
@@ -922,7 +922,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
   end
 
   test "updates message with response on success" do
-    # Mock AiClient to return successful response
+    # Mock AIClient to return successful response
     mock_response = {
       content: "Hello, I'm here to help!",
       input_tokens: 100,
@@ -930,7 +930,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
       total_tokens: 150
     }
 
-    AiClient.any_instance.stubs(:generate_response).returns(mock_response)
+    AIClient.any_instance.stubs(:generate_response).returns(mock_response)
 
     assert_enqueued_jobs 1 do
       GenerateAdvisorResponseJob.perform_later(
@@ -946,7 +946,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
   end
 
   test "marks message as error on API failure" do
-    AiClient.any_instance.stubs(:generate_response).raises(AiClient::ApiError, "API Error")
+    AIClient.any_instance.stubs(:generate_response).raises(AIClient::ApiError, "API Error")
 
     GenerateAdvisorResponseJob.perform_now(
       advisor_id: @advisor.id,
@@ -963,7 +963,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
     @message.update!(status: "complete")
 
     # Job should return early without calling AI
-    AiClient.expects(:new).never
+    AIClient.expects(:new).never
 
     GenerateAdvisorResponseJob.perform_now(
       advisor_id: @advisor.id,
@@ -986,7 +986,7 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
     @user = users(:one)
     @account = accounts(:one)
     set_tenant(@account)
-    
+
     # Setup provider and model
     @provider = @account.providers.create!(
       name: "OpenAI Test",
@@ -998,24 +998,24 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
       name: "GPT-4",
       identifier: "gpt-4"
     )
-    
+
     # Setup advisor with model
     @advisor = @account.advisors.create!(
       name: "Helper Bot",
       system_prompt: "You are a helpful assistant.",
       llm_model: @llm_model
     )
-    
+
     @council = @account.councils.create!(name: "Test Council")
     @council.advisors << @advisor
-    
+
     @conversation = @account.conversations.create!(
       council: @council,
       user: @user,
       title: "AI Test Conversation",
       rules_of_engagement: :round_robin
     )
-    
+
     sign_in_as(@user)
   end
 
@@ -1027,7 +1027,7 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to conversation_path(@conversation)
-    
+
     placeholder = Message.last
     assert_equal @advisor, placeholder.sender
     assert_equal "pending", placeholder.status
@@ -1051,7 +1051,7 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
       output_tokens: 25,
       total_tokens: 75
     }
-    AiClient.any_instance.stubs(:generate_response).returns(mock_response)
+    AIClient.any_instance.stubs(:generate_response).returns(mock_response)
 
     # Create pending message
     message = @conversation.messages.create!(
@@ -1105,7 +1105,7 @@ Run this checklist after implementation:
 - [ ] Provider model tests pass: `bin/rails test test/models/provider_test.rb`
 - [ ] LlmModel model tests pass: `bin/rails test test/models/llm_model_test.rb`
 - [ ] Advisor model tests pass: `bin/rails test test/models/advisor_test.rb`
-- [ ] AiClient service tests pass: `bin/rails test test/services/ai_client_test.rb`
+- [ ] AIClient service tests pass: `bin/rails test test/services/ai_client_test.rb`
 - [ ] Job tests pass: `bin/rails test test/jobs/generate_advisor_response_job_test.rb`
 - [ ] Integration tests pass: `bin/rails test test/integration/ai_response_flow_test.rb`
 - [ ] All tests pass: `bin/rails test`

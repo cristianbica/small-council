@@ -1,6 +1,6 @@
 require "test_helper"
 
-class AiClientTest < ActiveSupport::TestCase
+class AIClientTest < ActiveSupport::TestCase
   setup do
     @account = accounts(:one)
     set_tenant(@account)
@@ -30,7 +30,7 @@ class AiClientTest < ActiveSupport::TestCase
   end
 
   test "initialize with advisor, conversation, message" do
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
     assert_equal @advisor, client.advisor
     assert_equal @conversation, client.conversation
     assert_equal @message, client.message
@@ -49,13 +49,13 @@ class AiClientTest < ActiveSupport::TestCase
     @account.update!(default_llm_model: nil)
     @account.llm_models.update_all(enabled: false)
 
-    client = AiClient.new(advisor: advisor_without_model, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: advisor_without_model, conversation: @conversation, message: @message)
     assert_nil client.generate_response
   end
 
   test "generate_response returns nil with disabled llm_model" do
     @llm_model.update!(enabled: false)
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
     assert_nil client.generate_response
   end
 
@@ -68,7 +68,7 @@ class AiClientTest < ActiveSupport::TestCase
       content: "Hello"
     )
 
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
     messages = client.send(:build_messages)
 
     # Should have user messages
@@ -78,7 +78,7 @@ class AiClientTest < ActiveSupport::TestCase
   end
 
   test "build_messages skips pending message" do
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
     messages = client.send(:build_messages)
 
     # Should not include the pending message itself
@@ -100,7 +100,7 @@ class AiClientTest < ActiveSupport::TestCase
       content: "Advisor message"
     )
 
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
     messages = client.send(:build_messages)
 
     # Find the advisor message
@@ -117,7 +117,7 @@ class AiClientTest < ActiveSupport::TestCase
       content: "System instruction"
     )
 
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
     messages = client.send(:build_messages)
 
     # System messages should be treated as user messages (else branch)
@@ -156,7 +156,7 @@ class AiClientTest < ActiveSupport::TestCase
       content: "System message"
     )
 
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
     messages = client.send(:build_messages)
 
     # pending message is @message which has "Test message"
@@ -198,7 +198,7 @@ class AiClientTest < ActiveSupport::TestCase
       content: "System content"
     )
 
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
     messages = client.send(:build_messages)
 
     # Verify each role is correctly mapped
@@ -212,7 +212,7 @@ class AiClientTest < ActiveSupport::TestCase
   end
 
   test "raises ApiError when API call fails" do
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
 
     # Mock RubyLLM to raise error
     mock_chat = mock()
@@ -228,13 +228,13 @@ class AiClientTest < ActiveSupport::TestCase
     # Mock context method to yield config and return context
     RubyLLM.stubs(:context).returns(mock_context)
 
-    assert_raises(AiClient::ApiError) do
+    assert_raises(AIClient::ApiError) do
       client.generate_response
     end
   end
 
   test "raises ApiError on LLM::APIError" do
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
 
     # Mock RubyLLM to raise LLM::APIError
     mock_chat = mock()
@@ -250,14 +250,14 @@ class AiClientTest < ActiveSupport::TestCase
     # Mock context method to yield config and return context
     RubyLLM.stubs(:context).returns(mock_context)
 
-    error = assert_raises(AiClient::ApiError) do
+    error = assert_raises(AIClient::ApiError) do
       client.generate_response
     end
     assert_match(/API failure/, error.message)
   end
 
   test "with_retries retries on transient errors" do
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
 
     call_count = 0
     client.stubs(:sleep).returns(nil)
@@ -273,7 +273,7 @@ class AiClientTest < ActiveSupport::TestCase
   end
 
   test "with_retries succeeds on retry" do
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
 
     call_count = 0
     client.stubs(:sleep).returns(nil)
@@ -290,7 +290,7 @@ class AiClientTest < ActiveSupport::TestCase
   end
 
   test "with_retries succeeds and returns result" do
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
 
     client.stubs(:sleep).returns(nil)
 
@@ -302,7 +302,7 @@ class AiClientTest < ActiveSupport::TestCase
   end
 
   test "log_error logs error with advisor id" do
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
 
     error = StandardError.new("Test error")
     error.set_backtrace([ "line1", "line2" ])
@@ -314,7 +314,7 @@ class AiClientTest < ActiveSupport::TestCase
   end
 
   test "successful API call returns response" do
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
 
     # Create mock response object that behaves like RubyLLM::Response
     mock_response = mock()
@@ -347,7 +347,7 @@ class AiClientTest < ActiveSupport::TestCase
   end
 
   test "generate_response passes correct parameters to LLM client" do
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
 
     # Add a user message to the conversation
     @conversation.messages.create!(
@@ -387,7 +387,7 @@ class AiClientTest < ActiveSupport::TestCase
 
   test "generate_response uses custom temperature and max_tokens from config" do
     @advisor.update!(model_config: { "temperature" => 0.5, "max_tokens" => 500 })
-    client = AiClient.new(advisor: @advisor, conversation: @conversation, message: @message)
+    client = AIClient.new(advisor: @advisor, conversation: @conversation, message: @message)
 
     # Create mock response object
     mock_response = mock()
