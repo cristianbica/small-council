@@ -302,7 +302,7 @@ class SpaceScribeController < ApplicationController
   end
 
   def build_advisors_context
-    advisors = @space.advisors.active.where.not(id: @scribe.id) # Exclude self
+    advisors = @space.advisors.where.not(id: @scribe.id) # Exclude self
     return "No other advisors available in this space." if advisors.empty?
 
     parts = [ "Other advisors available in this space (use ask_advisor tool to communicate with them):" ]
