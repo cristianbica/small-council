@@ -79,6 +79,10 @@ group :development do
 
   # Preview emails in browser during development
   gem "letter_opener", "~> 1.10"
+
+  # LSP
+  gem "ruby-lsp"
+  gem "ruby-lsp-rails"
 end
 
 group :test do
