@@ -144,16 +144,16 @@ class ProvidersController < ApplicationController
     if params[:id]
       # Member route - /providers/:id/models
       @provider = Current.account.providers.find(params[:id])
-      @models = LLM::ModelManager.available_models(Current.account)
+      @models = AI::ModelManager.available_models(Current.account)
                                  .select { |m| m.provider == @provider }
     elsif params[:provider_id]
       # Collection route with provider_id - /providers/models?provider_id=123
       @provider = Current.account.providers.find(params[:provider_id])
-      @models = LLM::ModelManager.available_models(Current.account)
+      @models = AI::ModelManager.available_models(Current.account)
                                  .select { |m| m.provider == @provider }
     else
       @provider = nil
-      @models = LLM::ModelManager.available_models(Current.account)
+      @models = AI::ModelManager.available_models(Current.account)
     end
   end
 
@@ -165,17 +165,17 @@ class ProvidersController < ApplicationController
     enabled = params[:enabled] == "true"
 
     if enabled
-      llm_model = LLM::ModelManager.enable_model(Current.account, provider, model_id)
+      llm_model = AI::ModelManager.enable_model(Current.account, provider, model_id)
       message = "Model '#{llm_model.name}' enabled successfully"
     else
-      llm_model = LLM::ModelManager.disable_model(Current.account, provider, model_id)
+      llm_model = AI::ModelManager.disable_model(Current.account, provider, model_id)
       message = "Model '#{llm_model&.name || model_id}' disabled successfully"
     end
 
     respond_to do |format|
       format.turbo_stream do
         # Build model info from the saved record (no API call needed)
-        model_info = LLM::ModelManager::ModelInfo.new(
+        model_info = AI::ModelManager::ModelInfo.new(
           provider: provider,
           model_id: model_id,
           name: llm_model&.name || model_id.split("/").last,

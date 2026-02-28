@@ -338,4 +338,249 @@ class MessageTest < ActiveSupport::TestCase
     ordered = Message.chronological.to_a
     assert_equal [ msg3, msg1, msg2 ], ordered
   end
+
+  # Threading and Reply Tests
+  test "belongs to parent_message for replies" do
+    message = Message.new
+    assert_respond_to message, :parent_message
+  end
+
+  test "has many replies" do
+    message = Message.new
+    assert_respond_to message, :replies
+  end
+
+  test "can create reply to message" do
+    root_msg = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Root message"
+    )
+
+    reply = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Reply message",
+      parent_message: root_msg
+    )
+
+    assert_equal root_msg, reply.parent_message
+    assert_includes root_msg.replies, reply
+  end
+
+  test "depth returns 0 for root message" do
+    root_msg = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Root message"
+    )
+
+    assert_equal 0, root_msg.depth
+  end
+
+  test "depth returns correct level for nested replies" do
+    root_msg = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Root message"
+    )
+
+    level1 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Level 1",
+      parent_message: root_msg
+    )
+
+    level2 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Level 2",
+      parent_message: level1
+    )
+
+    assert_equal 0, root_msg.depth
+    assert_equal 1, level1.depth
+    assert_equal 2, level2.depth
+  end
+
+  test "root_message? returns true for root messages" do
+    root_msg = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Root message"
+    )
+
+    assert root_msg.root_message?
+  end
+
+  test "root_message? returns false for replies" do
+    root_msg = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Root message"
+    )
+
+    reply = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Reply",
+      parent_message: root_msg
+    )
+
+    assert_not reply.root_message?
+  end
+
+  test "root_messages scope returns only root messages" do
+    root_msg = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Root message"
+    )
+
+    reply = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Reply",
+      parent_message: root_msg
+    )
+
+    root_messages = Message.root_messages
+    assert_includes root_messages, root_msg
+    assert_not_includes root_messages, reply
+  end
+
+  # Pending Advisor Tests
+  test "pending_advisor_ids defaults to empty array" do
+    msg = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Test"
+    )
+
+    assert_equal [], msg.pending_advisor_ids
+    assert msg.solved?
+  end
+
+  test "solved? returns false when pending_advisor_ids has values" do
+    space = @account.spaces.create!(name: "Pending Test Space")
+    advisor = @account.advisors.create!(
+      name: "Test Advisor",
+      system_prompt: "You are a test advisor",
+      llm_model: @llm_model,
+      space: space
+    )
+
+    msg = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Test",
+      pending_advisor_ids: [ advisor.id ]
+    )
+
+    assert_not msg.solved?
+  end
+
+  test "pending_for? returns true for advisor in pending list" do
+    space = @account.spaces.create!(name: "Pending Test Space")
+    advisor = @account.advisors.create!(
+      name: "Test Advisor",
+      system_prompt: "You are a test advisor",
+      llm_model: @llm_model,
+      space: space
+    )
+
+    msg = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Test",
+      pending_advisor_ids: [ advisor.id ]
+    )
+
+    assert msg.pending_for?(advisor.id)
+  end
+
+  test "resolve_for_advisor! removes advisor from pending list" do
+    space = @account.spaces.create!(name: "Pending Test Space")
+    advisor = @account.advisors.create!(
+      name: "Test Advisor",
+      system_prompt: "You are a test advisor",
+      llm_model: @llm_model,
+      space: space
+    )
+
+    msg = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Test",
+      pending_advisor_ids: [ advisor.id ]
+    )
+
+    msg.resolve_for_advisor!(advisor.id)
+
+    assert msg.solved?
+    assert_not msg.pending_for?(advisor.id)
+  end
+
+  # Command Detection Tests
+  test "command? returns true for messages starting with slash" do
+    msg = @account.messages.new(content: "/invite @advisor")
+    assert msg.command?
+  end
+
+  test "command? returns false for regular messages" do
+    msg = @account.messages.new(content: "Hello everyone")
+    assert_not msg.command?
+  end
+
+  test "command_name returns command for command messages" do
+    msg = @account.messages.new(content: "/invite @advisor")
+    assert_equal "invite", msg.command_name
+  end
+
+  test "command_name returns nil for non-command messages" do
+    msg = @account.messages.new(content: "Hello everyone")
+    assert_nil msg.command_name
+  end
+
+  # Mention Parsing Tests
+  test "mentions extracts @mentions from content" do
+    msg = @account.messages.new(content: "@advisor1 and @advisor-2 please help")
+    assert_equal [ "advisor1", "advisor-2" ], msg.mentions
+  end
+
+  test "mentions returns empty array for content without mentions" do
+    msg = @account.messages.new(content: "Hello everyone")
+    assert_equal [], msg.mentions
+  end
+
+  test "mentions_all? returns true for @all mention" do
+    msg = @account.messages.new(content: "@all what do you think?")
+    assert msg.mentions_all?
+  end
+
+  test "mentions_all? returns true for @everyone mention" do
+    msg = @account.messages.new(content: "@everyone please respond")
+    assert msg.mentions_all?
+  end
+
+  test "mentions_all? returns false without @all or @everyone" do
+    msg = @account.messages.new(content: "Hello @advisor")
+    assert_not msg.mentions_all?
+  end
 end

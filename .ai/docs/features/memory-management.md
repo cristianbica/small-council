@@ -59,11 +59,6 @@ t.references :updated_by, polymorphic: true
    - `create_memory` - Add new memory entry
    - `query_memories` - Search memories (all advisors)
 
-5. **Scribe Chat Interface** (`app/views/space_scribe/`)
-   - Dedicated chat UI for Scribe interaction
-   - Memory browser sidebar
-   - Tool execution interface
-
 ## Usage
 
 ### Creating Memories
@@ -174,9 +169,6 @@ POST   /spaces/:space_id/memories/:id/archive -> archive
 POST   /spaces/:space_id/memories/:id/activate -> activate
 GET    /spaces/:space_id/memories/search      -> search
 GET    /spaces/:space_id/memories/export      -> export
-GET    /spaces/:space_id/scribe               -> scribe chat
-POST   /spaces/:space_id/scribe/chat          -> chat API
-POST   /spaces/:space_id/scribe/execute_tool  -> tool execution
 ```
 
 ## Future Enhancements

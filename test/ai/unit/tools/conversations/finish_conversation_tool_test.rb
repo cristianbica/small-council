@@ -12,17 +12,28 @@ module AI
           @space = spaces(:one)
           @user = @account.users.first || @account.users.create!(email: "test@example.com", password: "password123")
           @council = @space.councils.first || @space.councils.create!(name: "Test Council", account: @account, user: @user)
+
+          # Create advisor for the conversation
+          @advisor = @space.advisors.create!(
+            account: @account,
+            name: "Test Advisor",
+            system_prompt: "You are a test advisor"
+          )
+
           @conversation = @council.conversations.create!(
             account: @account,
             user: @user,
             title: "Test Conversation",
             status: "active"
           )
-          @advisor = @space.advisors.create!(
-            account: @account,
-            name: "Test Advisor",
-            system_prompt: "You are a test advisor"
+
+          # Add advisor as participant to satisfy validation
+          @conversation.conversation_participants.create!(
+            advisor: @advisor,
+            role: :advisor,
+            position: 0
           )
+
           @tool = FinishConversationTool.new
         end
 

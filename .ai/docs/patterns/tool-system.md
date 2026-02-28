@@ -4,170 +4,107 @@ RubyLLM-powered tool framework for AI agents (Scribe and Advisors).
 
 ## Overview
 
-The tool system allows AI agents to perform actions within the application - querying data, creating records, and communicating with other agents. Tools are implemented using the RubyLLM library with custom wrappers.
+The tool system allows AI agents to perform actions within the application — querying data, creating records, and communicating with other agents. Tools inherit from `AI::Tools::BaseTool` and are adapted for RubyLLM via `AI::Adapters::RubyLLMToolAdapter`.
 
 ## Architecture
 
 ```
-app/services/
-├── scribe_tool.rb                 # Base class for Scribe tools (full access)
-├── advisor_tool.rb                # Base class for Advisor tools (read-only default)
-├── scribe_tool_executor.rb        # Tool execution and registry
-├── tool_execution_context.rb      # Context object for tool execution
-├── scribe_tools/                  # Scribe-specific tools
-│   ├── finish_conversation_tool.rb
-│   ├── create_memory_tool.rb
-│   ├── query_memories_tool.rb
-│   └── browse_web_tool.rb
-├── advisor_tools/                 # Advisor-specific tools
-│   ├── query_memories_tool.rb
-│   ├── query_conversations_tool.rb
-│   ├── read_conversation_tool.rb
-│   └── ask_advisor_tool.rb
-└── ruby_llm_tools/                # RubyLLM wrapper classes
-    ├── create_memory_tool.rb
-    ├── query_memories_tool.rb
-    ├── ask_advisor_tool.rb
-    └── ... (wrappers for all tools)
+app/libs/ai/
+├── tools/
+│   ├── base_tool.rb                    # Base class for all tools
+│   ├── conversations/
+│   │   ├── ask_advisor_tool.rb
+│   │   ├── finish_conversation_tool.rb
+│   │   └── summarize_conversation_tool.rb
+│   ├── external/
+│   │   └── browse_web_tool.rb
+│   └── internal/
+│       ├── create_memory_tool.rb
+│       ├── get_conversation_summary_tool.rb
+│       ├── list_conversations_tool.rb
+│       ├── list_memories_tool.rb
+│       ├── query_conversations_tool.rb
+│       ├── query_memories_tool.rb
+│       ├── read_conversation_tool.rb
+│       ├── read_memory_tool.rb
+│       └── update_memory_tool.rb
+└── adapters/
+    └── ruby_llm_tool_adapter.rb        # Wraps BaseTool for RubyLLM
 ```
 
 ## Tool Types
 
-### Scribe Tools (4 tools)
-
+### Conversation tools
 | Tool | Purpose | Write Access |
 |------|---------|--------------|
 | `finish_conversation` | Conclude and summarize conversation | Yes |
-| `create_memory` | Create new memory entries | Yes |
-| `query_memories` | Search memories by keyword | Read-only |
-| `browse_web` | Web search capabilities | Read-only |
+| `ask_advisor` | Ask another advisor (posts in same conversation) | Yes |
+| `summarize_conversation` | Generate a summary of the current conversation | Read-only |
 
-### Advisor Tools (4 tools)
-
+### External tools
 | Tool | Purpose | Write Access |
 |------|---------|--------------|
-| `query_memories` | Search space memories | Read-only |
-| `query_conversations` | Find past conversations | Read-only |
-| `read_conversation` | Read conversation messages | Read-only |
-| `ask_advisor` | Communicate with other advisors | Yes |
+| `browse_web` | Web search capabilities | Read-only |
 
-## Base Classes
+### Internal tools
+| Tool | Purpose |
+|------|---------|
+| `list_conversations` | List conversations in space |
+| `query_conversations` | Find past conversations |
+| `read_conversation` | Read conversation messages |
+| `get_conversation_summary` | Get a summary of a specific conversation |
+| `list_memories` | List memories in space |
+| `query_memories` | Search memories by keyword |
+| `read_memory` | Read a specific memory |
+| `update_memory` | Edit a memory entry |
+| `create_memory` | Create new memory entries |
 
-### ScribeTool
-
-Full-access base class for Scribe tools:
+## Base Class
 
 ```ruby
-class ScribeTool
-  def tool_name        # Override: return tool name string
-  def tool_description # Override: return description string
-  def tool_parameters  # Override: return parameter hash
+class AI::Tools::BaseTool
+  def tool_name         # Override: return tool name string
+  def tool_description  # Override: return description string
+  def tool_parameters   # Override: return parameter hash
   def execute(params, context)  # Override: perform action
-  def validate_params(params)   # Built-in parameter validation
 end
 ```
 
-### AdvisorTool
+## RubyLLM Adapter
 
-Read-only by default base class for Advisor tools:
-
-```ruby
-class AdvisorTool
-  def read_only?       # Override to return false for write access
-  # ... same interface as ScribeTool
-end
-```
-
-## Tool Execution
-
-### Registration
-
-Tools are registered in `ScribeToolExecutor`:
+`AI::Adapters::RubyLLMToolAdapter` wraps a `BaseTool` instance for use with RubyLLM:
 
 ```ruby
-SCRIBE_TOOLS = [
-  ScribeTools::FinishConversationTool,
-  ScribeTools::CreateMemoryTool,
-  # ...
-].freeze
-
-ADVISOR_TOOLS = [
-  AdvisorTools::QueryMemoriesTool,
-  AdvisorTools::AskAdvisorTool,
-  # ...
-].freeze
-```
-
-### Execution Flow
-
-1. **AI Response Generation**: `AIClient` sets up RubyLLM chat with tools
-2. **Tool Call**: AI decides to use a tool, RubyLLM parses the request
-3. **Context Setup**: `ToolExecutionContext` created with conversation, space, advisor, user
-4. **Execution**: `ScribeToolExecutor.execute` finds tool, validates params, executes
-5. **Result**: Tool result formatted and returned to AI for follow-up
-
-### Context Object
-
-```ruby
-context = ToolExecutionContext.new(
-  conversation: conversation,
-  space: space,
-  advisor: advisor,
-  user: user
-)
-```
-
-## RubyLLM Integration
-
-Tools are wrapped for RubyLLM compatibility:
-
-```ruby
-class RubyLLMTools::CreateMemoryTool < RubyLLM::Tool
-  def create_memory(title:, content:, memory_type: "knowledge")
-    # Tool logic here
-  end
-end
-```
-
-Tools are attached to chat sessions:
-
-```ruby
-chat = context.chat(model: model.identifier).with_tools(
-  RubyLLMTools::AdvisorQueryMemoriesTool,
-  RubyLLMTools::AdvisorAskAdvisorTool
-)
+adapter = AI::Adapters::RubyLLMToolAdapter.new(tool: my_tool, context: tool_context)
+chat.with_tools(adapter)
 ```
 
 ## ask_advisor Tool
 
 Special tool for inter-advisor communication:
-
 - Creates a mention message in the current conversation
 - Creates a pending placeholder for the target advisor
 - Enqueues `GenerateAdvisorResponseJob` for async response
 - Prevents self-asking (advisors cannot ask themselves)
-- **Changed**: Previously created new conversations, now posts in same conversation
+- Posts in the same conversation (does NOT create a new conversation)
 
-## Usage Guidelines
+## Tool Execution Context
 
-- Keep tools focused on single responsibility
-- Use read-only where possible ( AdvisorTool default)
-- Override `read_only?` only when necessary
-- Validate all parameters before execution
-- Return consistent result format: `{ success: boolean, message: string, data: hash }`
-- Log tool executions for debugging
+Tools receive a context object with:
+- `conversation` — current conversation
+- `space` — the space the conversation belongs to
+- `advisor` — the advisor invoking the tool
+- `user` — current user (if applicable)
 
 ## Testing
 
-Tool tests use mock context objects:
+Tool tests use mock context objects and Mocha:
 
 ```ruby
 test "query_memories finds matching memories" do
-  context = mock_tool_context(space: @space)
-  tool = AdvisorTools::QueryMemoriesTool.new
+  context = stub(space: @space, conversation: @conversation, advisor: @advisor, user: nil)
+  tool = AI::Tools::Internal::QueryMemoriesTool.new
   result = tool.execute({ "query" => "API" }, context)
-
   assert result[:success]
-  assert_includes result[:message], "Found"
 end
 ```

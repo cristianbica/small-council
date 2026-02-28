@@ -42,4 +42,10 @@ class ApplicationController < ActionController::Base
     # Auto-create default space if none exists (for legacy accounts)
     Current.space ||= Current.account.spaces.create!(name: "General", description: "Default space for your councils")
   end
+
+  # Shared helper for getting available advisors for invite
+  def available_advisors_for_invite
+    return [] unless @conversation&.active? && Current.space
+    Current.space.non_scribe_advisors.where.not(id: @conversation.advisor_ids)
+  end
 end

@@ -51,7 +51,21 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    advisor = @account.advisors.create!(
+      name: "Test Advisor",
+      system_prompt: "You are a test advisor",
+      llm_model: @llm_model,
+      space: @space
+    )
+    council.advisors << advisor
     conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+
+    # Add advisor as participant to satisfy conversation validation
+    conversation.conversation_participants.create!(
+      advisor: advisor,
+      role: :advisor,
+      position: 0
+    )
 
     post conversation_messages_url(conversation), params: {
       message: { content: "New message content" }
@@ -87,6 +101,16 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     council.advisors << advisor
     conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
 
+    # Add advisor as participant (simulating what happens in real flow)
+    conversation.conversation_participants.create!(
+      advisor: advisor,
+      role: :advisor,
+      position: 0
+    )
+
+    # For consensus RoE, all advisors respond
+    conversation.update!(roe_type: :consensus)
+
     assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
       post conversation_messages_url(conversation), params: {
         message: { content: "Hello advisor" }
@@ -106,6 +130,16 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     )
     council.advisors << advisor
     conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+
+    # Add advisor as participant
+    conversation.conversation_participants.create!(
+      advisor: advisor,
+      role: :advisor,
+      position: 0
+    )
+
+    # For consensus RoE, all advisors respond
+    conversation.update!(roe_type: :consensus)
 
     # 1 user message + 1 pending advisor message
     assert_difference("Message.count", 2) do

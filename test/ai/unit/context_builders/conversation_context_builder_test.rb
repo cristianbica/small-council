@@ -17,10 +17,25 @@ module AI
           user: @user,
           space: @space
         )
+
+        # Create advisor
+        @advisor = @account.advisors.create!(
+          name: "Test Advisor",
+          system_prompt: "You are a test advisor",
+          space: @space
+        )
+
         @conversation = @account.conversations.create!(
           council: @council,
           user: @user,
           title: "Test Conversation"
+        )
+
+        # Add advisor as participant
+        @conversation.conversation_participants.create!(
+          advisor: @advisor,
+          role: :advisor,
+          position: 0
         )
 
         # Create memories
@@ -72,18 +87,26 @@ module AI
       end
 
       test "build includes advisors" do
-        # Create a non-scribe advisor
+        # Create a non-scribe advisor and add as participant
         advisor = @space.advisors.create!(
           account: @account,
           name: "Expert Advisor",
           system_prompt: "You are an expert"
         )
 
+        # Add as participant to the conversation
+        @conversation.conversation_participants.create!(
+          advisor: advisor,
+          role: :advisor,
+          position: 1
+        )
+
         builder = ConversationContextBuilder.new(@space, @conversation)
         context = builder.build
 
-        assert context[:advisors].is_a?(ActiveRecord::Relation)
-        assert context[:advisors].include?(advisor)
+        assert context[:advisors].is_a?(Array)
+        advisor_ids = context[:advisors].map { |a| a.is_a?(Hash) ? a[:id] : a.id }
+        assert_includes advisor_ids, advisor.id
       end
 
       test "build includes primary summary when available" do
@@ -114,8 +137,16 @@ module AI
         assert_not context.key?(:primary_summary)
       end
 
-      test "build raises when space is nil" do
-        builder = ConversationContextBuilder.new(nil, @conversation)
+      test "build raises when space is nil and conversation has no council" do
+        # Create an adhoc conversation without a council (no way to get space)
+        adhoc_conversation = @account.conversations.create!(
+          title: "Adhoc Conversation",
+          user: @user,
+          conversation_type: :adhoc,
+          council: nil
+        )
+
+        builder = ConversationContextBuilder.new(nil, adhoc_conversation)
         assert_raises(ArgumentError) do
           builder.build
         end
@@ -160,6 +191,62 @@ module AI
         context = builder.build
 
         assert_equal 3, context[:related_conversations].count
+      end
+
+      test "build omits council when conversation is not council_meeting" do
+        # Create an adhoc conversation
+        adhoc_conversation = @account.conversations.create!(
+          title: "Adhoc No Council",
+          user: @user,
+          conversation_type: :adhoc,
+          council: nil
+        )
+        # Add an advisor participant so validation passes
+        adhoc_conversation.conversation_participants.create!(
+          advisor: @advisor, role: :advisor, position: 0
+        )
+
+        builder = ConversationContextBuilder.new(@space, adhoc_conversation)
+        context = builder.build
+
+        assert_not context.key?(:council)
+      end
+
+      test "build includes scribe_info when conversation has a scribe" do
+        # Add a scribe advisor to the conversation
+        provider = @account.providers.create!(name: "ScribeProv", provider_type: "openai", api_key: "k")
+        model = provider.llm_models.create!(account: @account, name: "G", identifier: "g-scribe")
+        scribe = @account.advisors.create!(
+          name: "Test Scribe", system_prompt: "You are the scribe",
+          is_scribe: true, space: @space, llm_model: model
+        )
+        @conversation.conversation_participants.create!(
+          advisor: scribe, role: :scribe, position: 10
+        )
+
+        builder = ConversationContextBuilder.new(@space, @conversation)
+        context = builder.build
+
+        assert_not_nil context[:scribe]
+        assert_equal scribe.id, context[:scribe][:id]
+      end
+
+      test "build when conversation has no scribe results in nil scribe (compacted away)" do
+        # No scribe participant in @conversation (only advisor from setup)
+        builder = ConversationContextBuilder.new(@space, @conversation)
+        context = builder.build
+
+        # scribe_info returns nil, ctx.compact removes it
+        assert_not context.key?(:scribe)
+      end
+
+      test "build succeeds when space is nil but conversation has council with space" do
+        # validate_space_context! should return early without raising
+        builder = ConversationContextBuilder.new(nil, @conversation)
+        context = builder.build
+
+        # Should succeed using council's space
+        assert_not_nil context[:space]
       end
     end
   end

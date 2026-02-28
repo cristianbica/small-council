@@ -2,9 +2,9 @@
 
 ## What this app does
 
-Small Council is a multi-tenant AI advisor platform. Organizations create **Spaces** (contextual containers) that hold **Councils** (groups of AI advisors). Users start **Conversations** within councils, where advisors respond based on configurable **Rules of Engagement** (Round Robin, Moderated, On Demand, Silent, or Consensus).
+Small Council is a multi-tenant AI advisor platform. Organizations create **Spaces** (contextual containers) that hold **Councils** (groups of AI advisors). Users start **Conversations** within councils, where advisors respond based on configurable **Rules of Engagement** (Open, Consensus, Brainstorming). A special **Scribe** advisor moderates each space and facilitates conversation flow.
 
-The platform tracks AI usage per account with encrypted provider credentials, supports multiple LLM providers (OpenAI, Anthropic, GitHub Models), and delivers real-time chat via Turbo Streams.
+The platform tracks AI usage per account with encrypted provider credentials, supports multiple LLM providers (OpenAI, OpenRouter), and delivers real-time chat via Turbo Streams.
 
 ## Tech stack
 
@@ -17,32 +17,36 @@ The platform tracks AI usage per account with encrypted provider credentials, su
 | Jobs | Solid Queue |
 | Cache | Solid Cache |
 | Cable | Solid Cable |
-| Tests | Minitest (565 tests, ~48% coverage) |
+| Tests | Minitest (~1486 runs, 96.71% line / 85.21% branch coverage) |
 | Auth | authentication-zero |
 | Multi-tenancy | acts_as_tenant (active) |
-| AI APIs | ruby-openai, anthropic |
+| AI APIs | ruby_llm |
 
 ## Business domains
 
-- **Spaces**: Contextual containers (workspaces) holding councils
+- **Spaces**: Contextual containers (workspaces) holding councils; each has a Scribe advisor
 - **Councils**: Groups of AI advisors that collaborate
-- **Advisors**: AI personas with LLM configuration
-- **Conversations**: Chat sessions with advisor participation
-- **AI Integration**: Multi-provider LLM support with encrypted credentials
+- **Advisors**: AI personas with LLM configuration (via LlmModel)
+- **Conversations**: Chat sessions (`council_meeting` or `adhoc`) with advisor participation
+- **AI Integration**: Multi-provider LLM support via `AI::Client` (class methods)
 - **Usage Tracking**: Per-account billing and observability
+- **Memories**: Persistent knowledge entries with versioning
 
 ## Repo landmarks
 
 ```
 app/
 ├── controllers/    # Request handling
-├── models/         # 10 models (Account, User, Space, Council, Advisor, etc.)
+├── models/         # 12 models: Account, User, Space, Council, Advisor,
+│                   #   Conversation, ConversationParticipant, Message,
+│                   #   Memory, MemoryVersion, Provider, LlmModel
 ├── views/          # ERB templates with DaisyUI components
-├── services/       # AIClient, ScribeCoordinator
+├── services/       # ConversationLifecycle, ProviderConnectionTester, WebBrowserService
+├── libs/ai/        # AI::Client, AI::ContentGenerator, AI::ModelManager, tools/
 ├── jobs/           # GenerateAdvisorResponseJob (Solid Queue)
 └── assets/         # Tailwind CSS v4 + DaisyUI
 
-test/               # 565 tests: models, controllers, integration, security, services
+test/               # ~1486 runs: models, controllers, integration, jobs, helpers
 config/
 ├── routes.rb       # All app routes
 └── initializers/   # App configuration
@@ -57,10 +61,10 @@ bin/dev                    # Start web + CSS watch
 bin/rails server          # Rails only
 
 # Testing
-bin/rails test            # Full suite (455 tests)
+bin/rails test            # Full suite
 
 # Build
-bin/rails assets:precompile # CSS compilation
+bin/rails assets:precompile  # CSS compilation
 
 # Database
 bin/rails db:migrate

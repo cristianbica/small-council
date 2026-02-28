@@ -6,11 +6,11 @@ class ProviderConnectionTester
       credentials: { "api_key" => api_key, "organization_id" => organization_id }
     )
 
-    result = temp_provider.api.test_connection
+    result = AI::Client.test_connection(provider: temp_provider)
 
     if result[:success]
       # Also return available models
-      models = temp_provider.api.list_models
+      models = AI::Client.list_models(provider: temp_provider)
       { success: true, models: models.map { |m| m[:id] } }
     else
       { success: false, error: result[:error] }

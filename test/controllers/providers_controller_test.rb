@@ -278,7 +278,7 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
     )
 
     # Mock the model manager
-    LLM::ModelManager.stubs(:available_models).returns([])
+    AI::ModelManager.stubs(:available_models).returns([])
 
     get models_provider_url(provider)
     assert_response :success
@@ -288,7 +288,7 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     set_tenant(@account)
 
-    LLM::ModelManager.stubs(:available_models).returns([])
+    AI::ModelManager.stubs(:available_models).returns([])
 
     get models_providers_url
     assert_response :success
@@ -305,7 +305,7 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
     )
 
     mock_model = provider.llm_models.new(name: "GPT-4", identifier: "gpt-4")
-    LLM::ModelManager.expects(:enable_model)
+    AI::ModelManager.expects(:enable_model)
                      .with(@account, provider, "gpt-4")
                      .returns(mock_model)
 
@@ -330,7 +330,7 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
     )
 
     mock_model = provider.llm_models.new(name: "GPT-4", identifier: "gpt-4")
-    LLM::ModelManager.expects(:disable_model)
+    AI::ModelManager.expects(:disable_model)
                      .with(@account, provider, "gpt-4")
                      .returns(mock_model)
 
@@ -355,7 +355,7 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
     )
 
     mock_model = provider.llm_models.new(name: "GPT-4", identifier: "gpt-4")
-    LLM::ModelManager.stubs(:enable_model).returns(mock_model)
+    AI::ModelManager.stubs(:enable_model).returns(mock_model)
 
     post toggle_model_providers_url, params: {
       provider_id: provider.id,
@@ -379,7 +379,7 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
       enabled: true
     )
 
-    LLM::ModelManager.stubs(:enable_model).raises(StandardError, "API Error")
+    AI::ModelManager.stubs(:enable_model).raises(StandardError, "API Error")
 
     post toggle_model_providers_url, params: {
       provider_id: provider.id,

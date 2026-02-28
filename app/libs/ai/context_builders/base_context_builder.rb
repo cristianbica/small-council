@@ -51,11 +51,18 @@ module AI
         scope.limit(limit)
       end
 
-      # Get space advisors (excluding scribe)
+      # Get space advisors (excluding scribe using is_scribe flag)
       def space_advisors
         return [] unless @space
 
-        @space.advisors.where.not("LOWER(name) LIKE ? OR LOWER(name) LIKE ?", "%scribe%", "%scrib%")
+        @space.advisors.where(is_scribe: false)
+      end
+
+      # Get conversation participants (advisors only, not scribe)
+      def conversation_advisors
+        return [] unless @conversation
+
+        @conversation.participant_advisors
       end
 
       # Get the primary summary memory for the space
@@ -65,14 +72,65 @@ module AI
         Memory.primary_summary_for(@space)
       end
 
-      # Get council from conversation
+      # Get council from conversation (if council meeting)
       def council
-        @conversation&.council
+        @conversation&.council if @conversation&.council_meeting?
+      end
+
+      # Get space from conversation (for adhoc) or council
+      def effective_space
+        return @space if @space
+        return @conversation.council.space if @conversation&.council_meeting?
+        nil
+      end
+
+      # Build conversation thread context for message threading
+      def conversation_thread
+        return [] unless @conversation
+
+        @conversation.messages.root_messages.chronological.map do |msg|
+          {
+            role: msg.role == "advisor" ? "assistant" : msg.role,
+            content: msg.content,
+            sender_name: msg.sender.respond_to?(:name) ? msg.sender.name : msg.sender.to_s,
+            message_id: msg.id,
+            replies: msg.replies.chronological.map do |reply|
+              {
+                role: reply.role == "advisor" ? "assistant" : reply.role,
+                content: reply.content,
+                sender_name: reply.sender.respond_to?(:name) ? reply.sender.name : reply.sender.to_s,
+                parent_id: reply.in_reply_to_id
+              }
+            end
+          }
+        end
+      end
+
+      # Get conversation rules of engagement description
+      def roe_description
+        return nil unless @conversation
+
+        case @conversation.roe_type
+        when "open"
+          "Advisors respond when @mentioned. Use @all to invite everyone. Max depth: 1."
+        when "consensus"
+          "All advisors discuss until reaching agreement. Max depth: 2."
+        when "brainstorming"
+          "All advisors contribute ideas iteratively. Max depth: 2."
+        else
+          "Unknown engagement mode."
+        end
       end
 
       # Validate that required objects are present
       def validate_space!
-        raise ArgumentError, "Space is required" unless @space
+        # Space is not always required now (adhoc conversations may not have explicit space)
+        # But we should have a conversation to extract space from
+        return if @space
+        return if @conversation&.council_meeting? && @conversation.council&.space
+        # Allow adhoc conversations without explicit space
+        # Raise error if completely missing context
+        raise ArgumentError, "Space is required when no conversation with council is provided"
       end
 
       def validate_conversation!

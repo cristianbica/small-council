@@ -11,9 +11,21 @@ class ConversationFlowTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     set_tenant(@account)
 
-    # Create a council
+    # Create a space and advisor
+    space = @account.spaces.first || @account.spaces.create!(name: "General")
+    provider = @account.providers.create!(name: "Test Provider", provider_type: "openai", api_key: "test-key")
+    llm_model = provider.llm_models.create!(account: @account, name: "GPT-4", identifier: "gpt-4")
+    advisor = @account.advisors.create!(
+      name: "Test Advisor",
+      system_prompt: "You are a test advisor",
+      space: space,
+      llm_model: llm_model
+    )
+
+    # Create a council with advisor
     post councils_url, params: { council: { name: "Test Council", description: "For testing" } }
     council = Council.last
+    council.advisors << advisor
     assert_redirected_to council_url(council)
 
     # Start a conversation

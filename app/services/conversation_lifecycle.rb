@@ -1,110 +1,188 @@
+# app/services/conversation_lifecycle.rb
 class ConversationLifecycle
+  MAX_SCRIBE_INITIATED = 3
+
   def initialize(conversation)
     @conversation = conversation
-    @roe_strategy = RoE::Factory.create(conversation)
-    Rails.logger.debug "[ConversationLifecycle] Initialized for conversation #{conversation.id} with RoE: #{conversation.rules_of_engagement}"
+    Rails.logger.debug "[ConversationLifecycle] Initialized for conversation #{conversation.id} (type: #{conversation.conversation_type}, roe: #{conversation.roe_type})"
   end
 
-  # User posted a message
-  # Creates pending messages for responders and enqueues AI jobs
+  # Called when user posts a message
   def user_posted_message(user_message)
-    Rails.logger.debug "[ConversationLifecycle#user_posted_message] Processing message #{user_message.id} in conversation #{@conversation.id}"
+    Rails.logger.debug "[ConversationLifecycle#user_posted_message] Processing message #{user_message.id}"
     return unless user_message.persisted?
 
-    responders = @roe_strategy.determine_responders(user_message)
-    Rails.logger.debug "[ConversationLifecycle#user_posted_message] RoE determined #{responders.count} responder(s): #{responders.map { |r| "#{r.name} (ID: #{r.id})" }.join(', ')}"
+    # Reset scribe initiated count on user message
+    @conversation.reset_scribe_initiated_count!
 
-    responders.each do |advisor|
-      Rails.logger.debug "[ConversationLifecycle#user_posted_message] Creating pending message for advisor: #{advisor.name} (ID: #{advisor.id})"
-      create_pending_message_and_enqueue(advisor)
+    # Check for commands
+    command = CommandParser.parse(user_message.content)
+    if command
+      handle_command(command, user_message)
+      return
     end
 
-    responders
+    # Normal message flow
+    mentioned_advisors = parse_mentions(user_message.content)
+
+    # For Open RoE with @all, expand to all participants (including scribe)
+    if should_expand_all_mentions?(user_message)
+      mentioned_advisors = @conversation.all_participant_advisors
+    end
+
+    # If Open RoE and no mentions, check if conversation has only scribe
+    # In that case, assume user wants scribe to respond
+    if @conversation.open? && mentioned_advisors.empty? && !user_message.mentions_all?
+      non_scribe_advisors = @conversation.participant_advisors
+      if non_scribe_advisors.empty?
+        # Only scribe in conversation - assume scribe should respond
+        Rails.logger.info "[ConversationLifecycle] Only scribe present, auto-triggering scribe response"
+        mentioned_advisors = [ @conversation.scribe_advisor ].compact
+      else
+        Rails.logger.debug "[ConversationLifecycle] Open RoE: no mentions, no advisors will respond"
+        return
+      end
+    end
+
+    # For Consensus and Brainstorming, all advisors respond if no specific mentions
+    if (@conversation.consensus? || @conversation.brainstorming?) && mentioned_advisors.empty?
+      mentioned_advisors = @conversation.all_participant_advisors
+    end
+
+    # Populate pending_advisor_ids on the message
+    user_message.update!(pending_advisor_ids: mentioned_advisors.map(&:id))
+
+    # Create pending responses for each advisor
+    mentioned_advisors.each do |advisor|
+      create_pending_message_and_enqueue(advisor, user_message)
+    end
+
+    mentioned_advisors
   end
 
-  # AI advisor posted a response
-  # Updates message status and triggers any follow-up actions
-  def advisor_responded(advisor, content, message)
-    Rails.logger.debug "[ConversationLifecycle#advisor_responded] Advisor #{advisor.name} (ID: #{advisor.id}) responded to message #{message.id}"
-    return unless message.pending?
+  # Called when advisor responds (via job completion)
+  def advisor_responded(advisor_response_message)
+    parent_message = advisor_response_message.parent_message
+    return unless parent_message
 
-    # Update message with response content
+    Rails.logger.debug "[ConversationLifecycle#advisor_responded] Advisor #{advisor_response_message.sender.name} responded to message #{parent_message.id}"
+
+    # Remove advisor from pending list
+    parent_message.resolve_for_advisor!(advisor_response_message.sender_id)
+
+    # Broadcast the completed response
+    broadcast_message(advisor_response_message)
+
+    # Check if parent is now solved
+    if parent_message.solved?
+      Rails.logger.debug "[ConversationLifecycle] Message #{parent_message.id} is now solved"
+      handle_message_solved(parent_message)
+    end
+  end
+
+  # Handle error during advisor response generation
+  def advisor_response_error(message, error_content)
+    Rails.logger.error "[ConversationLifecycle] Error in advisor response: #{error_content}"
+
     message.update!(
-      content: content,
-      role: "advisor",
-      status: "complete"
+      content: "[Error: #{error_content}]",
+      status: "error"
     )
-    Rails.logger.debug "[ConversationLifecycle#advisor_responded] Message #{message.id} updated with content length: #{content&.length || 0}"
 
-    # Notify RoE strategy for state updates (e.g., round robin tracking)
-    @roe_strategy.after_response(advisor)
-    Rails.logger.debug "[ConversationLifecycle#advisor_responded] RoE after_response callback executed for #{advisor.name}"
-
-    # Mark advisor as responded for auto-conclusion tracking
-    @conversation.mark_advisor_responded(advisor.id)
-    Rails.logger.debug "[ConversationLifecycle#advisor_responded] Marked advisor #{advisor.id} as responded. Current responded count: #{@conversation.context['responded_advisor_ids']&.count || 0} / #{@conversation.council.advisors.count}"
-
-    # Broadcast via Turbo Stream
-    broadcast_message(message)
-
-    # Check if we should auto-conclude
-    Rails.logger.debug "[ConversationLifecycle#advisor_responded] Checking for auto-conclusion..."
-    check_for_conclusion
-
-    message
-  rescue => e
-    handle_error(message, e)
-    raise unless e.is_a?(ActiveRecord::RecordInvalid)
-  end
-
-  # Check if conversation should auto-conclude
-  def check_for_conclusion
-    Rails.logger.debug "[ConversationLifecycle#check_for_conclusion] Checking conversation #{@conversation.id} (status: #{@conversation.status}, active?: #{@conversation.active?})"
-    return unless @conversation.active?
-
-    should_conclude = @roe_strategy.should_auto_conclude?(@conversation)
-    Rails.logger.debug "[ConversationLifecycle#check_for_conclusion] RoE auto-conclude check: #{should_conclude}"
-
-    if should_conclude
-      Rails.logger.info "[ConversationLifecycle#check_for_conclusion] Auto-concluding conversation #{@conversation.id}"
-      begin_conclusion_process
-    else
-      Rails.logger.debug "[ConversationLifecycle#check_for_conclusion] Conversation #{@conversation.id} will continue"
+    # Remove from pending to prevent blocking
+    if message.parent_message
+      message.parent_message.resolve_for_advisor!(message.sender_id)
     end
+
+    broadcast_message(message)
   end
 
-  # Begin the conclusion process (status: concluding)
+  # Begin the conclusion process
   def begin_conclusion_process
-    Rails.logger.info "[ConversationLifecycle#begin_conclusion_process] Starting conclusion for conversation #{@conversation.id}"
+    Rails.logger.info "[ConversationLifecycle] Starting conclusion for conversation #{@conversation.id}"
     @conversation.update!(status: :concluding)
-    Rails.logger.info "[ConversationLifecycle#begin_conclusion_process] Conversation #{@conversation.id} status updated to 'concluding', enqueuing summary job"
     GenerateConversationSummaryJob.perform_later(@conversation.id)
   end
 
   private
 
-  def create_pending_message_and_enqueue(advisor)
-    # For Scribe advisors in Moderated mode, use different placeholder text
-    placeholder_content = advisor.scribe? ? "[#{advisor.name}] is selecting an advisor to respond..." : "[#{advisor.name}] is thinking..."
+  def handle_message_solved(message)
+    # Only handle root messages (not replies) for scribe follow-up
+    return unless message.root_message?
 
-    Rails.logger.debug "[ConversationLifecycle#create_pending_message_and_enqueue] Creating placeholder for #{advisor.name} (scribe: #{advisor.scribe?})"
+    # Check scribe initiated limit
+    if @conversation.scribe_initiated_count >= MAX_SCRIBE_INITIATED
+      Rails.logger.debug "[ConversationLifecycle] Scribe initiated limit reached (#{@conversation.scribe_initiated_count}/#{MAX_SCRIBE_INITIATED})"
+      return
+    end
+
+    # Get scribe advisor
+    scribe = @conversation.scribe_advisor
+    return unless scribe
+
+    # Create scribe follow-up message
+    scribe_message = @conversation.messages.create!(
+      account: @conversation.account,
+      sender: scribe,
+      role: "advisor",
+      content: "[Scribe is evaluating...]",
+      status: "pending"
+    )
+
+    @conversation.increment_scribe_initiated_count!
+
+    Rails.logger.info "[ConversationLifecycle] Scribe follow-up created (message #{scribe_message.id}, count: #{@conversation.scribe_initiated_count}/#{MAX_SCRIBE_INITIATED})"
+
+    GenerateAdvisorResponseJob.perform_later(
+      advisor_id: scribe.id,
+      conversation_id: @conversation.id,
+      message_id: scribe_message.id,
+      is_scribe_followup: true
+    )
+  end
+
+  def handle_command(command, user_message)
+    user = user_message.sender
+
+    unless command.valid?
+      create_system_message("Command error: #{command.errors.join(', ')}")
+      return
+    end
+
+    result = command.execute(conversation: @conversation, user: user)
+    create_system_message(result[:message])
+
+    # Also broadcast the command result
+    broadcast_system_message(result[:message])
+  end
+
+  def create_pending_message_and_enqueue(advisor, parent_message)
+    # Check depth limit
+    current_depth = parent_message.depth + 1
+    max_depth = @conversation.max_depth
+
+    Rails.logger.debug "[ConversationLifecycle] Creating pending message for #{advisor.name} (depth: #{current_depth}, max: #{max_depth})"
+
+    if current_depth > max_depth
+      Rails.logger.debug "[ConversationLifecycle] Depth limit reached (#{current_depth} > #{max_depth}), skipping #{advisor.name}"
+      return nil
+    end
 
     placeholder = @conversation.messages.create!(
       account: @conversation.account,
       sender: advisor,
       role: "system",
-      content: placeholder_content,
+      parent_message: parent_message,
+      content: "[#{advisor.name}] is thinking...",
       status: "pending"
     )
 
-    Rails.logger.debug "[ConversationLifecycle#create_pending_message_and_enqueue] Created placeholder message #{placeholder.id}"
+    Rails.logger.debug "[ConversationLifecycle] Created placeholder message #{placeholder.id}"
 
-    # Broadcast placeholder message
+    # Broadcast placeholder
     broadcast_placeholder(placeholder)
-    Rails.logger.debug "[ConversationLifecycle#create_pending_message_and_enqueue] Broadcasted placeholder"
 
-    # Enqueue background job to generate actual response
-    Rails.logger.info "[ConversationLifecycle#create_pending_message_and_enqueue] Enqueuing job for advisor #{advisor.id}, message #{placeholder.id}"
+    # Enqueue job
     GenerateAdvisorResponseJob.perform_later(
       advisor_id: advisor.id,
       conversation_id: @conversation.id,
@@ -112,6 +190,41 @@ class ConversationLifecycle
     )
 
     placeholder
+  end
+
+  def parse_mentions(content)
+    return [] if content.blank?
+
+    mentioned_names = content.scan(/@([a-zA-Z0-9_\-]+)/i).flatten.map(&:downcase)
+
+    # Filter out 'all' and 'everyone' as they're handled separately
+    mentioned_names.reject! { |name| name == "all" || name == "everyone" }
+
+    @conversation.all_participant_advisors.select do |advisor|
+      mentioned_names.any? { |name| name_matches?(advisor, name) }
+    end
+  end
+
+  def name_matches?(advisor, mention)
+    advisor_name_normalized = advisor.name.downcase.gsub(/[\s\-]+/, "_")
+    mention_normalized = mention.downcase.gsub(/[\s\-]+/, "_")
+
+    advisor_name_normalized == mention_normalized ||
+      advisor.name.downcase.include?(mention.downcase)
+  end
+
+  def should_expand_all_mentions?(message)
+    message.mentions_all?
+  end
+
+  def create_system_message(content)
+    @conversation.messages.create!(
+      account: @conversation.account,
+      sender: @conversation.user,  # System messages attributed to conversation owner
+      role: "system",
+      content: content,
+      status: "complete"
+    )
   end
 
   def broadcast_message(message)
@@ -132,15 +245,8 @@ class ConversationLifecycle
     )
   end
 
-  def handle_error(message, error)
-    Rails.logger.error "[ConversationLifecycle] Error in advisor_responded: #{error.message}"
-    Rails.logger.error error.backtrace.first(5).join("\n")
-
-    message.update!(
-      content: "[Error: #{error.message}]",
-      status: "error"
-    )
-
-    broadcast_message(message)
+  def broadcast_system_message(content)
+    message = create_system_message(content)
+    broadcast_placeholder(message)
   end
 end

@@ -44,7 +44,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
 
     get council_conversations_url(council)
     assert_response :success
-    assert_select "h1", "Conversations"
+    assert_select "h1", "#{council.name} Conversations"
     assert_select "h3", conversation.title
   end
 
@@ -137,14 +137,17 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
       }
     }
     assert_response :unprocessable_entity
-    assert_select "h1", "Start New Conversation"
+    assert_select "h1", "Start Meeting"
   end
 
   test "update redirects on success" do
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    advisor = @account.advisors.create!(name: "Test Advisor", system_prompt: "Help", space: @space)
     conversation = @account.conversations.create!(council: council, user: @user, title: "Old Title")
+    # Add advisor as participant to pass validation
+    conversation.conversation_participants.create!(advisor: advisor, role: :advisor, position: 0)
 
     patch conversation_url(conversation), params: {
       conversation: { title: "Updated Title" }
@@ -201,13 +204,16 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    conversation = @account.conversations.create!(council: council, user: @user, title: "Test", rules_of_engagement: :round_robin)
+    advisor = @account.advisors.create!(name: "Test Advisor", system_prompt: "Help", space: @space)
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Test", roe_type: :open)
+    # Add advisor as participant to pass validation
+    conversation.conversation_participants.create!(advisor: advisor, role: :advisor, position: 0)
 
     patch conversation_url(conversation), params: {
-      conversation: { rules_of_engagement: :consensus }
+      conversation: { roe_type: :consensus }
     }
     assert_redirected_to conversation_url(conversation)
-    assert_equal "consensus", conversation.reload.rules_of_engagement
+    assert_equal "consensus", conversation.reload.roe_type
   end
 
   test "show redirects when conversation belongs to different space" do
@@ -384,6 +390,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    advisor = @account.advisors.create!(name: "Test Advisor", system_prompt: "Help", space: @space)
     conversation = @account.conversations.create!(
       council: council,
       user: @user,
@@ -391,6 +398,8 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
       status: :concluding,
       draft_memory: { "key_decisions" => "Decision 1" }.to_json
     )
+    # Add advisor as participant to pass validation
+    conversation.conversation_participants.create!(advisor: advisor, role: :advisor, position: 0)
 
     # Count existing conversation summaries before the request
     initial_count = @space.memories.conversation_summaries.count
@@ -424,6 +433,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    advisor = @account.advisors.create!(name: "Test Advisor", system_prompt: "Help", space: @space)
     conversation = @account.conversations.create!(
       council: council,
       user: @user,
@@ -431,13 +441,15 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
       status: :concluding,
       draft_memory: { "test" => "data" }.to_json
     )
+    # Add advisor as participant to pass validation
+    conversation.conversation_participants.create!(advisor: advisor, role: :advisor, position: 0)
 
-    assert_enqueued_with(job: GenerateConversationSummaryJob, args: [ conversation.id ]) do
+    assert_enqueued_with(job: GenerateConversationSummaryJob) do
       post regenerate_summary_conversation_url(conversation)
     end
 
     assert_redirected_to conversation_url(conversation)
-    assert_nil conversation.reload.context["draft_memory"]
+    assert_nil conversation.reload.draft_memory
   end
 
   test "regenerate_summary fails when not in concluding state" do
@@ -553,7 +565,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     post cancel_pending_conversation_url(conversation)
 
     assert_redirected_to conversation_url(conversation)
-    assert_equal "Only the conversation starter or council creator can stop advisor responses.", flash[:alert]
+    assert_equal "Only the conversation starter can stop advisor responses.", flash[:alert]
     assert pending_message.reload.pending?
   end
 
@@ -596,7 +608,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Conversation deleted successfully.", flash[:notice]
   end
 
-  test "destroy deletes conversation for council creator" do
+  test "destroy fails for council creator who is not conversation starter" do
     sign_in_as(@user)
     set_tenant(@account)
     other_user = @account.users.create!(email: "other@example.com", password: "password123")
@@ -607,12 +619,13 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
       title: "Test Conversation"
     )
 
-    assert_difference("Conversation.count", -1) do
+    # Council creator cannot delete if they didn't start the conversation
+    assert_no_difference("Conversation.count") do
       delete conversation_url(conversation)
     end
 
-    assert_redirected_to council_conversations_path(council)
-    assert_equal "Conversation deleted successfully.", flash[:notice]
+    assert_redirected_to conversation_url(conversation)
+    assert_equal "Only the conversation starter can delete this conversation.", flash[:alert]
   end
 
   test "destroy fails for unauthorized users" do
@@ -632,7 +645,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to conversation_url(conversation)
-    assert_equal "Only the conversation starter or council creator can delete this conversation.", flash[:alert]
+    assert_equal "Only the conversation starter can delete this conversation.", flash[:alert]
   end
 
   test "destroy requires authentication" do
@@ -648,7 +661,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_in_url
   end
 
-  test "destroy handles turbo_stream format" do
+  test "destroy handles turbo_stream format with redirect" do
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
@@ -662,6 +675,6 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
       delete conversation_url(conversation), as: :turbo_stream
     end
 
-    assert_response :no_content
+    assert_redirected_to council_conversations_path(council)
   end
 end

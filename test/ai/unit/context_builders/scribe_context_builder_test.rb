@@ -22,7 +22,8 @@ module AI
         @scribe = @space.advisors.create!(
           account: @account,
           name: "Scribe",
-          system_prompt: "You are the scribe"
+          system_prompt: "You are the scribe",
+          is_scribe: true
         )
 
         # Create memories
@@ -36,12 +37,24 @@ module AI
           )
         end
 
-        # Create conversations
+        # Create a non-scribe advisor for conversations
+        @advisor = @space.advisors.create!(
+          account: @account,
+          name: "Test Advisor",
+          system_prompt: "You are a test advisor"
+        )
+
+        # Create conversations with advisor
         3.times do |i|
-          @account.conversations.create!(
+          conv = @account.conversations.create!(
             council: @council,
             user: @user,
             title: "Conversation #{i}"
+          )
+          conv.conversation_participants.create!(
+            advisor: @advisor,
+            role: :advisor,
+            position: 0
           )
         end
       end
@@ -78,7 +91,8 @@ module AI
         advisor = @space.advisors.create!(
           account: @account,
           name: "Expert Advisor",
-          system_prompt: "You are an expert"
+          system_prompt: "You are an expert",
+          is_scribe: false
         )
 
         builder = ScribeContextBuilder.new(@space, nil, user: @user, advisor: @scribe)

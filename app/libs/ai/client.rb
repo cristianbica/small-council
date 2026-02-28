@@ -80,9 +80,9 @@ module AI
     rescue RubyLLM::Error => e
       Rails.logger.error "[AI::Client] LLM error: #{e.message}"
       raise APIError, "AI service error: #{e.message}"
-    # rescue StandardError => e
-    #   Rails.logger.error "[AI::Client] Error: #{e.message}"
-    #   raise APIError, "AI service error: #{e.message}"
+      # rescue StandardError => e
+      #   Rails.logger.error "[AI::Client] Error: #{e.message}"
+      #   raise APIError, "AI service error: #{e.message}"
     end
 
     # Single-turn completion (convenience method)
@@ -92,6 +92,75 @@ module AI
     # @return [AI::Model::Response]
     def complete(prompt:, context: {})
       chat(messages: [ { role: "user", content: prompt } ], context: context)
+    end
+
+    # Get model info from RubyLLM registry
+    # @return [RubyLLM::Model::Info, nil]
+    def info
+      return nil unless model
+
+      RubyLLM.models.find(model.identifier)
+    rescue StandardError
+      nil
+    end
+
+    # Class methods for provider-level operations
+    class << self
+      # List available models for a provider
+      # @param provider [Provider] The provider to list models for
+      # @return [Array<Hash>] Array of model data hashes
+      def list_models(provider:)
+        provider_type = provider.provider_type
+        models = RubyLLM.models.by_provider(provider_type.to_sym)
+
+        models.map do |model_info|
+          {
+            id: model_info.id,
+            name: model_info.name,
+            provider: model_info.provider,
+            capabilities: {
+              chat: model_info.type == "chat",
+              vision: model_info.supports_vision?,
+              json_mode: model_info.structured_output?,
+              functions: model_info.supports_functions?
+            }
+          }
+        end
+      end
+
+      # Test connection to a provider
+      # @param provider [Provider] The provider to test
+      # @param test_model_id [String] Model ID to use for testing
+      # @return [Hash] { success: true/false, model: String, error: String }
+      def test_connection(provider:, test_model_id: nil)
+        # Configure RubyLLM for this provider
+        RubyLLM.configure do |config|
+          case provider.provider_type
+          when "openai"
+            config.openai_api_key = provider.api_key
+            config.openai_organization_id = provider.organization_id if provider.organization_id.present?
+          when "openrouter"
+            config.openrouter_api_key = provider.api_key
+          end
+        end
+
+        model_id = test_model_id || find_test_model_id(provider)
+        chat = RubyLLM.chat(model: model_id)
+        response = chat.ask("Test connection")
+
+        { success: true, model: response.model }
+      rescue => e
+        { success: false, error: e.message }
+      end
+
+      private
+
+      def find_test_model_id(provider)
+        # Find first available model for this provider
+        models = RubyLLM.models.by_provider(provider.provider_type.to_sym)
+        free_model = models.find(&:free?)
+        (free_model || models.first)&.id || "gpt-3.5-turbo"
+      end
     end
 
     private

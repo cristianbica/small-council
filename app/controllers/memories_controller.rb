@@ -151,8 +151,8 @@ class MemoriesController < ApplicationController
 
     # Generate side-by-side diffs
     if @previous_version
-      @title_diff = DiffService.side_by_side_diff(@previous_version.title, @version.title) if @title_changed
-      @content_diff = DiffService.side_by_side_diff(@previous_version.content, @version.content) if @content_changed
+      @title_diff = InlineDiff.side_by_side_diff(@previous_version.title, @version.title) if @title_changed
+      @content_diff = InlineDiff.side_by_side_diff(@previous_version.content, @version.content) if @content_changed
     end
   end
 

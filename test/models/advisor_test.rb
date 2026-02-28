@@ -172,14 +172,13 @@ class AdvisorTest < ActiveSupport::TestCase
     assert_respond_to advisor, :space
   end
 
-  test "invalid without space" do
+  test "valid without space (space is optional)" do
     advisor = @account.advisors.new(
       name: "Test Advisor",
       system_prompt: "You are a test advisor",
       llm_model: @llm_model
     )
-    assert_not advisor.valid?
-    assert_includes advisor.errors[:space], "must exist"
+    assert advisor.valid?, "Advisor should be valid without space (optional association)"
   end
 
   test "valid with space, name, system_prompt, and llm_model" do
@@ -225,5 +224,98 @@ class AdvisorTest < ActiveSupport::TestCase
       space: space
     )
     assert_equal "openai", advisor.provider_type
+  end
+
+  # Scribe tests (is_scribe flag)
+  test "scribe? returns true when is_scribe is true" do
+    space = @account.spaces.create!(name: "Test Space")
+    scribe = @account.advisors.create!(
+      name: "The Scribe",
+      system_prompt: "You are the scribe.",
+      space: space,
+      is_scribe: true
+    )
+    assert scribe.scribe?
+  end
+
+  test "scribe? returns false when is_scribe is false" do
+    space = @account.spaces.create!(name: "Test Space")
+    advisor = @account.advisors.create!(
+      name: "Regular Advisor",
+      system_prompt: "You are a regular advisor.",
+      space: space,
+      is_scribe: false
+    )
+    assert_not advisor.scribe?
+  end
+
+  test "scribe? returns false when is_scribe is nil" do
+    space = @account.spaces.create!(name: "Test Space")
+    advisor = @account.advisors.create!(
+      name: "Another Advisor",
+      system_prompt: "You are an advisor.",
+      space: space
+    )
+    assert_not advisor.scribe?
+  end
+
+  test "scribes scope returns only scribes" do
+    space = @account.spaces.create!(name: "Test Space")
+    scribe = @account.advisors.create!(
+      name: "The Scribe",
+      system_prompt: "You are the scribe.",
+      space: space,
+      is_scribe: true
+    )
+    regular = @account.advisors.create!(
+      name: "Regular Advisor",
+      system_prompt: "You are regular.",
+      space: space,
+      is_scribe: false
+    )
+
+    scribes = Advisor.scribes.where(space: space)
+    assert_includes scribes, scribe
+    assert_not_includes scribes, regular
+  end
+
+  test "non_scribes scope returns only non-scribes" do
+    space = @account.spaces.create!(name: "Test Space")
+    scribe = @account.advisors.create!(
+      name: "The Scribe",
+      system_prompt: "You are the scribe.",
+      space: space,
+      is_scribe: true
+    )
+    regular = @account.advisors.create!(
+      name: "Regular Advisor",
+      system_prompt: "You are regular.",
+      space: space,
+      is_scribe: false
+    )
+
+    non_scribes = Advisor.non_scribes.where(space: space)
+    assert_includes non_scribes, regular
+    assert_not_includes non_scribes, scribe
+  end
+
+  test "scribe does not require system_prompt" do
+    space = @account.spaces.create!(name: "Test Space")
+    scribe = @account.advisors.new(
+      name: "Scribe Without Prompt",
+      space: space,
+      is_scribe: true
+    )
+    assert scribe.valid?
+  end
+
+  test "has many conversation_participants" do
+    advisor = Advisor.new
+    assert_respond_to advisor, :conversation_participants
+  end
+
+  test "has many conversations through conversation_participants" do
+    advisor = Advisor.new
+    assert_respond_to advisor, :conversations
   end
 end

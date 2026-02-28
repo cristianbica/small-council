@@ -17,13 +17,8 @@ class ProviderConnectionTesterTest < ActiveSupport::TestCase
   end
 
   test "test_openai returns success with models on valid connection" do
-    # Mock the LLM::Client
-    mock_client = mock
-    mock_api = mock
-
-    LLM::Client.expects(:new).returns(mock_client)
-    mock_client.expects(:test_connection).returns({ success: true, model: "gpt-4o-mini" })
-    mock_client.expects(:list_models).returns([
+    AI::Client.stubs(:test_connection).returns({ success: true, model: "gpt-4o-mini" })
+    AI::Client.stubs(:list_models).returns([
       { id: "gpt-4", name: "GPT-4", provider: "openai" },
       { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo", provider: "openai" }
     ])
@@ -35,11 +30,8 @@ class ProviderConnectionTesterTest < ActiveSupport::TestCase
   end
 
   test "test_openai includes organization_id when provided" do
-    mock_client = mock
-
-    LLM::Client.expects(:new).returns(mock_client)
-    mock_client.expects(:test_connection).returns({ success: true, model: "gpt-4o-mini" })
-    mock_client.expects(:list_models).returns([ { id: "gpt-4", name: "GPT-4", provider: "openai" } ])
+    AI::Client.stubs(:test_connection).returns({ success: true, model: "gpt-4o-mini" })
+    AI::Client.stubs(:list_models).returns([ { id: "gpt-4", name: "GPT-4", provider: "openai" } ])
 
     result = ProviderConnectionTester.test("openai", "sk-test", "org-123")
 
@@ -47,10 +39,7 @@ class ProviderConnectionTesterTest < ActiveSupport::TestCase
   end
 
   test "test_openai handles connection errors" do
-    mock_client = mock
-
-    LLM::Client.expects(:new).returns(mock_client)
-    mock_client.expects(:test_connection).returns({ success: false, error: "Invalid API key" })
+    AI::Client.stubs(:test_connection).returns({ success: false, error: "Invalid API key" })
 
     result = ProviderConnectionTester.test("openai", "invalid-key")
 
@@ -59,11 +48,8 @@ class ProviderConnectionTesterTest < ActiveSupport::TestCase
   end
 
   test "test_openrouter returns success with models on valid connection" do
-    mock_client = mock
-
-    LLM::Client.expects(:new).returns(mock_client)
-    mock_client.expects(:test_connection).returns({ success: true, model: "openai/gpt-4o-mini" })
-    mock_client.expects(:list_models).returns([
+    AI::Client.stubs(:test_connection).returns({ success: true, model: "openai/gpt-4o-mini" })
+    AI::Client.stubs(:list_models).returns([
       { id: "openai/gpt-4", name: "GPT-4", provider: "openrouter" },
       { id: "anthropic/claude-3-opus", name: "Claude 3 Opus", provider: "openrouter" }
     ])
@@ -76,10 +62,7 @@ class ProviderConnectionTesterTest < ActiveSupport::TestCase
   end
 
   test "test_openrouter handles errors" do
-    mock_client = mock
-
-    LLM::Client.expects(:new).returns(mock_client)
-    mock_client.expects(:test_connection).returns({ success: false, error: "Invalid API key" })
+    AI::Client.stubs(:test_connection).returns({ success: false, error: "Invalid API key" })
 
     result = ProviderConnectionTester.test("openrouter", "invalid-key")
 

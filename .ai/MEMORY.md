@@ -38,6 +38,17 @@ Max ~200 lines. Prune oldest/least-used when full. One agent updates per session
 
 Note: Rails integration tests default to `www.example.com` which may not be in allowed hosts. Using `host!` ensures tests use a host that matches config (required with acts_as_tenant).
 
+## Test conventions
+- Always add advisors as conversation_participants, not just to council.advisors
+- RoE types: `open`, `consensus`, `brainstorming` (legacy: round_robin, silent, on_demand removed)
+- Context builders require space - either directly or via conversation.council.space
+- Invite command normalizes: `@mention` → removes `@` → replaces `_` with ` ` for lookup
+- Conversations require at least one non-scribe advisor for updates (validation on :update)
+- Messages: `depth` is calculated method, not a column
+- `pending_advisor_ids` is JSONB array; `solved?` checks empty/nil
+- `command?` detects leading `/`, `command_name` extracts first word after /
+- Tests for acts_as_tenant models should use `set_tenant(account)` in setup
+
 ## Invariants (non-negotiable)
 - All tables except accounts have account_id for multi-tenancy
 - Tenant scoping is active via acts_as_tenant gem (all queries automatically scoped)
@@ -136,7 +147,7 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - Browse and enable/disable AI models per provider
 - Provider cards show enabled model count with quick access to model management
 - Model list shows capabilities (chat, vision, functions) with toggle switches
-- Uses `LLM::ModelManager` service to sync model metadata from ruby_llm
+- Uses `AI::ModelManager` service to sync model metadata from ruby_llm
 - Stores model capabilities, pricing, context window in JSONB metadata column
 - URLs: `/providers/:id/models` (per-provider), `/providers/models` (all models)
 
@@ -144,31 +155,29 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - New `memories` table with 4 memory types: summary, conversation_summary, conversation_notes, knowledge
 - ONLY `summary` type is auto-fed to AI agents; others require query_memories tool
 - Memory CRUD at `/spaces/:space_id/memories` with export (Markdown/JSON)
-- Scribe Chat Interface at `/spaces/:space_id/scribe` for structured conversations
-- **Scribe Tools (RubyLLM-powered)**: Can create memories, query memories, search conversations, read conversation messages
-- Tool framework: ScribeTool (full access) and AdvisorTool (read-only base)
 - Available tools: finish_conversation, create_memory, query_memories
 - Data migration: Existing space.memory migrated to summary-type memories
 - Docs: `.ai/docs/features/memory-management.md`
 
-## Scribe Tool Capabilities (2026-02-27)
-The Scribe has access to 8 tools using RubyLLM's tool system:
+## Scribe Tool Capabilities (2026-02-27, updated 2026-02-28)
+The Scribe/Advisors have access to tools via `app/libs/ai/tools/` (`AI::Tools::BaseTool`):
 
-**Scribe Tools (4):**
-- **finish_conversation**: Conclude conversation and generate summary
-- **create_memory**: Creates a new memory with title, content, and type
-- **query_memories**: Searches existing memories by keyword
-- **browse_web**: Web search capabilities
+**Conversation tools:** finish_conversation, ask_advisor, summarize_conversation
+**External tools:** browse_web
+**Internal tools:** create_memory, list_memories, query_memories, read_memory, update_memory, list_conversations, query_conversations, read_conversation, get_conversation_summary
 
-**Advisor Tools (4) - Scribe can also use these:**
-- **query_memories**: Search space memories
-- **query_conversations**: Find past conversations
-- **read_conversation**: Read messages from a specific conversation
-- **ask_advisor**: Send questions to other advisors
+- Tools are defined in `app/libs/ai/tools/` using `AI::Tools::BaseTool`
+- Context is passed via tool context object (conversation, space, advisor, user)
 
-- Tools are defined in `app/services/scribe_tools/` and `app/services/advisor_tools/`
-- RubyLLM tool wrappers in `app/services/ruby_llm_tools/`
-- Context is passed via `Thread.current[:scribe_context]` for scribe, `Thread.current[:advisor_tool_context]` for advisors
+## AI Architecture Update (2026-02-28)
+- `AI::Client` uses **class methods** — `AI::Client.test_connection(provider:)` and `AI::Client.list_models(provider:)`. Never stub `.new` + instance methods in tests.
+- `Provider.provider_type` enum: `openai`, `openrouter` only (no anthropic).
+- `Current.user` has no setter — to stub current user: `Current.session = stub(user: some_user)`.
+- `Space#create_scribe_advisor` rescues failures and returns nil; always ensure account has an LLM model before calling `scribe_advisor` or creating a Space in tests.
+- Tool system moved from `app/services/scribe_tools/`, `advisor_tools/`, `ruby_llm_tools/` → `app/libs/ai/tools/` with `AI::Tools::BaseTool`; adapter at `app/libs/ai/adapters/ruby_llm_tool_adapter.rb`.
+- 2026-02-28: Deleted stale test files referencing removed classes (ScribeTool, AdvisorTool, ToolExecutionContext, MemorySearch, ScribeToolExecutor).
+- AI::Client stubs: use class-method stubs `AI::Client.stubs(:test_connection).returns(...)` — NOT `.expects(:new)`.
+- Test coverage (2026-02-28): ~1486 runs, 96.71% line, 85.21% branch (Line: 96.71%, Branch: 85.21% as of 2026-02-28).
 
 ## Ruby Version (2026-02-19)
 - **Ruby 4.0.1** (upgraded from 3.4.8) - Uses mise for version management

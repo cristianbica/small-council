@@ -31,4 +31,19 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     get root_url
     assert_redirected_to sign_in_url
   end
+
+  test "should use session space_id to redirect when authenticated" do
+    user = users(:one)
+    sign_in_as(user)
+    account = accounts(:one)
+    space = account.spaces.first
+
+    # Visit the space page first so session[:space_id] is set
+    get space_url(space)
+    assert_equal space.id, session[:space_id]
+
+    # Now dashboard should pick up session[:space_id] branch
+    get dashboard_url
+    assert_redirected_to space_councils_path(space)
+  end
 end

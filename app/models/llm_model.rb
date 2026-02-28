@@ -39,10 +39,10 @@ class LLMModel < ApplicationRecord
     "#{name} (#{provider.name})"
   end
 
-  # Returns LLM::Client scoped to this model
+  # Returns AI::Client scoped to this model
   # (all operations available including chat)
   def api
-    @api ||= LLM::Client.new(provider: provider, model: self)
+    @api ||= AI::Client.new(model: self, system_prompt: "")
   end
 
   # Sync metadata from ruby_llm - stores full RubyLLM::Model::Info data

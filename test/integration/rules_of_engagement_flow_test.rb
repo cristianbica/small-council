@@ -30,12 +30,19 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
     )
     @council.advisors << @advisor
 
-    # Create a conversation
+    # Create a conversation with advisors as participants
     @conversation = @account.conversations.create!(
       title: "Test RoE Flow",
       council: @council,
       user: @user,
-      rules_of_engagement: :round_robin
+      rules_of_engagement: :open
+    )
+
+    # Add advisors as participants
+    @conversation.conversation_participants.create!(
+      advisor: @advisor,
+      role: :advisor,
+      position: 0
     )
   end
 
@@ -44,7 +51,7 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     patch conversation_path(@conversation), params: {
-      conversation: { rules_of_engagement: :silent }
+      conversation: { roe_type: :consensus }
     }
 
     assert_redirected_to conversation_path(@conversation)
@@ -52,7 +59,9 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "posting message in round_robin creates placeholder" do
+  test "posting message in consensus creates placeholder for all advisors" do
+    @conversation.update!(roe_type: :consensus)
+
     assert_difference "Message.count", 2 do # user message + placeholder
       post conversation_messages_path(@conversation), params: {
         message: { content: "Hello advisors" }
@@ -68,8 +77,8 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
     assert_match(/thinking/, placeholder.content)
   end
 
-  test "posting with @mention in on_demand mode" do
-    @conversation.update!(rules_of_engagement: :on_demand)
+  test "posting with @mention in open mode" do
+    @conversation.update!(roe_type: :open)
 
     assert_difference "Message.count", 2 do
       post conversation_messages_path(@conversation), params: {
@@ -81,8 +90,8 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
     assert_equal @advisor, placeholder.sender
   end
 
-  test "silent mode does not create placeholders" do
-    @conversation.update!(rules_of_engagement: :silent)
+  test "open mode without @all does not create placeholders" do
+    @conversation.update!(roe_type: :open)
 
     assert_difference "Message.count", 1 do # only user message
       post conversation_messages_path(@conversation), params: {
@@ -99,7 +108,12 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
       space: @space
     )
     @council.advisors << advisor2
-    @conversation.update!(rules_of_engagement: :consensus)
+    @conversation.conversation_participants.create!(
+      advisor: advisor2,
+      role: :advisor,
+      position: 1
+    )
+    @conversation.update!(roe_type: :consensus)
 
     assert_difference "Message.count", 3 do # user + 2 advisors
       post conversation_messages_path(@conversation), params: {
@@ -112,14 +126,15 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "changing RoE mid-conversation affects next message" do
-    # First message with round_robin
+    # First message with consensus (creates placeholder)
+    @conversation.update!(roe_type: :consensus)
     post conversation_messages_path(@conversation), params: {
       message: { content: "First message" }
     }
 
-    @conversation.update!(rules_of_engagement: :silent)
+    @conversation.update!(roe_type: :open)
 
-    # Second message should not trigger advisor
+    # Second message should not trigger advisor (no @mention)
     assert_difference "Message.count", 1 do
       post conversation_messages_path(@conversation), params: {
         message: { content: "Second message" }

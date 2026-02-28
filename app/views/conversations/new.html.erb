@@ -1,9 +1,21 @@
+<%# app/views/conversations/new.html.erb %>
+<%# Supports both council meetings and adhoc conversations %>
+
 <div class="max-w-md mx-auto">
-  <h1 class="text-3xl font-bold mb-6">Start New Conversation</h1>
+  <h1 class="text-3xl font-bold mb-2">
+    <%= @council ? "Start Meeting" : "Start Conversation" %>
+  </h1>
+  <p class="text-base-content/70 mb-6">
+    <% if @council %>
+      Start a meeting in <%= @council.name %> with <%= @council.advisors.count %> advisors.
+    <% else %>
+      Start a direct conversation with any advisor. The Scribe will be automatically included.
+    <% end %>
+  </p>
 
   <section class="card bg-base-100 shadow">
     <div class="card-body">
-      <%= form_with model: [@council, @conversation], class: "space-y-4" do |form| %>
+      <%= form_with model: @council ? [@council, @conversation] : @conversation, class: "space-y-4" do |form| %>
         <% if @conversation.errors.any? %>
           <div class="alert alert-error">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
@@ -35,16 +47,6 @@
           <label class="label">
             <span class="label-text-alt text-base-content/60">A brief title for this conversation</span>
           </label>
-          <% if form.object.errors[:title].any? %>
-            <label class="label">
-              <span class="label-text-alt text-error flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <%= form.object.errors[:title].first %>
-              </span>
-            </label>
-          <% end %>
         </div>
 
         <div class="form-control">
@@ -60,51 +62,83 @@
               rows: 5,
               required: true %>
           <label class="label">
-            <span class="label-text-alt text-base-content/60">This will be your first message to the council</span>
+            <span class="label-text-alt text-base-content/60">This will be your first message</span>
           </label>
-          <% if form.object.errors[:initial_message].any? %>
+        </div>
+
+        <% unless @council %>
+          <!-- Advisor selection for adhoc conversations -->
+          <div class="form-control">
             <label class="label">
-              <span class="label-text-alt text-error flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <%= form.object.errors[:initial_message].first %>
+              <span class="label-text">
+                Select Advisors
+                <span class="text-error" aria-label="required">*</span>
               </span>
             </label>
-          <% end %>
-        </div>
+            <p class="text-sm text-base-content/60 mb-3">
+              Choose which advisors to include. The Scribe will be added automatically.
+            </p>
+
+            <% if @available_advisors.any? %>
+              <div class="space-y-2 max-h-48 overflow-y-auto bg-base-200 p-3 rounded-lg">
+                <% @available_advisors.each do |advisor| %>
+                  <label class="flex items-center gap-3 cursor-pointer p-2 hover:bg-base-300 rounded transition-colors">
+                    <%= check_box_tag "conversation[advisor_ids][]", advisor.id, false, class: "checkbox checkbox-primary" %>
+                    <div class="flex items-center gap-2">
+                      <div class="avatar placeholder">
+                        <div class="bg-neutral text-neutral-content rounded-full w-8">
+                          <span class="text-xs"><%= advisor.name.first.upcase %></span>
+                        </div>
+                      </div>
+                      <div>
+                        <div class="font-medium text-sm"><%= advisor.name %></div>
+                        <div class="text-xs text-base-content/60">@<%= advisor.name.parameterize %></div>
+                      </div>
+                    </div>
+                  </label>
+                <% end %>
+              </div>
+            <% else %>
+              <div class="alert alert-warning">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>No advisors available. Create advisors first.</span>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
 
         <div class="form-control">
           <label class="label">
             <span class="label-text">
-              Rules of Engagement
+              Engagement Mode
               <span class="text-error" aria-label="required">*</span>
             </span>
           </label>
           <p class="text-sm text-base-content/60 mb-3">
-            How advisors will participate in this conversation (cannot be changed later)
+            How advisors will participate (cannot be changed later)
           </p>
-          
+
           <div class="space-y-3">
-            <% 
+            <%
               roe_descriptions = {
-                "round_robin" => "Advisors take turns responding one at a time. Each advisor speaks after the previous one finishes.",
-                "moderated" => "The Scribe advisor moderates and selects which advisor responds based on relevance. If no Scribe exists, the best-matching advisor responds.",
-                "on_demand" => "Advisors only respond when explicitly @mentioned by you. You control who speaks and when.",
-                "silent" => "No advisor responses. Use this for note-taking or when you want to record thoughts without advisor input.",
-                "consensus" => "All advisors respond to every message. You get input from everyone simultaneously."
+                "open" => "Advisors respond when @mentioned. Use @all to invite everyone. Max depth: 1.",
+                "consensus" => "All advisors discuss until reaching agreement. Max depth: 2.",
+                "brainstorming" => "All advisors contribute ideas iteratively. Max depth: 2."
               }
             %>
-            
-            <% Conversation.rules_of_engagements.keys.each do |mode| %>
+
+            <% Conversation.roe_types.keys.each do |mode| %>
               <% mode_string = mode.to_s %>
-              <% is_checked = @conversation.rules_of_engagement == mode_string || (mode_string == "round_robin" && @conversation.rules_of_engagement.blank?) %>
+              <% is_checked = (@conversation.roe_type == mode_string) || (@conversation.roe_type.blank? && mode_string == "open") %>
               <% label_class = is_checked ? "border-primary bg-primary/5" : "border-transparent bg-base-200 hover:bg-base-300" %>
               <label class="cursor-pointer rounded-lg p-3 block border transition-colors <%= label_class %>">
                 <div class="flex items-start gap-3">
-                  <%= form.radio_button :rules_of_engagement, mode, 
+                  <%= form.radio_button :roe_type, mode,
                       class: "radio radio-primary mt-0.5",
-                      required: true %>
+                      required: true,
+                      checked: is_checked %>
                   <div class="flex-1">
                     <span class="font-medium block"><%= mode_string.humanize %></span>
                     <span class="text-sm text-base-content/70 block mt-0.5"><%= roe_descriptions[mode_string] %></span>
@@ -113,22 +147,11 @@
               </label>
             <% end %>
           </div>
-          
-          <% if form.object.errors[:rules_of_engagement].any? %>
-            <label class="label mt-2">
-              <span class="label-text-alt text-error flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <%= form.object.errors[:rules_of_engagement].first %>
-              </span>
-            </label>
-          <% end %>
         </div>
 
         <div class="card-actions justify-end mt-4">
-          <%= link_to "Cancel", council_conversations_path(@council), class: "btn btn-ghost" %>
-          <%= form.submit "Start Conversation", class: "btn btn-primary" %>
+          <%= link_to "Cancel", @council ? council_conversations_path(@council) : conversations_path, class: "btn btn-ghost" %>
+          <%= form.submit @council ? "Start Meeting" : "Start Conversation", class: "btn btn-primary" %>
         </div>
       <% end %>
     </div>

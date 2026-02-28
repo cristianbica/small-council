@@ -37,9 +37,9 @@ class Provider < ApplicationRecord
     self.credentials = (credentials || {}).merge("organization_id" => value)
   end
 
-  # Returns LLM::Client for provider-level operations
-  # (list_models, test_connection - chat will fail without model)
+  # Returns AI::Client class methods for provider-level operations
+  # (list_models, test_connection - chat needs a model)
   def api
-    @api ||= LLM::Client.new(provider: self)
+    @api ||= AI::Client
   end
 end

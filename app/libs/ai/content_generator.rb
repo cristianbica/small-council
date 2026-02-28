@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-
 module AI
   # High-level API for common content generation tasks
   #
@@ -99,7 +98,7 @@ module AI
         <%= conversation_text %>
       PROMPT
 
-      memory_content: <<~PROMPT
+      memory_content: <<~PROMPT,
         Generate structured memory content based on the following information.
         Create a clear, well-organized record that captures the key information.
 
@@ -110,6 +109,61 @@ module AI
         Prompt: <%= prompt %>
         <% if context[:source] %>
         Source: <%= context[:source] %>
+        <% end %>
+      PROMPT
+
+      scribe_followup: <<~PROMPT,
+        You are the Scribe. The conversation has reached a natural pause point.
+        Review the thread and determine the appropriate next step.
+
+        Conversation participants: <%= participants.map { |p| "\#{p[:name]} (\#{p[:role]})" }.join(', ') %>
+        Rules of Engagement: <%= roe_type %> - <%= roe_description %>
+        Current depth: <%= current_depth %> / <%= max_depth %>
+
+        Recent conversation:
+        <%= conversation_text %>
+
+        Your task:
+        1. Summarize the key points from the discussion
+        2. Identify any disagreements or areas needing clarification
+        3. Suggest next steps or ask clarifying questions if needed
+        4. If the discussion is complete, ask the user if they'd like to conclude
+
+        Keep your response concise (2-4 paragraphs).
+        Be helpful and guide the conversation toward productive outcomes.
+      PROMPT
+
+      advisor_response_with_mentions: <<~PROMPT
+        You are <%= advisor_name %> participating in a conversation.
+
+        <% if parent_message %>
+        You are responding to:
+        <%= parent_message.sender.name %>: <%= parent_message.content %>
+        <% end %>
+
+        <% if mentions.any? %>
+        You were mentioned by <%= mentions.join(', ') %> in this conversation.
+        <% end %>
+
+        <% if other_responses.any? %>
+        Other advisors have also responded:
+        <% other_responses.each do |response| %>
+        <%= response[:sender] %>: <%= response[:content] %>
+        <% end %>
+        <% end %>
+
+        Conversation context:
+        <%= conversation_context %>
+
+        Engagement mode: <%= roe_type %>
+        Max depth: <%= max_depth %> (current: <%= current_depth %>)
+
+        Please respond as <%= advisor_name %>, taking into account your expertise and the conversation context.
+        Be thoughtful but concise (2-4 paragraphs).
+        <% if roe_type == 'consensus' %>
+        Focus on building agreement with other perspectives.
+        <% elsif roe_type == 'brainstorming' %>
+        Build on the ideas others have shared.
         <% end %>
       PROMPT
     }.freeze
@@ -123,25 +177,59 @@ module AI
     #
     # @param advisor [Advisor] The advisor generating the response
     # @param conversation [Conversation] The conversation context
+    # @param parent_message [Message, nil] The message being replied to
     # @param context [Hash] Additional context (memories, etc.)
     # @return [AI::Model::Response]
-    def generate_advisor_response(advisor:, conversation:, context: {})
-      cache_key = build_cache_key("advisor_response", advisor.id, conversation.id, context.hash)
+    def generate_advisor_response(advisor:, conversation:, parent_message: nil, context: {})
+      cache_key = build_cache_key("advisor_response", advisor.id, conversation.id, parent_message&.id, context.hash)
 
       fetch_from_cache(cache_key) do
         client = build_client(advisor)
+
+        # Build context for this conversation
         builder = ContextBuilders::ConversationContextBuilder.new(
-          conversation.council.space,
+          Current.space,  # Use current space for both council meetings and adhoc
           conversation,
           context.slice(:memory_limit, :conversation_limit)
         )
 
-        messages = build_conversation_messages(conversation)
+        ctx = builder.build
+
+        # Build messages for context
+        messages = build_conversation_messages_with_thread(conversation, parent_message)
 
         client.chat(
           messages: messages,
-          context: builder.build.merge(context)
+          context: ctx.merge(context)
         )
+      end
+    end
+
+    # Generate scribe follow-up after a message is solved
+    #
+    # @param advisor [Advisor] The scribe advisor
+    # @param conversation [Conversation] The conversation
+    # @param message [Message] The scribe's placeholder message
+    # @return [AI::Model::Response]
+    def generate_scribe_followup(advisor:, conversation:, message:)
+      cache_key = build_cache_key("scribe_followup", advisor.id, conversation.id, message.id)
+
+      fetch_from_cache(cache_key) do
+        client = build_client(advisor)
+        builder = ContextBuilders::ConversationContextBuilder.new(Current.space, conversation)
+        ctx = builder.build
+
+        conversation_text = format_conversation_for_summary(conversation)
+        prompt = render_template(:scribe_followup,
+          participants: ctx[:participants],
+          roe_type: conversation.roe_type,
+          roe_description: ctx[:roe_description],
+          current_depth: message.depth,
+          max_depth: conversation.max_depth,
+          conversation_text: conversation_text
+        )
+
+        client.complete(prompt: prompt)
       end
     end
 
@@ -269,7 +357,7 @@ module AI
     end
 
     def build_conversation_messages(conversation)
-      # Get messages from conversation
+      # Get messages from conversation (flat format for backwards compatibility)
       conversation.messages.chronological.map do |msg|
         {
           role: msg.role == "advisor" ? "assistant" : msg.role,
@@ -278,10 +366,37 @@ module AI
       end
     end
 
+    def build_conversation_messages_with_thread(conversation, parent_message = nil)
+      messages = []
+
+      # Get root messages and their replies
+      conversation.messages.root_messages.chronological.each do |root_msg|
+        # Add root message
+        messages << {
+          role: root_msg.role == "advisor" ? "assistant" : root_msg.role,
+          content: root_msg.content,
+          sender_name: root_msg.sender.respond_to?(:name) ? root_msg.sender.name : root_msg.sender.to_s
+        }
+
+        # Add replies
+        root_msg.replies.chronological.each do |reply|
+          messages << {
+            role: reply.role == "advisor" ? "assistant" : reply.role,
+            content: reply.content,
+            sender_name: reply.sender.respond_to?(:name) ? reply.sender.name : reply.sender.to_s,
+            in_reply_to: reply.in_reply_to_id
+          }
+        end
+      end
+
+      messages
+    end
+
     def format_conversation_for_summary(conversation)
       conversation.messages.chronological.map do |msg|
         sender_name = msg.sender.respond_to?(:name) ? msg.sender.name : msg.sender.to_s
-        "#{sender_name}: #{msg.content}"
+        depth_indicator = "  " * msg.depth
+        "#{depth_indicator}#{sender_name}: #{msg.content}"
       end.join("\n\n")
     end
 
@@ -321,7 +436,7 @@ module AI
     end
 
     def build_cache_key(prefix, *components)
-      parts = components.map { |c| c.to_s.hash.to_s(16) }
+      parts = components.compact.map { |c| c.to_s.hash.to_s(16) }
       "ai/content_generator/#{prefix}/#{parts.join('/')}"
     end
   end

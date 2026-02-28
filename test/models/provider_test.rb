@@ -111,4 +111,24 @@ class ProviderTest < ActiveSupport::TestCase
     assert provider.type_openai?
     assert_not provider.type_openrouter?
   end
+
+  test "api_key returns nil when credentials are nil" do
+    provider = @account.providers.new(name: "No Creds", provider_type: "openai")
+    # credentials is nil by default
+    assert_nil provider.api_key
+  end
+
+  test "api_key= initializes credentials when nil" do
+    provider = @account.providers.new(name: "No Creds", provider_type: "openai")
+    provider.api_key = "new-key"
+    assert_equal "new-key", provider.api_key
+  end
+
+  test "api_key= updates existing credentials preserving other keys" do
+    provider = @account.providers.new(name: "Has Creds", provider_type: "openai")
+    provider.organization_id = "org-123"  # sets credentials with org key
+    provider.api_key = "updated-key"      # updates credentials that already exist
+    assert_equal "updated-key", provider.api_key
+    assert_equal "org-123", provider.organization_id
+  end
 end

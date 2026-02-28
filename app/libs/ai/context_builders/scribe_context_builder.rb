@@ -26,7 +26,7 @@ module AI
     #
     class ScribeContextBuilder < BaseContextBuilder
       def build
-        validate_space!
+        raise ArgumentError, "Space is required" unless @space
 
         ctx = {
           space: @space,

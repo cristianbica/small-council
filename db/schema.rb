@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_26_153632) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_28_024748) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -69,15 +69,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_153632) do
     t.bigint "account_id", null: false
     t.datetime "created_at", null: false
     t.boolean "global", default: false
+    t.boolean "is_scribe", default: false
     t.bigint "llm_model_id"
     t.jsonb "metadata", default: {}
     t.jsonb "model_config", default: {}
     t.string "name", null: false
+    t.text "short_description"
     t.bigint "space_id"
     t.text "system_prompt", null: false
     t.datetime "updated_at", null: false
     t.index ["account_id", "space_id"], name: "index_advisors_on_account_id_and_space_id"
     t.index ["account_id"], name: "index_advisors_on_account_id"
+    t.index ["is_scribe"], name: "index_advisors_on_is_scribe"
     t.index ["llm_model_id"], name: "index_advisors_on_llm_model_id"
     t.index ["metadata"], name: "index_advisors_on_metadata", using: :gin
     t.index ["model_config"], name: "index_advisors_on_model_config", using: :gin
@@ -85,15 +88,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_153632) do
     t.index ["space_id"], name: "index_advisors_on_space_id"
   end
 
+  create_table "conversation_participants", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "advisor_id", null: false
+    t.bigint "conversation_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "position", default: 0
+    t.string "role", default: "advisor", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_conversation_participants_on_account_id"
+    t.index ["advisor_id"], name: "index_conversation_participants_on_advisor_id"
+    t.index ["conversation_id", "advisor_id"], name: "index_conversation_participants_unique", unique: true
+    t.index ["conversation_id"], name: "index_conversation_participants_on_conversation_id"
+  end
+
   create_table "conversations", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.jsonb "context", default: {}
-    t.bigint "council_id", null: false
+    t.string "conversation_type", default: "council_meeting", null: false
+    t.bigint "council_id"
     t.datetime "created_at", null: false
     t.text "draft_memory"
     t.datetime "last_message_at"
     t.text "memory"
+    t.string "roe_type", default: "open", null: false
     t.string "rules_of_engagement", default: "round_robin"
+    t.integer "scribe_initiated_count", default: 0
     t.string "status", default: "active"
     t.string "title"
     t.datetime "updated_at", null: false
@@ -101,7 +121,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_153632) do
     t.index ["account_id", "last_message_at"], name: "index_conversations_on_account_id_and_last_message_at"
     t.index ["account_id"], name: "index_conversations_on_account_id"
     t.index ["context"], name: "index_conversations_on_context", using: :gin
+    t.index ["conversation_type"], name: "index_conversations_on_conversation_type"
     t.index ["council_id"], name: "index_conversations_on_council_id"
+    t.index ["roe_type"], name: "index_conversations_on_roe_type"
     t.index ["rules_of_engagement"], name: "index_conversations_on_rules_of_engagement"
     t.index ["user_id"], name: "index_conversations_on_user_id"
   end
@@ -217,7 +239,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_153632) do
     t.bigint "conversation_id", null: false
     t.datetime "created_at", null: false
     t.jsonb "debug_data", default: {}
+    t.bigint "in_reply_to_id"
     t.jsonb "metadata", default: {}
+    t.jsonb "pending_advisor_ids", default: []
     t.text "prompt_text"
     t.string "role", null: false
     t.bigint "sender_id", null: false
@@ -228,7 +252,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_153632) do
     t.index ["conversation_id", "created_at"], name: "index_messages_on_conversation_id_and_created_at"
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
     t.index ["debug_data"], name: "index_messages_on_debug_data", using: :gin
+    t.index ["in_reply_to_id"], name: "index_messages_on_in_reply_to_id"
     t.index ["metadata"], name: "index_messages_on_metadata", using: :gin
+    t.index ["pending_advisor_ids"], name: "index_messages_on_pending_advisor_ids", using: :gin
     t.index ["sender_type", "sender_id"], name: "index_messages_on_sender"
   end
 
@@ -312,6 +338,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_153632) do
   add_foreign_key "advisors", "accounts"
   add_foreign_key "advisors", "llm_models"
   add_foreign_key "advisors", "spaces"
+  add_foreign_key "conversation_participants", "accounts"
+  add_foreign_key "conversation_participants", "advisors"
+  add_foreign_key "conversation_participants", "conversations"
   add_foreign_key "conversations", "accounts"
   add_foreign_key "conversations", "councils"
   add_foreign_key "conversations", "users"
@@ -328,6 +357,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_153632) do
   add_foreign_key "memory_versions", "memories"
   add_foreign_key "messages", "accounts"
   add_foreign_key "messages", "conversations"
+  add_foreign_key "messages", "messages", column: "in_reply_to_id"
   add_foreign_key "providers", "accounts"
   add_foreign_key "scribe_chat_messages", "spaces"
   add_foreign_key "scribe_chat_messages", "users"

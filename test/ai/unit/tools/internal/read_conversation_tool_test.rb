@@ -11,13 +11,47 @@ module AI
           set_tenant(@account)
           @space = spaces(:one)
           @user = @account.users.first || @account.users.create!(email: "test@example.com", password: "password123")
+
+          # Create provider and LLM model for advisors
+          provider = @account.providers.create!(
+            name: "Test Provider",
+            provider_type: "openai",
+            api_key: "test-key"
+          )
+          llm_model = provider.llm_models.create!(
+            account: @account,
+            name: "GPT-4",
+            identifier: "gpt-4"
+          )
+
+          # Create advisors
+          @advisor = @account.advisors.create!(
+            name: "Test Advisor",
+            system_prompt: "You are a test advisor",
+            space: @space,
+            llm_model: llm_model
+          )
+
           @council = @space.councils.first || @space.councils.create!(name: "Test Council", account: @account, user: @user)
+
+          # Add advisors to council if not present
+          @council.advisors << @advisor unless @council.advisors.include?(@advisor)
+
           @tool = ReadConversationTool.new
 
+          # Create conversation with advisor as participant
           @conversation = @council.conversations.create!(
             account: @account,
             user: @user,
-            title: "Test Conversation"
+            title: "Test Conversation",
+            conversation_type: :council_meeting
+          )
+
+          # Add advisor participant
+          @conversation.conversation_participants.create!(
+            advisor: @advisor,
+            role: "advisor",
+            position: 0
           )
 
           # Create messages

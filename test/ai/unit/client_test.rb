@@ -189,29 +189,31 @@ module AI
       assert_equal({ "query" => "test" }, response.tool_calls.first.arguments)
     end
 
-    test "chat raises RateLimitError on RubyLLM rate limit" do
-      client = Client.new(model: @llm_model)
+  test "chat raises RateLimitError on RubyLLM rate limit" do
+    client = Client.new(model: @llm_model)
 
-      # RubyLLM errors expect a response object, but we can use StandardError
-      # and test that our wrapper converts it properly
-      RubyLLM.stubs(:context).raises(StandardError.new("Rate limited"))
+    # Create a mock response object
+    mock_response = Struct.new(:body).new("Rate limited")
+    RubyLLM.stubs(:context).raises(RubyLLM::RateLimitError.new(mock_response, "Rate limited"))
 
-      error = assert_raises(Client::APIError) do
-        client.chat(messages: [ { role: "user", content: "Hello" } ])
-      end
-      assert_match(/Rate limited/, error.message)
+    error = assert_raises(Client::RateLimitError) do
+      client.chat(messages: [ { role: "user", content: "Hello" } ])
     end
+    assert_match(/Rate limited/, error.message)
+  end
 
-    test "chat raises APIError on RubyLLM error" do
-      client = Client.new(model: @llm_model)
+  test "chat raises APIError on RubyLLM error" do
+    client = Client.new(model: @llm_model)
 
-      RubyLLM.stubs(:context).raises(StandardError.new("API error"))
+    # Create a mock response object
+    mock_response = Struct.new(:body).new("API error")
+    RubyLLM.stubs(:context).raises(RubyLLM::Error.new(mock_response, "API error"))
 
-      error = assert_raises(Client::APIError) do
-        client.chat(messages: [ { role: "user", content: "Hello" } ])
-      end
-      assert_match(/API error/, error.message)
+    error = assert_raises(Client::APIError) do
+      client.chat(messages: [ { role: "user", content: "Hello" } ])
     end
+    assert_match(/API error/, error.message)
+  end
 
     test "with_retry retries on rate limit errors" do
       client = Client.new(model: @llm_model)

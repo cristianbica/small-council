@@ -39,13 +39,6 @@ Rails.application.routes.draw do
         get :export
       end
     end
-
-    # Scribe chat interface
-    resource :scribe, only: [ :show ], controller: "space_scribe" do
-      post :chat
-      post :execute_tool
-      get :suggest
-    end
   end
 
   # Councils can still be accessed directly (redirects to current space context)
@@ -76,6 +69,12 @@ Rails.application.routes.draw do
       post :reject_summary
       post :regenerate_summary
       post :cancel_pending
+      post :invite_advisor
+    end
+
+    collection do
+      get :adhoc
+      post :quick_create
     end
   end
 

@@ -36,7 +36,7 @@ class GenerateConversationSummaryJob < ApplicationJob
       # Skip placeholder/pending messages
       next if msg.pending?
       # Skip regular advisor "is thinking..." placeholders, but keep Scribe "selecting an advisor" messages
-      next if msg.content&.include?("is thinking...") && !msg.sender.respond_to?(:scribe?)
+      next if msg.content&.include?("is thinking...") && !msg.sender.try(:scribe?)
 
       sender_name = msg.sender.is_a?(User) ? msg.sender.email : msg.sender.name
       "#{sender_name}: #{msg.content}"
@@ -98,14 +98,15 @@ class GenerateConversationSummaryJob < ApplicationJob
     # - **Key Decisions:**
     # - **Key Decisions**
     # - Key Decisions:
-    # Use negative lookahead to stop at any other section header
+    # Use negative lookahead to stop at any other section header or end
 
     # Escape the section name for regex
     escaped_name = Regexp.escape(section_name)
 
-    # Pattern matches: ## or **, optional whitespace, section name, optional :, optional **, optional \n
+    # Pattern matches: optional ## or **, optional whitespace, section name, optional : and **, optional \n
     # Then captures everything until the next section header or end
-    pattern = /(?:##?|\*\*)\s*#{escaped_name}\s*:?\*?\s*\n?(.*?)(?=(?:\n\s*(?:##?|\*\*)?\s*(?:Key Decisions|Action Items|Insights|Open Questions)\s*:?\*?|\z))/mi
+    # Section headers can be: ## or ** prefixed, or plain text followed by colon
+    pattern = /(?:##?|\*\*)?\s*#{escaped_name}\s*:?\*?\s*\n?(.*?)(?=(?:\n\s*(?:##?|\*\*)?\s*(?:Key Decisions|Action Items|Insights|Open Questions)\s*:?\*?|\z))/mi
 
     match = content.match(pattern)
 

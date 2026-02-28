@@ -22,7 +22,7 @@
         <%= link_to "Edit Council", edit_council_path(@council), class: "btn btn-ghost btn-sm" %>
         <%= button_to "Delete", @council, method: :delete,
             class: "btn btn-error btn-sm",
-            data: { turbo_confirm: "Are you sure? This will permanently delete:\n\n• This council\n• All #{@council.advisors.count} advisor(s) in this council\n• All #{@council.conversations.count} conversation(s)\n• All messages within those conversations\n\nThis action cannot be undone." } %>
+            data: { turbo_confirm: "Are you sure? This will permanently delete:\n\n• This council\n• All #{@council.advisors.count} advisor(s) in this council\n• All #{@council.conversations.count} meeting(s)\n• All messages within those meetings\n\nThis action cannot be undone." } %>
       <% end %>
     </div>
   </div>
@@ -74,12 +74,12 @@
     </div>
   </section>
 
-  <!-- Conversations Section -->
+  <!-- Meetings Section -->
   <section class="card bg-base-100 shadow">
     <div class="card-body">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="card-title">Conversations</h2>
-        <%= link_to "New Conversation", new_council_conversation_path(@council), class: "btn btn-primary btn-sm" %>
+        <h2 class="card-title">Meetings</h2>
+        <%= link_to "New Meeting", new_council_conversation_path(@council), class: "btn btn-primary btn-sm" %>
       </div>
 
       <% if @council.conversations.any? %>
@@ -106,16 +106,16 @@
           <% end %>
           <% if @council.conversations.count > 5 %>
             <div class="text-center mt-4">
-              <%= link_to "View all #{@council.conversations.count} conversations →", council_conversations_path(@council), class: "link link-primary" %>
+              <%= link_to "View all #{@council.conversations.count} meetings →", council_conversations_path(@council), class: "link link-primary" %>
             </div>
           <% end %>
         </div>
       <% else %>
         <%= render "shared/empty_state",
-            title: "No conversations yet",
-            description: "Start a conversation to collaborate with your advisors.",
+            title: "No meetings yet",
+            description: "Start a meeting to collaborate with your advisors.",
             action_path: new_council_conversation_path(@council),
-            action_text: "Start First Conversation" %>
+            action_text: "Start First Meeting" %>
       <% end %>
     </div>
   </section>

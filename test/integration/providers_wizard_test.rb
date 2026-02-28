@@ -79,11 +79,9 @@ class ProvidersWizardTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     set_tenant(@account)
 
-    # Mock the LLM::Client
-    mock_client = mock
-    LLM::Client.stubs(:new).returns(mock_client)
-    mock_client.stubs(:test_connection).returns({ success: true, model: "gpt-4o-mini" })
-    mock_client.stubs(:list_models).returns([
+    # Mock the AI::Client class methods
+    AI::Client.stubs(:test_connection).returns({ success: true, model: "gpt-4o-mini" })
+    AI::Client.stubs(:list_models).returns([
       { id: "gpt-4", name: "GPT-4", provider: "openai" }
     ])
 
@@ -233,10 +231,8 @@ class ProvidersWizardTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     set_tenant(@account)
 
-    # Mock the LLM::Client to return failure
-    mock_client = mock
-    LLM::Client.stubs(:new).returns(mock_client)
-    mock_client.stubs(:test_connection).returns({ success: false, error: "Invalid API key" })
+    # Mock the AI::Client to return failure
+    AI::Client.stubs(:test_connection).returns({ success: false, error: "Invalid API key" })
 
     # Test connection with invalid API key
     post test_connection_providers_path,

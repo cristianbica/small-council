@@ -81,4 +81,19 @@ class ApplicationControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
     assert_response :success
   end
+
+  test "set_current_space uses session space_id branch in non-dashboard controller" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    space = @account.spaces.first
+
+    # Visit a space page to set session[:space_id]
+    get space_url(space)
+    assert_equal space.id, session[:space_id]
+
+    # Now visit spaces index (uses set_current_space) — exercises session[:space_id] true branch
+    get spaces_url
+    assert_response :success
+  end
 end

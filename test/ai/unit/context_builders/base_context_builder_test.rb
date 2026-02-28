@@ -141,11 +141,12 @@ module AI
       end
 
       test "space_advisors returns non-scribe advisors" do
-        # Create a scribe advisor
+        # Create a scribe advisor with is_scribe flag
         @space.advisors.create!(
           account: @account,
           name: "Scribe",
-          system_prompt: "You are the scribe"
+          system_prompt: "You are the scribe",
+          is_scribe: true
         )
 
         # Create a regular advisor
@@ -184,7 +185,7 @@ module AI
         assert_nil builder.send(:primary_summary)
       end
 
-      test "validate_space! raises when space is nil" do
+      test "validate_space! raises when space and conversation are nil" do
         builder = TestBuilder.new(nil)
         assert_raises(ArgumentError) do
           builder.send(:validate_space!)
@@ -206,6 +207,132 @@ module AI
       test "council returns nil when no conversation" do
         builder = TestBuilder.new(@space)
         assert_nil builder.send(:council)
+      end
+
+      test "council returns nil when conversation is adhoc" do
+        adhoc_conv = @account.conversations.create!(
+          user: @user, title: "Adhoc", conversation_type: "adhoc"
+        )
+        builder = TestBuilder.new(@space, adhoc_conv)
+        assert_nil builder.send(:council)
+      end
+
+      test "space_advisors returns empty array when space is nil" do
+        builder = TestBuilder.new(nil)
+        assert_empty builder.send(:space_advisors)
+      end
+
+      test "conversation_advisors returns empty array when conversation is nil" do
+        builder = TestBuilder.new(@space)
+        assert_empty builder.send(:conversation_advisors)
+      end
+
+      test "effective_space returns space when space is set" do
+        builder = TestBuilder.new(@space, @conversation)
+        assert_equal @space, builder.send(:effective_space)
+      end
+
+      test "effective_space returns council space when space is nil and conversation is council_meeting" do
+        builder = TestBuilder.new(nil, @conversation)
+        assert_equal @space, builder.send(:effective_space)
+      end
+
+      test "effective_space returns nil when both space and conversation council are nil" do
+        adhoc_conv = @account.conversations.create!(
+          user: @user, title: "Adhoc No Space", conversation_type: "adhoc"
+        )
+        builder = TestBuilder.new(nil, adhoc_conv)
+        assert_nil builder.send(:effective_space)
+      end
+
+      test "roe_description returns open description for open roe_type" do
+        # Create advisor so conversation update passes validation
+        regular_advisor = @space.advisors.create!(
+          account: @account, name: "ROE Test Advisor", system_prompt: "Expert"
+        )
+        @conversation.conversation_participants.create!(advisor: regular_advisor, role: "advisor")
+        @conversation.update!(roe_type: "open")
+        builder = TestBuilder.new(@space, @conversation)
+        desc = builder.send(:roe_description)
+        assert_includes desc, "@mentioned"
+      end
+
+      test "roe_description returns consensus description for consensus roe_type" do
+        regular_advisor = @space.advisors.create!(
+          account: @account, name: "Consensus Advisor", system_prompt: "Expert"
+        )
+        @conversation.conversation_participants.create!(advisor: regular_advisor, role: "advisor")
+        @conversation.update!(roe_type: "consensus")
+        builder = TestBuilder.new(@space, @conversation)
+        desc = builder.send(:roe_description)
+        assert_includes desc, "agreement"
+      end
+
+      test "roe_description returns brainstorming description for brainstorming roe_type" do
+        regular_advisor = @space.advisors.create!(
+          account: @account, name: "Brain Advisor", system_prompt: "Expert"
+        )
+        @conversation.conversation_participants.create!(advisor: regular_advisor, role: "advisor")
+        @conversation.update!(roe_type: "brainstorming")
+        builder = TestBuilder.new(@space, @conversation)
+        desc = builder.send(:roe_description)
+        assert_includes desc, "ideas"
+      end
+
+      test "roe_description returns nil when no conversation" do
+        builder = TestBuilder.new(@space)
+        assert_nil builder.send(:roe_description)
+      end
+
+      test "validate_space! does not raise when space is set" do
+        builder = TestBuilder.new(@space)
+        assert_nothing_raised { builder.send(:validate_space!) }
+      end
+
+      test "validate_space! does not raise for council_meeting with council having space" do
+        builder = TestBuilder.new(nil, @conversation)
+        assert_nothing_raised { builder.send(:validate_space!) }
+      end
+
+      test "validate_space! raises when space is nil and conversation is adhoc with no council" do
+        adhoc_conv = @account.conversations.create!(
+          user: @user, title: "Adhoc No Council", conversation_type: "adhoc"
+        )
+        builder = TestBuilder.new(nil, adhoc_conv)
+        assert_raises(ArgumentError) { builder.send(:validate_space!) }
+      end
+
+      test "roe_description returns unknown description for unknown roe_type" do
+        # Bypass enum by setting raw value
+        @conversation.update_column(:roe_type, "unknown_custom_type")
+        builder = TestBuilder.new(@space, @conversation)
+        desc = builder.send(:roe_description)
+        assert_includes desc, "Unknown"
+      end
+
+      test "conversation_thread includes replies with sender name" do
+        # Create a user message
+        user_msg = @conversation.messages.create!(
+          account: @account, sender: @user, role: "user", content: "Hello"
+        )
+        # Create a reply from an advisor (has .name method)
+        provider = @account.providers.create!(name: "ThreadProv", provider_type: "openai", api_key: "k")
+        model = provider.llm_models.create!(account: @account, name: "G", identifier: "g-t")
+        advisor = @account.advisors.create!(
+          name: "Thread Advisor", system_prompt: "Expert", space: @space, llm_model: model
+        )
+        reply = @conversation.messages.create!(
+          account: @account, sender: advisor, role: "advisor", content: "Reply",
+          in_reply_to_id: user_msg.id
+        )
+
+        builder = TestBuilder.new(@space, @conversation)
+        thread = builder.send(:conversation_thread)
+
+        assert thread.any? { |m| m[:message_id] == user_msg.id }
+        root = thread.find { |m| m[:message_id] == user_msg.id }
+        assert_equal "user", root[:role]
+        assert reply.in_reply_to_id == user_msg.id
       end
     end
 

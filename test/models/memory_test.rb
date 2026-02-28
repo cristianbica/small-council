@@ -246,4 +246,141 @@ class MemoryTest < ActiveSupport::TestCase
       Memory.find(memory.id)
     end
   end
+
+  # source_display tests
+  test "source_display returns nil when source is nil" do
+    memory = @space.memories.new(
+      account: @account, title: "No Source", content: "Content",
+      memory_type: "knowledge", status: "active"
+    )
+    assert_nil memory.source_display
+  end
+
+  test "source_display returns conversation title string when source is a Conversation" do
+    council = @space.councils.create!(
+      account: @account, user: @user, name: "Test Council"
+    )
+    conversation = council.conversations.create!(
+      account: @account, user: @user, title: "My Test Conversation"
+    )
+    memory = @space.memories.create!(
+      account: @account, title: "Conv Memory", content: "Content",
+      memory_type: "conversation_summary", status: "active",
+      source: conversation
+    )
+    assert_equal "Conversation: My Test Conversation", memory.source_display
+  end
+
+  test "source_display returns to_s for other source types" do
+    # Use an advisor as a non-conversation source
+    provider = @account.providers.create!(name: "Disp Provider", provider_type: "openai", api_key: "key")
+    model = provider.llm_models.create!(account: @account, name: "GPT", identifier: "gpt-disp")
+    advisor = @account.advisors.create!(
+      name: "Expert", system_prompt: "You are an expert",
+      llm_model: model, space: @space
+    )
+    memory = @space.memories.create!(
+      account: @account, title: "Advisor Source", content: "Content",
+      memory_type: "knowledge", status: "active",
+      source: advisor
+    )
+    assert_equal advisor.to_s, memory.source_display
+  end
+
+  # creator_display tests
+  test "creator_display returns Unknown when created_by is nil" do
+    memory = @space.memories.new(
+      account: @account, title: "Anon", content: "Content",
+      memory_type: "knowledge", status: "active"
+    )
+    assert_equal "Unknown", memory.creator_display
+  end
+
+  test "creator_display returns email when created_by is a User" do
+    memory = @space.memories.create!(
+      account: @account, title: "User Created", content: "Content",
+      memory_type: "knowledge", status: "active",
+      created_by: @user
+    )
+    assert_equal @user.email, memory.creator_display
+  end
+
+  test "creator_display returns advisor name when created_by is an Advisor" do
+    provider = @account.providers.create!(name: "Creator Provider", provider_type: "openai", api_key: "key")
+    model = provider.llm_models.create!(account: @account, name: "GPT", identifier: "gpt-creator")
+    advisor = @account.advisors.create!(
+      name: "Smart Advisor", system_prompt: "You are smart",
+      llm_model: model, space: @space
+    )
+    memory = @space.memories.create!(
+      account: @account, title: "Advisor Created", content: "Content",
+      memory_type: "knowledge", status: "active",
+      created_by: advisor
+    )
+    assert_equal "Smart Advisor", memory.creator_display
+  end
+
+  # create_conversation_summary! and create_conversation_notes! tests
+  test "create_conversation_summary! creates memory with correct space from council" do
+    council = @space.councils.create!(
+      account: @account, user: @user, name: "Council for Summary"
+    )
+    conversation = council.conversations.create!(
+      account: @account, user: @user, title: "Summary Conversation"
+    )
+    memory = Memory.create_conversation_summary!(
+      conversation: conversation,
+      title: "Summary Title",
+      content: "Summary content",
+      creator: @user
+    )
+    assert memory.persisted?
+    assert_equal @space, memory.space
+    assert_equal "conversation_summary", memory.memory_type
+  end
+
+  test "create_conversation_notes! creates memory with correct space from council" do
+    council = @space.councils.create!(
+      account: @account, user: @user, name: "Council for Notes"
+    )
+    conversation = council.conversations.create!(
+      account: @account, user: @user, title: "Notes Conversation"
+    )
+    memory = Memory.create_conversation_notes!(
+      conversation: conversation,
+      title: "Notes Title",
+      content: "Notes content",
+      creator: @user
+    )
+    assert memory.persisted?
+    assert_equal @space, memory.space
+    assert_equal "conversation_notes", memory.memory_type
+  end
+
+  # restore_version! tests
+  test "restore_version! returns nil when version not found" do
+    memory = @space.memories.create!(
+      account: @account, title: "Version Test", content: "Original",
+      memory_type: "knowledge", status: "active"
+    )
+    result = memory.restore_version!(9999)
+    assert_nil result
+  end
+
+  test "restore_version! calls restore_to_memory! when version found" do
+    memory = @space.memories.create!(
+      account: @account, title: "Restorable", content: "Original content",
+      memory_type: "knowledge", status: "active"
+    )
+    # Initial version is created by after_create callback
+    version = memory.versions.first
+    assert_not_nil version
+
+    # Stub the version's restore_to_memory! method
+    version.stubs(:restore_to_memory!).returns(memory)
+    memory.versions.stubs(:find_by).with(version_number: version.version_number).returns(version)
+
+    result = memory.restore_version!(version.version_number)
+    assert_not_nil result
+  end
 end

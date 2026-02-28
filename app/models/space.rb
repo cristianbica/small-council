@@ -13,12 +13,28 @@ class Space < ApplicationRecord
   after_create :create_scribe_advisor
 
   # Find or create the Scribe advisor for this space
-  def find_or_create_scribe_advisor
-    # Look for existing Scribe in this space
-    scribe = advisors.find_by("LOWER(name) LIKE ? OR LOWER(name) LIKE ?", "%scribe%", "%scrib%")
+  def scribe_advisor
+    # Look for existing Scribe in this space using the is_scribe flag
+    scribe = advisors.find_by(is_scribe: true)
     return scribe if scribe.present?
 
     # Create a new Scribe advisor
+    create_scribe_advisor
+  end
+
+  # Alias for backward compatibility
+  def find_or_create_scribe_advisor
+    scribe_advisor
+  end
+
+  # Get all non-Scribe advisors in this space
+  def non_scribe_advisors
+    advisors.where(is_scribe: false)
+  end
+
+  private
+
+  def create_scribe_advisor
     llm_model = account.default_llm_model || account.llm_models.enabled.first
 
     raise "No LLM model available. Please configure a default model or enable at least one model." unless llm_model
@@ -29,36 +45,40 @@ class Space < ApplicationRecord
         You are the Scribe, an expert moderator and conversation analyst for this space.
 
         Your role is to:
-        1. Read each message carefully and determine which advisor in the council is best suited to respond
-        2. When you respond, speak as if you are channeling the expertise of the selected advisor
-        3. Consider the expertise, personality, and system prompt of each advisor when making your selection
-        4. Ensure balanced participation - don't always select the same advisor
-        5. Look for keywords, topics, and context that match each advisor's strengths
+        1. Monitor conversations and ensure balanced participation
+        2. When all advisors have responded to a message, summarize the discussion or suggest next steps
+        3. You can initiate follow-up questions to advisors (maximum 3 consecutive interactions)
+        4. When users mention @all or @everyone, coordinate responses from all relevant advisors
+        5. Help maintain conversation focus and depth limits based on Rules of Engagement
+        6. Users can invite new advisors with /invite @advisor_name
 
-        When responding:
+        For Open RoE:
+        - Advisors respond only when mentioned by name or with @all
+        - Maximum discussion depth is 1 (single round of responses)
+
+        For Consensus RoE:
+        - All advisors participate in reaching agreement
+        - Maximum discussion depth is 2 (advisors can reply to each other)
+
+        For Brainstorming RoE:
+        - All advisors contribute ideas
+        - Maximum discussion depth is 2 (iterative idea refinement)
+
+        When responding as scribe:
         - Acknowledge the relevant context from the conversation
-        - Provide thoughtful, expert-level responses that reflect the selected advisor's persona
-        - If no single advisor seems perfect, synthesize perspectives from multiple advisors
+        - Provide thoughtful summaries or suggest clarifying questions
+        - If the discussion is complete, ask the user if they'd like to conclude
         - Keep responses concise but substantive (2-4 paragraphs)
 
-        Remember: You are the bridge between the user's needs and the council's collective wisdom.
+        Remember: You are the facilitator, ensuring productive conversations while respecting depth limits.
       PROMPT
       llm_model: llm_model,
-      global: false
+      global: false,
+      is_scribe: true
     )
-  end
-
-  # Get all non-Scribe advisors in this space
-  def non_scribe_advisors
-    advisors.where.not("LOWER(name) LIKE ? OR LOWER(name) LIKE ?", "%scribe%", "%scrib%")
-  end
-
-  private
-
-  def create_scribe_advisor
-    find_or_create_scribe_advisor
   rescue => e
     Rails.logger.error "[Space] Failed to create Scribe advisor: #{e.message}"
     # Don't prevent space creation if Scribe creation fails
+    nil
   end
 end

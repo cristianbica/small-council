@@ -58,6 +58,8 @@ class WebBrowserService
     { success: false, url: url, error: "Connection failed: #{e.message}" }
   rescue Faraday::TimeoutError => e
     { success: false, url: url, error: "Request timed out after #{@timeout} seconds" }
+  rescue InvalidURLError
+    raise  # Re-raise InvalidURLError so callers can handle it
   rescue => e
     Rails.logger.error "[WebBrowserService] Error fetching #{url}: #{e.message}"
     { success: false, url: url, error: "Error: #{e.message}" }

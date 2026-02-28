@@ -33,7 +33,14 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
       council: @council,
       user: @user,
       title: "AI Test Conversation",
-      rules_of_engagement: :round_robin
+      roe_type: :consensus  # Consensus RoE makes all advisors respond
+    )
+
+    # Add advisor as participant
+    @conversation.conversation_participants.create!(
+      advisor: @advisor,
+      role: :advisor,
+      position: 0
     )
 
     sign_in_as(@user)
@@ -133,15 +140,16 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "silence mode does not create advisor messages" do
-    @conversation.update!(rules_of_engagement: :silent)
+    # Create a conversation in Open RoE with @advisor1
+    @conversation.update!(roe_type: :open)
 
     assert_difference "Message.count", 1 do
       post conversation_messages_path(@conversation), params: {
-        message: { content: "Hello in silent mode" }
+        message: { content: "Hello without mentions" }
       }
     end
 
-    # Only user message, no advisor message
+    # Only user message, no advisor message (Open RoE requires mentions)
     assert_equal 1, @conversation.messages.count
   end
 end

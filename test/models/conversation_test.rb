@@ -7,6 +7,26 @@ class ConversationTest < ActiveSupport::TestCase
     @user = @account.users.create!(email: "user@example.com", password: "password123")
     @space = @account.spaces.create!(name: "Test Space")
     @council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+
+    # Create provider and LLM model for advisors
+    provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "test-key"
+    )
+    llm_model = provider.llm_models.create!(
+      account: @account,
+      name: "GPT-4",
+      identifier: "gpt-4"
+    )
+
+    # Create an advisor for conversations
+    @advisor = @account.advisors.create!(
+      name: "Test Advisor",
+      system_prompt: "You are a test advisor",
+      space: @space,
+      llm_model: llm_model
+    )
   end
 
   # Validation tests
@@ -41,7 +61,22 @@ class ConversationTest < ActiveSupport::TestCase
     assert_includes conversation.errors[:user], "can't be blank"
   end
 
-  # Association tests
+  # Helper to create conversation with advisor
+  def create_conversation_with_advisor(attrs = {})
+    conversation = @account.conversations.new(
+      council: @council,
+      user: @user,
+      title: "Test Conversation",
+      **attrs
+    )
+    conversation.save(validate: false) # Skip validation on create
+    conversation.conversation_participants.create!(
+      advisor: @advisor,
+      role: :advisor,
+      position: 0
+    )
+    conversation
+  end
   test "belongs to account" do
     conversation = Conversation.new
     assert_respond_to conversation, :account
@@ -89,7 +124,7 @@ class ConversationTest < ActiveSupport::TestCase
   end
 
   test "status enum methods work" do
-    conversation = @account.conversations.create!(council: @council, user: @user, title: "Test")
+    conversation = create_conversation_with_advisor
     assert conversation.active?
     assert_not conversation.archived?
 
@@ -143,33 +178,122 @@ class ConversationTest < ActiveSupport::TestCase
     assert_empty Conversation.active
   end
 
-  # Rules of Engagement tests
-  test "has rules_of_engagement enum with default round_robin" do
-    conversation = @account.conversations.create!(council: @council, user: @user, title: "Test")
-    assert_equal "round_robin", conversation.rules_of_engagement
-    assert conversation.round_robin?
+  # RoE type tests
+  test "has roe_type enum with default open" do
+    conversation = create_conversation_with_advisor
+    assert_equal "open", conversation.roe_type
+    assert conversation.open?
   end
 
-  test "can change rules_of_engagement" do
-    conversation = @account.conversations.create!(council: @council, user: @user, title: "Test")
-    conversation.update!(rules_of_engagement: :silent)
-    assert conversation.silent?
+  test "can change roe_type" do
+    conversation = create_conversation_with_advisor
+    conversation.update!(roe_type: :consensus)
+    assert conversation.consensus?
   end
 
-  test "rules_of_engagement includes all expected values" do
-    expected = %w[round_robin moderated on_demand silent consensus]
-    assert_equal expected.sort, Conversation.rules_of_engagements.keys.sort
+  test "roe_type includes all expected values" do
+    expected = %w[open consensus brainstorming]
+    assert_equal expected.sort, Conversation.roe_types.keys.sort
+  end
+
+  test "max_depth for open RoE is 1" do
+    conversation = create_conversation_with_advisor(roe_type: :open)
+    assert_equal 1, conversation.max_depth
+  end
+
+  test "max_depth for consensus RoE is 2" do
+    conversation = create_conversation_with_advisor(roe_type: :consensus)
+    assert_equal 2, conversation.max_depth
+  end
+
+  test "max_depth for brainstorming RoE is 2" do
+    conversation = create_conversation_with_advisor(roe_type: :brainstorming)
+    assert_equal 2, conversation.max_depth
   end
 
   test "last_advisor_id reads from context" do
-    conversation = @account.conversations.create!(council: @council, user: @user, title: "Test")
+    conversation = create_conversation_with_advisor
     conversation.update!(context: { "last_advisor_id" => 42 })
     assert_equal 42, conversation.last_advisor_id
   end
 
   test "mark_advisor_spoken updates context" do
-    conversation = @account.conversations.create!(council: @council, user: @user, title: "Test")
+    conversation = create_conversation_with_advisor
     conversation.mark_advisor_spoken(99)
     assert_equal 99, conversation.reload.context["last_advisor_id"]
+  end
+
+  # max_depth else branch (no roe_type match)
+  test "max_depth returns 1 for unknown roe_type via raw update" do
+    conversation = create_conversation_with_advisor(roe_type: :open)
+    # Bypass enum to set an invalid/unknown value directly
+    conversation.update_column(:roe_type, "unknown_type")
+    assert_equal 1, conversation.max_depth
+  end
+
+  # advisor_has_responded? branch tests
+  test "advisor_has_responded? returns nil when context key is absent" do
+    conversation = create_conversation_with_advisor
+    # No responded_advisor_ids key in context — &.include? returns nil (falsy)
+    assert_not conversation.advisor_has_responded?(@advisor.id)
+  end
+
+  test "advisor_has_responded? returns true when advisor has responded" do
+    conversation = create_conversation_with_advisor
+    conversation.mark_advisor_responded(@advisor.id)
+    assert conversation.advisor_has_responded?(@advisor.id)
+  end
+
+  # mark_advisor_responded branch tests
+  test "mark_advisor_responded initializes array when context key absent" do
+    conversation = create_conversation_with_advisor
+    conversation.mark_advisor_responded(@advisor.id)
+    assert_includes conversation.reload.context["responded_advisor_ids"], @advisor.id.to_s
+  end
+
+  test "mark_advisor_responded appends to existing array" do
+    conversation = create_conversation_with_advisor
+    conversation.mark_advisor_responded(@advisor.id)
+
+    other_provider = @account.providers.create!(name: "P2", provider_type: "openai", api_key: "k2")
+    other_model = other_provider.llm_models.create!(account: @account, name: "GPT2", identifier: "gpt-2")
+    other_advisor = @account.advisors.create!(
+      name: "Other Advisor", system_prompt: "Other", space: @space, llm_model: other_model
+    )
+    conversation.mark_advisor_responded(other_advisor.id)
+    ids = conversation.reload.context["responded_advisor_ids"]
+    assert_includes ids, @advisor.id.to_s
+    assert_includes ids, other_advisor.id.to_s
+  end
+
+  # all_advisors_responded? tests
+  test "all_advisors_responded? returns false when no one has responded" do
+    conversation = create_conversation_with_advisor
+    assert_not conversation.all_advisors_responded?
+  end
+
+  test "all_advisors_responded? returns true when all advisors responded" do
+    conversation = create_conversation_with_advisor
+    conversation.mark_advisor_responded(@advisor.id)
+    assert conversation.all_advisors_responded?
+  end
+
+  # memory_data tests
+  test "memory_data returns empty hash when memory is blank" do
+    conversation = create_conversation_with_advisor
+    # memory defaults to nil/blank
+    assert_equal({}, conversation.memory_data)
+  end
+
+  test "memory_data parses JSON string memory" do
+    conversation = create_conversation_with_advisor
+    conversation.update_column(:memory, '{"key":"value"}')
+    assert_equal({ "key" => "value" }, conversation.memory_data)
+  end
+
+  test "memory_data returns empty hash on JSON parse error" do
+    conversation = create_conversation_with_advisor
+    conversation.update_column(:memory, "not valid json {{{")
+    assert_equal({}, conversation.memory_data)
   end
 end

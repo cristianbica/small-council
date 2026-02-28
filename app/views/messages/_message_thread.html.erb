@@ -1,0 +1,85 @@
+<%# app/views/messages/_message_thread.html.erb %>
+<%# Renders a message and all its replies in a thread %>
+
+<% is_current_user = message.sender == current_user %>
+<% is_pending = message.pending? %>
+<% is_error = message.error? %>
+<% is_advisor = message.advisor? %>
+<% sender_name = message.sender.respond_to?(:name) ? message.sender.name : message.sender.email %>
+<% depth = message.depth %>
+
+<div class="message-thread <%= depth > 0 ? 'ml-8 border-l-2 border-base-300 pl-4' : '' %>">
+  <%= turbo_frame_tag "message_#{message.id}" do %>
+    <div class="flex <%= is_current_user ? 'justify-end' : 'justify-start' %> gap-3 group mb-4">
+      <% unless is_current_user %>
+        <div class="avatar placeholder">
+          <div class="bg-neutral text-neutral-content rounded-full w-8 h-8">
+            <span class="text-xs"><%= sender_name.first.upcase %></span>
+          </div>
+        </div>
+      <% end %>
+
+      <div class="max-w-[85%]">
+        <div class="flex items-baseline gap-2 mb-1 <%= is_current_user ? 'justify-end' : '' %>">
+          <span class="text-sm font-medium"><%= sender_name %></span>
+          <span class="text-xs text-base-content/50" title="<%= message.created_at.strftime('%B %d, %Y at %I:%M %p') %>">
+            <%= time_ago_in_words(message.created_at) %> ago
+          </span>
+          <% if is_pending %>
+            <span class="loading loading-spinner loading-xs"></span>
+          <% end %>
+          <% if message.solved? && message.root_message? %>
+            <span class="text-success" title="All advisors have responded">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </span>
+          <% end %>
+        </div>
+
+        <div class="relative">
+          <div class="<%=
+            if is_current_user
+              'bg-primary text-primary-content'
+            elsif is_error
+              'bg-error text-error-content'
+            elsif is_pending
+              'bg-base-200 italic opacity-70'
+            elsif is_advisor && message.sender&.scribe?
+              'bg-primary/10 border border-primary/30'
+            else
+              'bg-base-300'
+            end %> rounded-2xl px-4 py-2 shadow-sm">
+            <% if is_advisor && message.content.present? && message.content.length > 500 %>
+              <div data-controller="message-expand" data-message-expand-max-length-value="500">
+                <div data-message-expand-target="content" class="whitespace-pre-wrap <%= is_pending ? 'animate-pulse' : '' %>"><%= message.content %></div>
+                <button data-message-expand-target="toggle" data-action="click->message-expand#toggle" class="btn btn-ghost btn-xs mt-2 hidden">
+                  Read more
+                </button>
+              </div>
+            <% else %>
+              <div class="whitespace-pre-wrap <%= is_pending ? 'animate-pulse' : '' %>"><%= message.content %></div>
+            <% end %>
+          </div>
+
+          <!-- Copy button -->
+          <button onclick="navigator.clipboard.writeText(this.dataset.content); return false;"
+                  data-content="<%= j message.content %>"
+                  class="absolute -right-10 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg hover:bg-base-200"
+                  title="Copy message">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Render replies recursively -->
+  <% if message.replies.any? %>
+    <% message.replies.chronological.each do |reply| %>
+      <%= render "messages/message_thread", message: reply, current_user: current_user %>
+    <% end %>
+  <% end %>
+</div>

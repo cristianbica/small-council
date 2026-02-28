@@ -2,14 +2,12 @@ class GenerateAdvisorResponseJob < ApplicationJob
   queue_as :default
 
   # Job is idempotent - safe to retry
-  def perform(advisor_id:, conversation_id:, message_id:)
-    Rails.logger.info "[GenerateAdvisorResponseJob] Starting job for advisor_id=#{advisor_id}, conversation_id=#{conversation_id}, message_id=#{message_id}"
+  def perform(advisor_id:, conversation_id:, message_id:, is_scribe_followup: false)
+    Rails.logger.info "[GenerateAdvisorResponseJob] Starting job for advisor_id=#{advisor_id}, conversation_id=#{conversation_id}, message_id=#{message_id}, scribe_followup=#{is_scribe_followup}"
 
     advisor = Advisor.find_by(id: advisor_id)
     conversation = Conversation.find_by(id: conversation_id)
     message = Message.find_by(id: message_id)
-
-    Rails.logger.debug "[GenerateAdvisorResponseJob] Loaded objects - advisor: #{advisor&.name || 'NOT FOUND'}, conversation: #{conversation&.id || 'NOT FOUND'}, message: #{message&.id || 'NOT FOUND'}"
 
     unless advisor && conversation && message
       Rails.logger.error "[GenerateAdvisorResponseJob] Missing required objects: advisor=#{advisor.present?}, conversation=#{conversation.present?}, message=#{message.present?}"
@@ -28,62 +26,97 @@ class GenerateAdvisorResponseJob < ApplicationJob
 
     # Set tenant context for background job
     ActsAsTenant.current_tenant = advisor.account
-    Rails.logger.debug "[GenerateAdvisorResponseJob] Set tenant context to account #{advisor.account_id}"
 
-    Rails.logger.info "[GenerateAdvisorResponseJob] Processing message #{message_id} for advisor #{advisor.name} (ID: #{advisor.id})"
+    # Set space context - required for adhoc conversations
+    # For council meetings, get space from council
+    # For adhoc, get from advisor's space or first participant's space
+    Current.space = if conversation.council_meeting? && conversation.council
+      conversation.council.space
+    else
+      advisor.space || conversation.advisors.where.not(space: nil).first&.space
+    end
+
+    Rails.logger.info "[GenerateAdvisorResponseJob] Processing message #{message_id} for advisor #{advisor.name} (space: #{Current.space&.id || 'nil'})"
 
     begin
-      # Call AI service using new AI system
-      Rails.logger.debug "[GenerateAdvisorResponseJob] Initializing AI::ContentGenerator..."
-      generator = AI::ContentGenerator.new
-
-      Rails.logger.info "[GenerateAdvisorResponseJob] Calling AI API for advisor #{advisor.name}..."
-      response = generator.generate_advisor_response(
-        advisor: advisor,
-        conversation: conversation
-      )
-
-      Rails.logger.debug "[GenerateAdvisorResponseJob] AI response received - content length: #{response.content&.length || 0}"
+      # Generate response based on advisor type
+      if advisor.scribe?
+        response = generate_scribe_response(advisor, conversation, message, is_scribe_followup)
+      else
+        response = generate_advisor_response(advisor, conversation, message)
+      end
 
       if response.content.present?
-        Rails.logger.info "[GenerateAdvisorResponseJob] Successfully got response from AI, delegating to lifecycle"
+        Rails.logger.info "[GenerateAdvisorResponseJob] Successfully got response, updating message #{message_id}"
 
-        # Delegate to ConversationLifecycle for state management
+        # Update message with response
+        message.update!(
+          content: response.content,
+          role: "advisor",
+          status: "complete"
+        )
+
+        # Delegate to ConversationLifecycle for follow-up handling
         lifecycle = ConversationLifecycle.new(conversation)
-        lifecycle.advisor_responded(advisor, response.content, message)
+        lifecycle.advisor_responded(message)
 
         # Record usage
-        Rails.logger.debug "[GenerateAdvisorResponseJob] Recording usage..."
         create_usage_record_from_response(message, advisor, response)
 
-        Rails.logger.info "[GenerateAdvisorResponseJob] Successfully processed message #{message_id} for advisor #{advisor.name}"
+        Rails.logger.info "[GenerateAdvisorResponseJob] Successfully processed message #{message_id}"
       else
-        Rails.logger.error "[GenerateAdvisorResponseJob] Empty response from AI for advisor #{advisor.id}, message #{message.id}"
-        handle_error(message, "Empty response from AI - check LLM model configuration")
+        Rails.logger.error "[GenerateAdvisorResponseJob] Empty response from AI for advisor #{advisor.id}"
+        handle_error(message, lifecycle, "Empty response from AI")
       end
     rescue AI::ContentGenerator::NoModelError => e
-      Rails.logger.error "[GenerateAdvisorResponseJob] No Model Error for advisor #{advisor.id}: #{e.message}"
-      handle_error(message, "No AI Model: #{e.message}")
+      Rails.logger.error "[GenerateAdvisorResponseJob] No Model Error: #{e.message}"
+      handle_error(message, lifecycle, "No AI Model: #{e.message}")
     rescue AI::Client::APIError => e
-      Rails.logger.error "[GenerateAdvisorResponseJob] API Error for advisor #{advisor.id}: #{e.message}"
-      handle_error(message, "API Error: #{e.message}")
+      Rails.logger.error "[GenerateAdvisorResponseJob] API Error: #{e.message}"
+      handle_error(message, lifecycle, "API Error: #{e.message}")
     rescue => e
-      Rails.logger.error "[GenerateAdvisorResponseJob] Unexpected error for advisor #{advisor.id}: #{e.message}"
+      Rails.logger.error "[GenerateAdvisorResponseJob] Unexpected error: #{e.message}"
       Rails.logger.error e.backtrace.first(10).join("\n")
-      handle_error(message, "Unexpected error: #{e.message}")
+      handle_error(message, lifecycle, "Unexpected error: #{e.message}")
     end
   ensure
-    Rails.logger.debug "[GenerateAdvisorResponseJob] Clearing tenant context"
     ActsAsTenant.current_tenant = nil
+    Current.space = nil
   end
 
   private
+
+  def generate_advisor_response(advisor, conversation, message)
+    generator = AI::ContentGenerator.new
+    generator.generate_advisor_response(
+      advisor: advisor,
+      conversation: conversation,
+      parent_message: message.parent_message
+    )
+  end
+
+  def generate_scribe_response(advisor, conversation, message, is_scribe_followup)
+    generator = AI::ContentGenerator.new
+
+    if is_scribe_followup
+      generator.generate_scribe_followup(
+        advisor: advisor,
+        conversation: conversation,
+        message: message
+      )
+    else
+      generator.generate_advisor_response(
+        advisor: advisor,
+        conversation: conversation,
+        parent_message: message.parent_message
+      )
+    end
+  end
 
   def create_usage_record_from_response(message, advisor, response)
     model = advisor.effective_llm_model
     return unless model.present?
 
-    # Extract token usage from response
     token_usage = response.usage
     input_tokens = token_usage&.input_tokens || 0
     output_tokens = token_usage&.output_tokens || 0
@@ -100,27 +133,7 @@ class GenerateAdvisorResponseJob < ApplicationJob
     )
   end
 
-  def create_usage_record(message, advisor, result)
-    model = advisor.effective_llm_model
-    return unless model.present?
-
-    UsageRecord.create!(
-      account: advisor.account,
-      message: message,
-      provider: model.provider.provider_type,
-      model: model.identifier,
-      input_tokens: result[:input_tokens] || 0,
-      output_tokens: result[:output_tokens] || 0,
-      cost_cents: calculate_cost(model, result),
-      recorded_at: Time.current
-    )
-  end
-
   def calculate_cost_from_tokens(llm_model, input_tokens, output_tokens)
-    # Placeholder rates - should be stored in llm_models table
-    # OpenAI GPT-4: $0.03/1K input, $0.06/1K output
-    # Anthropic Claude: $0.008/1K input, $0.024/1K output
-
     # Default rates (dollars per token)
     input_rate = 0.03 / 1000
     output_rate = 0.06 / 1000
@@ -136,43 +149,13 @@ class GenerateAdvisorResponseJob < ApplicationJob
     (cost_dollars * 100).round # Convert to cents
   end
 
-  def calculate_cost(llm_model, result)
-    # Placeholder rates - should be stored in llm_models table
-    # OpenAI GPT-4: $0.03/1K input, $0.06/1K output
-    # Anthropic Claude: $0.008/1K input, $0.024/1K output
-
-    input_tokens = result[:input_tokens] || 0
-    output_tokens = result[:output_tokens] || 0
-
-    # Default rates (dollars per token)
-    input_rate = 0.03 / 1000
-    output_rate = 0.06 / 1000
-
-    # Adjust for provider
-    case llm_model.provider.provider_type
-    when "anthropic"
-      input_rate = 0.008 / 1000
-      output_rate = 0.024 / 1000
-    end
-
-    cost_dollars = (input_tokens * input_rate) + (output_tokens * output_rate)
-    (cost_dollars * 100).round # Convert to cents
-  end
-
-  def broadcast_message(message, conversation)
-    Turbo::StreamsChannel.broadcast_replace_to(
-      "conversation_#{conversation.id}",
-      target: "message_#{message.id}",
-      partial: "messages/message",
-      locals: { message: message, current_user: nil }
-    )
-  end
-
-  def handle_error(message, error_content)
+  def handle_error(message, lifecycle, error_content)
     message.update!(
       content: "[Error: #{error_content}]",
       status: "error"
     )
+
+    lifecycle&.advisor_response_error(message, error_content)
 
     Turbo::StreamsChannel.broadcast_replace_to(
       "conversation_#{message.conversation.id}",

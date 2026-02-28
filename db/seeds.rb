@@ -13,7 +13,10 @@ end
 
 # Ensure demo account has General space
 unless demo_account.spaces.exists?(name: "General")
-  Spaces::CreationService.create_default_for_account(demo_account)
+  demo_account.spaces.create!(
+    name: "General",
+    description: "Default space for your councils"
+  )
 end
 
 puts "Created demo account: #{demo_account.name}"

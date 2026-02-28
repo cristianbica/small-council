@@ -25,6 +25,13 @@ module AI
             title: "Test Conversation",
             status: "resolved"
           )
+
+          # Add advisor as participant
+          @conversation.conversation_participants.create!(
+            advisor: @advisor,
+            role: :advisor,
+            position: 0
+          )
         end
 
         test "name returns get_conversation_summary" do

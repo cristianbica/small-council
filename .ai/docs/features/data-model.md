@@ -6,125 +6,154 @@ Small Council uses a multi-tenant schema designed for AI advisor conversations.
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  accounts   │────▶│    users    │     │   advisors  │
+│  accounts   │────▶│    users    │     │  providers  │
 └─────────────┘     └─────────────┘     └─────────────┘
         │                   │                   │
-        │                   │                   │
-        ▼                   │                   ▼
-┌─────────────┐             │           ┌─────────────────┐
-│   spaces    │             │           │ council_advisors│
-└─────────────┘             │           └─────────────────┘
-        │                   │                    │
-        │                   │                    │
-        ▼                   ▼                    ▼
-┌─────────────┐     ┌─────────────────┐     ┌─────────────┐
-│   councils  │◀────│  conversations  │────▶│   messages  │
-└─────────────┘     └─────────────────┘     └─────────────┘
-                                                    │
-                                                    ▼
-                                           ┌───────────────┐
-                                           │ usage_records │
-                                           └───────────────┘
+        │                   │                   ▼
+        ▼                   │           ┌─────────────┐
+┌─────────────┐             │           │  llm_models │
+│   spaces    │             │           └─────────────┘
+└─────────────┘             │                   │
+        │                   │                   ▼
+        │                   │           ┌─────────────┐
+        ▼                   │           │   advisors  │
+┌─────────────┐             │           └─────────────┘
+│   councils  │             │                   │
+└─────────────┘             │           ┌─────────────────┐
+        │                   │           │ council_advisors│
+        │                   │           └─────────────────┘
+        ▼                   ▼                    │
+┌─────────────┐     ┌─────────────────┐          │
+│ conv.parti- │     │  conversations  │◀─────────┘
+│  cipants    │     └─────────────────┘
+└─────────────┘             │
+                            ▼
+                    ┌─────────────┐     ┌───────────────┐
+                    │   messages  │────▶│ usage_records │
+                    └─────────────┘     └───────────────┘
+
+┌─────────────┐     ┌─────────────────┐
+│   memories  │────▶│ memory_versions │
+└─────────────┘     └─────────────────┘
 ```
 
 ## Tables
 
 ### accounts
 Root tenant table for multi-tenancy.
-- `name`, `slug` (unique) - Account identification
-- `settings` (jsonb) - Flexible account-level configuration
-- `trial_ends_at` - Subscription management
+- `name`, `slug` (unique) — Account identification
+- `settings` (jsonb) — Flexible account-level configuration
+- `trial_ends_at` — Subscription management
+- `default_llm_model_id` — FK to llm_models (optional)
 
 ### users
-Scoped to accounts. Members or admins of an account.
+Scoped to accounts.
 - `email` (scoped unique per account)
-- `password_digest` - For authentication
-- `role` - member or admin
-- `preferences` (jsonb) - User-specific settings
+- `password_digest` — For authentication
+- `role` — member or admin
+- `preferences` (jsonb) — User-specific settings
+
+### providers
+LLM provider configuration per account.
+- `name` — Display name (e.g., "OpenAI Production")
+- `provider_type` — Enum: `openai`, `openrouter`
+- `api_key_ciphertext` — Encrypted API key
+- `organization_id` — OpenAI only, optional
+- `enabled`
+
+### llm_models
+Models available under a provider.
+- `name`, `identifier` — Display and API name
+- `enabled` — Lifecycle flag
+- `free` — True when both input/output prices are 0.0
+- `metadata` (jsonb) — Capabilities, pricing, context window (synced from ruby_llm)
+- Belongs to `provider` and `account`
 
 ### advisors
-AI personas configured per account. Can be global (shared) or account-specific.
-- `name`, `system_prompt` - Identity and behavior
-- `model_provider`, `model_id` - LLM configuration (openai, anthropic, gemini)
-- `model_config` (jsonb) - Temperature, max_tokens, etc.
-- `metadata` (jsonb) - Version, tags, description
-- `global` - Whether available to all accounts
+AI personas configured per account.
+- `name`, `system_prompt` — Identity and behavior
+- `llm_model_id` — FK to llm_models (replaces old `model_provider`/`model_id` strings)
+- `global` — Whether available to all accounts
+- `is_scribe` — True for the Scribe (moderator) advisor
+- `metadata` (jsonb) — Version, tags, description
+- Belongs to `space` and `account`
+
+### spaces
+Contextual containers (workspaces).
+- `name`, `description`
+- After-create callback auto-creates a Scribe advisor
 
 ### councils
 Groups of advisors that collaborate on conversations.
 - `name`, `description`, `visibility` (private/shared)
-- Belongs to user (owner) and account
-- `configuration` (jsonb) - Routing rules, max rounds, etc.
+- Belongs to user (owner), space, and account
+- `configuration` (jsonb) — Routing rules, max rounds, etc.
 
 ### council_advisors
 Join table linking councils to advisors with ordering.
-- `position` - Display/speaking order
-- `custom_prompt_override` (jsonb) - Per-council prompt adjustments
+- `position` — Display/speaking order
+- `custom_prompt_override` (jsonb) — Per-council prompt adjustments
 
 ### conversations
 Chat sessions within a council.
 - Belongs to account, council, and user
-- `title`, `status` (active/archived)
-- `context` (jsonb) - Shared context across messages
-- `last_message_at` - For sorting recent conversations
+- `title`, `status` (active/concluding/resolved/archived)
+- `conversation_type` — Enum: `council_meeting`, `adhoc`
+- `roe_type` — Rules of Engagement: `open`, `consensus`, `brainstorming`
+- `scribe_initiated_count` — Tracks consecutive scribe-initiated interactions
+- `context` (jsonb) — Shared context across messages
+- `last_message_at` — For sorting
+
+### conversation_participants
+Join table: advisors participating in a conversation.
+- `role` — `advisor` or `scribe`
+- Belongs to `conversation` and `advisor`
 
 ### messages
 Individual messages in conversations with polymorphic sender.
-- `sender` polymorphic - references User or Advisor
-- `role` - user, advisor, or system
-- `content` - Plain text
-- `content_blocks` (jsonb array) - Structured content (thinking, code, etc.)
-- `metadata` (jsonb) - Tokens, latency, model version
-- `status` - pending, complete, error
+- `sender` polymorphic — references User or Advisor
+- `role` — user, advisor, or system
+- `content` — Plain text
+- `content_blocks` (jsonb array) — Structured content (thinking, code, etc.)
+- `metadata` (jsonb) — Tokens, latency, model version
+- `status` — pending, complete, error
 
 ### usage_records
 Billing and observability for AI API calls.
 - Belongs to account, optionally to message
-- `provider`, `model` - Which service was used
-- `input_tokens`, `output_tokens` - Usage metrics
-- `cost_cents` - Calculated cost
-- `recorded_at` - When the usage occurred
+- `provider`, `model` — Which service was used
+- `input_tokens`, `output_tokens` — Usage metrics
+- `cost_cents` — Calculated cost
+- `recorded_at` — When the usage occurred
+
+### memories
+Persistent knowledge entries per space.
+- `title`, `content`
+- `memory_type` — knowledge, note, summary, etc.
+- `source` polymorphic — references Conversation or other source
+- `created_by` polymorphic — references User or Advisor
+- Versioned via `memory_versions`
+
+### memory_versions
+Audit trail for memory edits.
+- `version_number`, `content`, `change_reason`
+- Belongs to `memory`
 
 ## Design Decisions
 
 ### Scoped Multi-tenancy
-All tables (except accounts) have `account_id` foreign keys. Models include comments indicating `acts_as_tenant` will be enabled once the gem is installed. This allows row-level tenant isolation.
+All tables (except accounts) have `account_id` foreign keys. `acts_as_tenant` enforces row-level tenant isolation.
 
 ### JSONB for Flexibility
-JSONB columns are used for configurations that evolve with AI capabilities:
-- `accounts.settings` - Tenant settings
-- `advisors.model_config` - LLM hyperparameters
-- `advisors.metadata` - Version tracking, tags
-- `councils.configuration` - Routing logic
-- `messages.content_blocks` - Rich content types
-- `messages.metadata` - Token counts, model info
+JSONB columns for configurations that evolve with AI capabilities:
+- `accounts.settings`, `advisors.metadata`, `councils.configuration`
+- `messages.content_blocks`, `messages.metadata`
+- `llm_models.metadata` — capabilities, pricing, context window
 
-All JSONB columns have GIN indexes for efficient querying.
+### Polymorphic Associations
+- `messages.sender` — User or Advisor
+- `memories.source` — Conversation or other
+- `memories.created_by` — User or Advisor
 
-### Polymorphic Messages
-The `sender` association on messages is polymorphic, allowing both User and Advisor models to send messages. This supports the pattern where advisors respond to user prompts within the same conversation flow.
-
-### Usage Tracking
-Every AI API call is recorded in `usage_records` with token counts and cost. This enables:
-- Per-account billing
-- Usage analytics
-- Cost optimization insights
-
-## Indexing Strategy
-
-| Table | Index | Purpose |
-|-------|-------|---------|
-| accounts | slug (unique) | Lookup by subdomain/slug |
-| accounts | settings (gin) | Query by settings keys |
-| users | [account_id, email] (unique) | Scoped user lookup |
-| advisors | model_config (gin) | Find by model settings |
-| advisors | metadata (gin) | Tag/version queries |
-| councils | [account_id, name] | List councils per account |
-| councils | configuration (gin) | Query by config values |
-| council_advisors | [council_id, advisor_id] (unique) | Prevent duplicates |
-| conversations | [account_id, last_message_at] | Recent conversations list |
-| conversations | context (gin) | Query by context data |
-| messages | [conversation_id, created_at] | Chronological message load |
-| messages | metadata (gin) | Query by token counts, etc. |
-| messages | [sender_type, sender_id] | Polymorphic lookup |
-| usage_records | [account_id, recorded_at] | Time-series billing queries |
+### LlmModel-based Advisors
+Advisors now reference `LlmModel` instead of storing `model_provider`/`model_id` strings directly. This enables per-account model availability and usage tracking per model.

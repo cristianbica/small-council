@@ -1,20 +1,42 @@
+<%# app/views/conversations/index.html.erb %>
+<%# Shows either council-specific conversations or adhoc conversations %>
+
 <div class="space-y-6">
   <!-- Breadcrumbs -->
   <div class="breadcrumbs text-sm">
     <ul>
-      <li><%= link_to "Councils", councils_path %></li>
-      <li><%= link_to @council.name, @council %></li>
-      <li>Conversations</li>
+      <% if @council %>
+        <li><%= link_to "Councils", councils_path %></li>
+        <li><%= link_to @council.name, @council %></li>
+        <li>Conversations</li>
+      <% else %>
+        <li>Conversations</li>
+      <% end %>
     </ul>
   </div>
 
   <!-- Header -->
   <div class="flex items-center justify-between mb-6">
     <div>
-      <h1 class="text-3xl font-bold">Conversations</h1>
-      <p class="text-base-content/70 mt-1">in <%= @council.name %></p>
+      <h1 class="text-3xl font-bold">
+        <%= @council ? "#{@council.name} Conversations" : "Conversations" %>
+      </h1>
+      <p class="text-base-content/70 mt-1">
+        <% if @council %>
+          <% participant_count = @council.advisors.count %>
+          <%= participant_count %> advisor<%= "s" if participant_count != 1 %> in this council
+        <% else %>
+          Direct conversations with advisors across all spaces
+        <% end %>
+      </p>
     </div>
-    <%= link_to "New Conversation", new_council_conversation_path(@council), class: "btn btn-primary" %>
+    <div class="flex items-center gap-2">
+      <% if @council %>
+        <%= link_to "New Meeting", new_council_conversation_path(@council), class: "btn btn-primary" %>
+      <% else %>
+        <%= link_to "Start Conversation", new_conversation_path, class: "btn btn-primary" %>
+      <% end %>
+    </div>
   </div>
 
   <!-- Conversations List -->
@@ -35,16 +57,26 @@
                   <span class="badge <%= conversation.active? ? 'badge-success' : (conversation.concluding? ? 'badge-warning' : 'badge-ghost') %> badge-sm">
                     <%= conversation.status %>
                   </span>
-                </div>
-                <p class="text-sm text-base-content/60 mt-1">
-                  <%= conversation.messages.count %> messages ·
-                  <%= conversation.user.email %> ·
-                  <% if conversation.last_message_at %>
-                    Last activity <%= time_ago_in_words(conversation.last_message_at) %> ago
-                  <% else %>
-                    Created <%= time_ago_in_words(conversation.created_at) %> ago
+                  <% if conversation.adhoc? %>
+                    <span class="badge badge-secondary badge-sm">Conversation</span>
                   <% end %>
-                </p>
+                </div>
+                <div class="text-sm text-base-content/60 mt-1 flex items-center gap-2">
+                  <span>
+                    <% if conversation.council_meeting? %>
+                      in <%= conversation.council.name %> ·
+                    <% end %>
+                    <%= conversation.participant_advisors.count %> participant<%= "s" if conversation.participant_advisors.count != 1 %>
+                  </span>
+                  <span>·</span>
+                  <span>
+                    <% if conversation.last_message_at %>
+                      Last activity <%= time_ago_in_words(conversation.last_message_at) %> ago
+                    <% else %>
+                      Created <%= time_ago_in_words(conversation.created_at) %> ago
+                    <% end %>
+                  </span>
+                </div>
               <% end %>
               <div class="flex items-center gap-2 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <% if can_delete_conversation?(conversation) %>
@@ -69,13 +101,15 @@
       <% else %>
         <%= render "shared/empty_state",
             title: "No conversations yet",
-            description: "Start a conversation to collaborate with your advisors.",
-            action_path: new_council_conversation_path(@council),
-            action_text: "Start First Conversation" %>
+            description: @council ? "Start a conversation to collaborate with your council advisors." : "Start a direct conversation with any advisor.",
+            action_path: @council ? new_council_conversation_path(@council) : new_conversation_path,
+            action_text: @council ? "Start First Conversation" : "Start Conversation" %>
       <% end %>
     </div>
   </section>
 
   <!-- Back link -->
-  <%= link_to "← Back to Council", @council, class: "btn btn-ghost" %>
+  <% if @council %>
+    <%= link_to "← Back to Council", @council, class: "btn btn-ghost" %>
+  <% end %>
 </div>

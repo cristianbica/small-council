@@ -75,4 +75,96 @@ class SpaceTest < ActiveSupport::TestCase
     assert Space.where(name: "This Space").exists?
     assert_not Space.where(name: "Other Space").exists?
   end
+
+  # scribe_advisor tests
+  test "scribe_advisor returns existing scribe without creating a new one" do
+    # Ensure an LLM model exists so scribe creation can succeed
+    provider = @account.providers.create!(name: "Scribe Test Provider", provider_type: "openai", api_key: "key")
+    model = provider.llm_models.create!(account: @account, name: "GPT-4", identifier: "gpt-4-scribe-test", enabled: true)
+
+    space = @account.spaces.create!(name: "Scribe Existing Test Space")
+    # after_create callback should have created a scribe
+    scribe = space.advisors.find_by(is_scribe: true)
+    advisor_count = space.advisors.count
+
+    # Calling scribe_advisor again should return existing, not create a new one
+    result = space.scribe_advisor
+    assert_equal advisor_count, space.advisors.reload.count
+    assert_not_nil result
+    assert result.is_scribe
+  end
+
+  test "scribe_advisor creates scribe when none exists" do
+    provider = @account.providers.create!(name: "Scribe Create Provider", provider_type: "openai", api_key: "key")
+    model = provider.llm_models.create!(account: @account, name: "GPT-4", identifier: "gpt-4-scribe-create", enabled: true)
+
+    space = @account.spaces.create!(name: "Scribe Create Test Space")
+    space.advisors.where(is_scribe: true).destroy_all
+
+    # Now scribe_advisor should create one
+    scribe = space.scribe_advisor
+    assert_not_nil scribe
+    assert scribe.is_scribe
+    assert_equal "Scribe", scribe.name
+  end
+
+  test "non_scribe_advisors excludes scribe advisor" do
+    space = @account.spaces.first
+    # Ensure a scribe exists
+    scribe = space.scribe_advisor
+
+    # Create a regular advisor
+    provider = @account.providers.create!(name: "Test", provider_type: "openai", api_key: "key")
+    model = provider.llm_models.create!(account: @account, name: "GPT-4", identifier: "gpt-4")
+    regular = @account.advisors.create!(
+      name: "Expert", system_prompt: "Expert", llm_model: model, space: space
+    )
+
+    result = space.non_scribe_advisors
+    assert_includes result, regular
+    assert_not_includes result, scribe
+  end
+
+  test "create_scribe_advisor uses default llm_model when available" do
+    provider = @account.providers.create!(name: "Test", provider_type: "openai", api_key: "key")
+    model = provider.llm_models.create!(
+      account: @account, name: "Default Model", identifier: "gpt-4-default", enabled: true
+    )
+    # Set as default
+    @account.update!(default_llm_model: model)
+
+    space = @account.spaces.create!(name: "Space With Default Model")
+    scribe = space.advisors.find_by(is_scribe: true)
+    assert_not_nil scribe
+    assert_equal model, scribe.llm_model
+  ensure
+    @account.update!(default_llm_model: nil)
+  end
+
+  test "create_scribe_advisor falls back to first enabled model" do
+    # Use a fresh account so we control all models
+    ActsAsTenant.without_tenant do
+      fresh_account = Account.create!(name: "Fallback Account", slug: "fallback-acct")
+      ActsAsTenant.current_tenant = fresh_account
+      provider = fresh_account.providers.create!(name: "Fallback", provider_type: "openai", api_key: "key")
+      model = provider.llm_models.create!(
+        account: fresh_account, name: "Fallback Model", identifier: "gpt-4-fallback", enabled: true
+      )
+
+      space = fresh_account.spaces.create!(name: "Space With Fallback Model")
+      scribe = space.advisors.find_by(is_scribe: true)
+      assert_not_nil scribe
+      assert_equal model, scribe.llm_model
+    end
+  end
+
+  test "create_scribe_advisor does not raise when no model available" do
+    @account.update!(default_llm_model: nil)
+    # Disable/remove all models for this account
+    @account.llm_models.update_all(enabled: false)
+
+    assert_nothing_raised do
+      @account.spaces.create!(name: "Space No Model")
+    end
+  end
 end

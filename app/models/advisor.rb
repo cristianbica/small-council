@@ -1,12 +1,14 @@
 class Advisor < ApplicationRecord
   acts_as_tenant :account
   belongs_to :account
-  belongs_to :space
+  belongs_to :space, optional: true
   belongs_to :llm_model, optional: true
 
   has_many :council_advisors, dependent: :destroy
   has_many :councils, through: :council_advisors
-  has_many :messages, as: :sender, dependent: :destroy
+  has_many :conversation_participants, dependent: :destroy
+  has_many :conversations, through: :conversation_participants
+  has_many :messages, as: :sender, dependent: :restrict_with_error
 
   # Encrypt sensitive fields at rest
   encrypts :system_prompt
@@ -14,19 +16,20 @@ class Advisor < ApplicationRecord
 
   validates :name, presence: true
   validates :account, presence: true
-  validates :space, presence: true
 
   # Advisors need system_prompt but llm_model is optional (defaults to account default)
-  validates :system_prompt, presence: true
+  validates :system_prompt, presence: true, unless: :is_scribe?
   validate :llm_model_belongs_to_account, if: -> { llm_model_id.present? }
 
   scope :global, -> { where(global: true) }
   scope :custom, -> { where(global: false) }
   scope :for_space, ->(space) { where(space: space) }
+  scope :scribes, -> { where(is_scribe: true) }
+  scope :non_scribes, -> { where(is_scribe: false) }
 
-  # Check if this is the Scribe advisor
+  # Check if this is the Scribe advisor (using is_scribe flag)
   def scribe?
-    name.downcase.include?("scribe") || name.downcase.include?("scrib")
+    is_scribe
   end
 
   # Get the effective LLM model for this advisor
@@ -37,6 +40,7 @@ class Advisor < ApplicationRecord
 
   # Check if this advisor has a valid LLM model (either specific or default)
   def llm_model_configured?
+    return true if is_scribe?  # Scribe uses special handling
     effective_llm_model.present?
   end
 

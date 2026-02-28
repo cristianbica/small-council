@@ -8,42 +8,70 @@ Advisors generate responses using real LLM APIs. The system supports multiple pr
 
 ## Architecture
 
-### LLM Module Structure
+### AI Lib Structure
 
 ```
-app/services/llm/
-├── llm.rb              # Module definition, APIError class
-├── client.rb           # Unified wrapper for all provider operations
-└── model_manager.rb    # Model lifecycle management
+app/libs/ai/
+├── client.rb             # Unified wrapper: class methods for provider/model ops
+├── content_generator.rb  # High-level advisor response generation (replaces AIClient)
+├── model_manager.rb      # Model lifecycle management (enable/disable/sync)
+├── adapters/
+│   └── ruby_llm_tool_adapter.rb  # Wraps AI::Tools::BaseTool for RubyLLM
+├── context_builders/
+│   ├── base_context_builder.rb
+│   ├── conversation_context_builder.rb
+│   └── scribe_context_builder.rb
+├── concerns/             # Shared model concerns
+└── tools/
+    ├── base_tool.rb
+    ├── conversations/    # finish_conversation, ask_advisor, summarize_conversation
+    ├── external/         # browse_web
+    └── internal/         # list_conversations, query_conversations, read_conversation,
+                          # list_memories, query_memories, read_memory, update_memory,
+                          # get_conversation_summary, create_memory
+
+app/services/
+├── command_parser.rb     # Parse /commands and @mentions from user messages
+└── ...
 ```
 
-### LLM::Client
+### AI::Client
 
-The `LLM::Client` class provides a unified interface for all LLM operations:
+`AI::Client` provides class methods for provider/model operations. Do **not** instantiate it directly for connection testing or model listing.
 
 ```ruby
-# Provider-level operations
-client = LLM::Client.new(provider: provider)
-client.list_models      # List available models
-client.test_connection  # Validate credentials
+# Provider-level operations (class methods)
+AI::Client.test_connection(provider: provider)
+AI::Client.list_models(provider: provider)
 
-# Model-level operations
-client = LLM::Client.new(provider: provider, model: llm_model)
-client.info             # Get model metadata
-client.supports?(:vision)  # Check capabilities
-client.chat(messages, system_prompt: "...")  # Chat completion
+# Model-level operations (still via class or instance depending on use)
+llm_model.api.info
+llm_model.api.supports?(:vision)
+llm_model.api.chat(messages, system_prompt: "...")
+```
+
+### Provider#api / LlmModel#api DSL
+
+```ruby
+# Provider-level
+provider.api.list_models
+provider.api.test_connection
+
+# Model-level
+llm_model.api.info
+llm_model.api.chat(messages, system_prompt: "...")
 ```
 
 ## Providers
 
 ### Supported
-- **OpenAI** - GPT-4o, GPT-4o-mini, o1, o3-mini, etc.
-- **OpenRouter** - Multi-provider access (OpenAI, Anthropic, Google, etc.)
+- **OpenAI** — GPT-4o, GPT-4o-mini, o1, o3-mini, etc.
+- **OpenRouter** — Multi-provider access (OpenAI, Anthropic, Google, etc.)
 
 ### Configuration
 Each account manages its own providers:
 - Name (e.g., "OpenAI Production")
-- Provider type (enum: openai, openrouter)
+- Provider type (enum: `openai`, `openrouter`)
 - API key (encrypted at rest)
 - Organization ID (OpenAI only, optional)
 - Enabled flag
@@ -61,94 +89,24 @@ Each provider can have multiple models:
 - Identifier (API identifier, e.g., "gpt-4o")
 - Enabled flag for lifecycle management
 - Metadata (capabilities, pricing, context window) synced from ruby_llm
+- Free flag (set true when both input/output prices are 0.0)
 
 ### Advisor → LlmModel
-Advisors reference an LlmModel instead of hardcoded provider/model strings. This enables:
-- Easy model switching per advisor
-- Per-account model availability
-- Usage tracking per model
+Advisors reference an `LlmModel` instead of hardcoded provider/model strings.
 
-## DSL: provider.api and model.api
+## Content Generation
 
-Models provide convenient API accessors:
+`AI::ContentGenerator` (in `app/libs/ai/content_generator.rb`) handles high-level advisor interactions:
 
 ```ruby
-# Provider-level operations
-provider.api.list_models
-provider.api.test_connection
-
-# Model-level operations
-llm_model.api.info
-llm_model.api.supports?(:vision)
-llm_model.api.chat(messages, system_prompt: "...")
-```
-
-These methods return `LLM::Client` instances:
-- `Provider#api` - Client without model (provider operations only)
-- `LlmModel#api` - Client with model (all operations including chat)
-
-## Error Handling
-
-### LLM::APIError
-Raised when API calls fail:
-
-```ruby
-begin
-  result = client.chat(messages)
-rescue LLM::APIError => e
-  # Handle API failure
-end
-```
-
-### LLM::Client::MissingModelError
-Raised when model-level operations are called on a client without a model:
-
-```ruby
-client = LLM::Client.new(provider: provider)
-client.chat(messages)  # Raises MissingModelError
-```
-
-## AI Client Service
-
-`app/services/ai_client.rb` handles high-level advisor interactions:
-
-```ruby
-client = AIClient.new(advisor: advisor, conversation: conversation, message: message)
-result = client.generate_response
+generator = AI::ContentGenerator.new(advisor: advisor, conversation: conversation, message: message)
+result = generator.generate_response
 # Returns: { content: "...", input_tokens: N, output_tokens: M, total_tokens: P, tool_calls: [], tool_results: [] }
 ```
 
-### How AIClient Uses the Wrapper
+## Error Handling
 
-AIClient uses RubyLLM for chat with tool support:
-
-```ruby
-# Configure RubyLLM context
-context = RubyLLM.context do |config|
-  config.openai_api_key = model.provider.api_key
-end
-
-# Create chat with tools
-chat = context.chat(model: model.identifier).with_tools(
-  RubyLLMTools::AdvisorQueryMemoriesTool,
-  RubyLLMTools::AdvisorAskAdvisorTool
-)
-
-# Add system instructions and messages
-chat.with_instructions(system_prompt)
-messages.each { |msg| chat.add_message(role: msg[:role], content: msg[:content]) }
-
-# Execute and handle tool calls
-response = chat.complete
-results = handle_tool_calls(response, chat)
-```
-
-### Features
-- Unified provider interface via LLM::Client
-- **Tool system integration** - Advisors can use 4 tools (query_memories, query_conversations, read_conversation, ask_advisor)
-- Automatic retry with exponential backoff
-- Conversation context building (system prompt + history + memory context)
-- Error handling with custom exception classes
+`AI::APIError` is raised when API calls fail. There is no `LLM::Client::MissingModelError` — model-level guard is handled inside `AI::Client`.
 
 ## Background Jobs
 
@@ -156,10 +114,11 @@ results = handle_tool_calls(response, chat)
 
 1. Fetch pending message
 2. Set tenant context for multi-tenancy
-3. Call AI Client
-4. Update message with response content
-5. Create usage record
-6. Broadcast via Turbo Streams
+3. Determine if scribe followup (`is_scribe_followup` param)
+4. Call `AI::ContentGenerator`
+5. Update message with response content
+6. Create usage record
+7. Broadcast via Turbo Streams
 
 ### Error Handling
 - API errors: Message marked as error with explanation
@@ -171,14 +130,12 @@ results = handle_tool_calls(response, chat)
 Real-time UI updates without page refresh:
 
 - `<%= turbo_stream_from "conversation_#{@conversation.id}" %>` in show view
-- Jobs broadcast `turbo_stream_replace_to` with updated message partial
+- Jobs broadcast updated message partials
 - Pending messages show pulse animation
-- Error messages show distinct styling
 
 ## Usage Tracking
 
 Every API call creates a UsageRecord:
-
 - Input/output token counts
 - Provider type and model identifier
 - Calculated cost (using per-model pricing from metadata)
@@ -194,22 +151,23 @@ Every API call creates a UsageRecord:
 
 ## Testing
 
-### Model Tests
-- Provider: validation, encryption, scopes
-- LlmModel: validation, metadata sync, scopes
-- Advisor: llm_model association, provider delegation
+### Mock Pattern
+Always stub `AI::Client` **class methods**, not instance methods:
 
-### Service Tests
-- LLM::Client: provider operations, chat, error handling
-- LLM::ModelManager: enable/disable, model discovery
-- AIClient: message building, response parsing, error handling
-- Uses Mocha for mocking API calls
+```ruby
+# Correct
+AI::Client.stubs(:test_connection).returns({ success: true, model: "gpt-4o-mini" })
+AI::Client.stubs(:list_models).returns([{ id: "gpt-4", name: "GPT-4" }])
 
-### Job Tests
-- GenerateAdvisorResponseJob: success path, error handling, idempotency
+# Wrong — AI::Client uses class methods, not new + instance methods
+AI::Client.expects(:new).returns(mock_client)  # Do NOT do this
+```
 
-### Integration Tests
-- Full flow: message post → job enqueue → response generation
+### Test Files
+- `test/services/provider_connection_tester_test.rb`
+- `test/ai/unit/client_test.rb`
+- `test/ai/unit/model_manager_test.rb`
+- `test/jobs/generate_advisor_response_job_test.rb`
 
 ## Security
 
@@ -217,9 +175,3 @@ Every API call creates a UsageRecord:
 - Credentials never logged
 - Per-account isolation via acts_as_tenant
 - Tenant context explicitly set in background jobs
-
-## Limitations (Phase 1)
-
-- No streaming responses (full response only)
-- No rate limiting per account
-- No provider health checks or failover
