@@ -16,12 +16,18 @@ Rules:
 
 - [Spaces](spaces.md) - Contextual workspaces for organizing councils
 - [Councils](councils.md) - Groups of AI advisors that collaborate
-- [Advisors](advisors.md) - AI personas with configurable LLM models
+- [Advisors](advisors.md) - AI personas with configurable LLM models and tools
 
 ## Conversation Features
 
-- [Conversations](conversations.md) - Chat sessions with Rules of Engagement
+- [Conversation System](conversation-system.md) - Architecture: RoE, participants, lifecycle
+- [Conversations](conversations.md) - UX and API reference: create, post, finish, delete
 - [Providers](providers.md) - AI provider credentials and model configuration
+
+## AI Integration
+
+- [AI Integration](ai-integration.md) - AI::Client, ContentGenerator, tool system, usage tracking
+- [Model Interactions](model-interactions.md) - Per-message LLM request/response recording and UI
 
 ## Data Layer
 

@@ -120,53 +120,6 @@ class AdvisorTest < ActiveSupport::TestCase
     end
   end
 
-  # Scope tests
-  test "global scope returns only global advisors" do
-    space = @account.spaces.create!(name: "Global Scope Test Space")
-    global_advisor = @account.advisors.create!(
-      name: "Global Advisor",
-      system_prompt: "You are global",
-      llm_model: @llm_model,
-      global: true,
-      space: space
-    )
-    custom_advisor = @account.advisors.create!(
-      name: "Custom Advisor",
-      system_prompt: "You are custom",
-      llm_model: @llm_model,
-      global: false,
-      space: space
-    )
-    # Only global advisor should be in global scope
-    global_advisors = Advisor.global.where(space: space)
-    assert_includes global_advisors, global_advisor
-    refute_includes global_advisors, custom_advisor
-    assert global_advisors.all?(&:global)
-  end
-
-  test "custom scope returns only non-global advisors" do
-    space = @account.spaces.create!(name: "Custom Scope Test Space")
-    global_advisor = @account.advisors.create!(
-      name: "Global Advisor",
-      system_prompt: "You are global",
-      llm_model: @llm_model,
-      global: true,
-      space: space
-    )
-    custom_advisor = @account.advisors.create!(
-      name: "Custom Advisor",
-      system_prompt: "You are custom",
-      llm_model: @llm_model,
-      global: false,
-      space: space
-    )
-    # Should include both the custom advisor and the auto-created Scribe
-    custom_advisors = Advisor.custom.where(space: space)
-    assert_includes custom_advisors, custom_advisor
-    refute_includes custom_advisors, global_advisor
-    assert custom_advisors.none?(&:global)
-  end
-
   test "belongs to space" do
     advisor = Advisor.new
     assert_respond_to advisor, :space
@@ -257,46 +210,6 @@ class AdvisorTest < ActiveSupport::TestCase
       space: space
     )
     assert_not advisor.scribe?
-  end
-
-  test "scribes scope returns only scribes" do
-    space = @account.spaces.create!(name: "Test Space")
-    scribe = @account.advisors.create!(
-      name: "The Scribe",
-      system_prompt: "You are the scribe.",
-      space: space,
-      is_scribe: true
-    )
-    regular = @account.advisors.create!(
-      name: "Regular Advisor",
-      system_prompt: "You are regular.",
-      space: space,
-      is_scribe: false
-    )
-
-    scribes = Advisor.scribes.where(space: space)
-    assert_includes scribes, scribe
-    assert_not_includes scribes, regular
-  end
-
-  test "non_scribes scope returns only non-scribes" do
-    space = @account.spaces.create!(name: "Test Space")
-    scribe = @account.advisors.create!(
-      name: "The Scribe",
-      system_prompt: "You are the scribe.",
-      space: space,
-      is_scribe: true
-    )
-    regular = @account.advisors.create!(
-      name: "Regular Advisor",
-      system_prompt: "You are regular.",
-      space: space,
-      is_scribe: false
-    )
-
-    non_scribes = Advisor.non_scribes.where(space: space)
-    assert_includes non_scribes, regular
-    assert_not_includes non_scribes, scribe
   end
 
   test "scribe does not require system_prompt" do

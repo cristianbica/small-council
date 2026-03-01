@@ -334,5 +334,168 @@ module AI
 
       assert_nil response.usage
     end
+
+    # =========================================================================
+    # Model Interaction Recording Tests
+    # =========================================================================
+
+    test "chat records model interaction when message in context" do
+      client = Client.new(model: @llm_model, system_prompt: "Be helpful", temperature: 0.5)
+
+      council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+      conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+      message = @account.messages.create!(conversation: conversation, sender: @user, role: "user", content: "Hello")
+
+      mock_response = Struct.new(:content, :input_tokens, :output_tokens, :model_id, :tool_calls).new(
+        "Test response", 100, 50, "gpt-4", nil
+      )
+
+      mock_chat = Struct.new(:response) do
+        def with_instructions(*); self; end
+        def with_temperature(*); self; end
+        def add_message(*); self; end
+        def complete; response; end
+      end.new(mock_response)
+
+      mock_context = Struct.new(:chat_result) do
+        def chat(**args); chat_result; end
+      end.new(mock_chat)
+
+      RubyLLM.stubs(:context).yields(stub(:openai_api_key= => nil, :openai_organization_id= => nil)).returns(mock_context)
+
+      assert_difference "ModelInteraction.count", 1 do
+        client.chat(
+          messages: [ { role: "user", content: "Hello" } ],
+          context: { message: message, account: @account, space: @space }
+        )
+      end
+
+      interaction = ModelInteraction.last
+      assert_equal message, interaction.message
+      assert_equal @account, interaction.account
+      assert_equal 0, interaction.sequence
+      assert_equal "gpt-4", interaction.model_identifier
+      assert_equal 100, interaction.input_tokens
+      assert_equal 50, interaction.output_tokens
+      assert interaction.duration_ms.present?
+      assert interaction.duration_ms >= 0
+
+      # Verify request_payload contents
+      assert_equal "gpt-4", interaction.request_payload["model"]
+      assert_equal "openai", interaction.request_payload["provider"]
+      assert_equal 0.5, interaction.request_payload["temperature"]
+      assert_equal "Be helpful", interaction.request_payload["system_prompt"]
+      assert_equal 1, interaction.request_payload["messages_count"]
+
+      # Verify response_payload contents
+      assert_equal "Test response", interaction.response_payload["content"]
+      assert_equal 100, interaction.response_payload["input_tokens"]
+      assert_equal 50, interaction.response_payload["output_tokens"]
+      assert_equal "gpt-4", interaction.response_payload["model_used"]
+    end
+
+    test "chat does not record interaction when no message in context" do
+      client = Client.new(model: @llm_model)
+
+      mock_response = Struct.new(:content, :input_tokens, :output_tokens, :model_id, :tool_calls).new(
+        "Test response", 100, 50, "gpt-4", nil
+      )
+
+      mock_chat = Struct.new(:response) do
+        def with_instructions(*); self; end
+        def with_temperature(*); self; end
+        def add_message(*); self; end
+        def complete; response; end
+      end.new(mock_response)
+
+      mock_context = Struct.new(:chat_result) do
+        def chat(**args); chat_result; end
+      end.new(mock_chat)
+
+      RubyLLM.stubs(:context).yields(stub(:openai_api_key= => nil)).returns(mock_context)
+
+      assert_no_difference "ModelInteraction.count" do
+        client.chat(
+          messages: [ { role: "user", content: "Hello" } ],
+          context: { space: @space }
+        )
+      end
+    end
+
+    test "chat records multiple interactions with incrementing sequence" do
+      client = Client.new(model: @llm_model)
+
+      council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+      conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+      message = @account.messages.create!(conversation: conversation, sender: @user, role: "user", content: "Hello")
+
+      mock_response = Struct.new(:content, :input_tokens, :output_tokens, :model_id, :tool_calls).new(
+        "Response", 100, 50, "gpt-4", nil
+      )
+
+      mock_chat = Struct.new(:response) do
+        def with_instructions(*); self; end
+        def with_temperature(*); self; end
+        def add_message(*); self; end
+        def complete; response; end
+      end.new(mock_response)
+
+      mock_context = Struct.new(:chat_result) do
+        def chat(**args); chat_result; end
+      end.new(mock_chat)
+
+      RubyLLM.stubs(:context).yields(stub(:openai_api_key= => nil, :openai_organization_id= => nil)).returns(mock_context)
+
+      context = { message: message, account: @account, space: @space }
+
+      assert_difference "ModelInteraction.count", 2 do
+        client.chat(messages: [ { role: "user", content: "Hello" } ], context: context)
+        client.chat(messages: [ { role: "user", content: "Follow up" } ], context: context)
+      end
+
+      interactions = ModelInteraction.where(message: message).chronological
+      assert_equal 2, interactions.count
+      assert_equal 0, interactions.first.sequence
+      assert_equal 1, interactions.second.sequence
+    end
+
+    test "recording failure does not break chat response" do
+      client = Client.new(model: @llm_model)
+
+      council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+      conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+      message = @account.messages.create!(conversation: conversation, sender: @user, role: "user", content: "Hello")
+
+      mock_response = Struct.new(:content, :input_tokens, :output_tokens, :model_id, :tool_calls).new(
+        "Test response", 100, 50, "gpt-4", nil
+      )
+
+      mock_chat = Struct.new(:response) do
+        def with_instructions(*); self; end
+        def with_temperature(*); self; end
+        def add_message(*); self; end
+        def complete; response; end
+      end.new(mock_response)
+
+      mock_context = Struct.new(:chat_result) do
+        def chat(**args); chat_result; end
+      end.new(mock_chat)
+
+      RubyLLM.stubs(:context).yields(stub(:openai_api_key= => nil, :openai_organization_id= => nil)).returns(mock_context)
+
+      # Simulate recording failure
+      ModelInteraction.stubs(:create!).raises(StandardError.new("DB error"))
+
+      assert_no_difference "ModelInteraction.count" do
+        response = client.chat(
+          messages: [ { role: "user", content: "Hello" } ],
+          context: { message: message, account: @account, space: @space }
+        )
+
+        # Response should still be returned successfully
+        assert_instance_of AI::Model::Response, response
+        assert_equal "Test response", response.content
+      end
+    end
   end
 end

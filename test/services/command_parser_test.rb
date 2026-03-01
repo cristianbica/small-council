@@ -32,24 +32,4 @@ class CommandParserTest < ActiveSupport::TestCase
     assert_nil CommandParser.parse("/unknown @advisor")
     assert_nil CommandParser.parse("/help")
   end
-
-  test "command? returns true for valid commands" do
-    assert CommandParser.command?("/invite @advisor")
-  end
-
-  test "command? returns false for non-commands" do
-    assert_not CommandParser.command?("Hello world")
-    assert_not CommandParser.command?("@advisor help")
-    assert_not CommandParser.command?("")
-    assert_not CommandParser.command?(nil)
-  end
-
-  test "command? returns false for unknown commands" do
-    assert_not CommandParser.command?("/unknown @advisor")
-  end
-
-  test "available_commands returns list of command names" do
-    commands = CommandParser.available_commands
-    assert_includes commands, "invite"
-  end
 end

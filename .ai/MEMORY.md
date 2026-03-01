@@ -65,18 +65,20 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 
 ## Business domains
 - Multi-tenant AI advisor platform
-- Spaces: contextual workspaces containing councils
+- Spaces: contextual workspaces containing councils (each auto-creates a Scribe advisor)
 - Councils: groups of AI advisors that collaborate
-- Conversations: chat sessions with advisor participation
-- Advisors: AI personas with configurable LLM models and tool access
-- Tool System: RubyLLM-powered tools for advisors and scribe
-- Usage tracking: per-account billing and observability
-- AI Providers: OpenAI, Anthropic, GitHub Models with encrypted API credentials
-- LlmModels: Per-account model configuration (GPT-4, Claude, etc.)
+- Conversations: chat sessions (`council_meeting` or `adhoc`) with RoE (open/consensus/brainstorming)
+- Advisors: AI personas with configurable LLM models and tool access; `is_scribe` flag for Scribe
+- Tool System: 13 tools in `app/libs/ai/tools/` using `AI::Tools::BaseTool`
+- Usage tracking: per-account billing via `UsageRecord` (auto-created by `AI::Client#chat`)
+- Model interactions: per-message LLM call recording via `ModelInteraction` (auto-created by `AI::Client#chat` when `context[:message]` present)
+- AI Providers: OpenAI, OpenRouter with encrypted API credentials
+- LlmModels: Per-account model configuration; `account.default_llm_model` fallback
+- Memories: 4 types (summary auto-fed to AI; others query-on-demand via tools)
 
 ## Data Layer (2026-02-27)
-- 12 migrations, 12 models (added Memory, MemoryVersion)
-- Key tables: accounts, users, spaces, advisors, councils, council_advisors, conversations, messages, usage_records, providers, llm_models, memories
+- 13 migrations, 13 models (added Memory, MemoryVersion, ModelInteraction)
+- Key tables: accounts, users, spaces, advisors, councils, council_advisors, conversations, messages, usage_records, providers, llm_models, memories, model_interactions
 - acts_as_tenant gem is enabled and active (automatic tenant scoping on all queries)
 - JSONB columns: settings, preferences, model_config, metadata, configuration, content_blocks, context, custom_prompt_override, credentials
 - GIN indexes on all JSONB columns
@@ -86,30 +88,25 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - Message statuses: `pending`, `complete`, `error`, `cancelled`
 
 ## Discovered quirks
-- 2026-02-10: Initialized `.ai/` template structure and core roles/workflows.
-- 2026-02-18: Data layer implemented with acts_as_tenant gem active (automatic query scoping).
-- 2026-02-18: Tenant setting uses `Current.user.account` pattern via `set_current_tenant` filter.
-- 2026-02-18: Spaces feature - Contextual workspaces containing councils, with session-based space switching.
-- 2026-02-18: Conversations Phase 1 - Chat UI with list, create, view, and post messages.
-- 2026-02-18: Conversations Phase 2 - Rules of Engagement (RoE) with 5 modes: round_robin, moderated, on_demand, silent, consensus.
-- 2026-02-18: AI Integration - Multi-provider LLM support (OpenAI, Anthropic, GitHub Models) with encrypted credentials, async job processing, Turbo Streams real-time updates, and usage tracking.
-- 2026-02-18: RoE-based Conversation Auto-Conclusion - Conversations can auto-conclude based on Rules of Engagement mode (Consensus, Round Robin, Moderated) or manual finish (On Demand, Silent). Statuses: active → concluding → resolved → archived.
 - 2026-02-18: Active Record encryption uses deterministic test keys in test environment.
-- 2026-02-18: Security test audit added 37 new security tests covering tenant isolation, parameter tampering, mass assignment, and cross-account access. See `.ai/docs/patterns/security-testing.md` for patterns.
-- 2026-02-18: Conversation Memory Features - Structured AI-generated summaries with key decisions, action items, insights, and open questions. Space-level cumulative memory browser with search. Regenerate summary option available during review.
+- 2026-02-18: Security test audit - 37+ security tests covering tenant isolation, parameter tampering, mass assignment. See `.ai/docs/patterns/security-testing.md`.
 - 2026-02-24: Created `dhh-coder` overlay (coding style) and `dhh-reviewer` overlay (code review persona) for 37signals/DHH Rails conventions
-- 2026-02-25: Fixed conversation summary parsing - The `extract_section` method in `GenerateConversationSummaryJob` now supports multiple header formats: `## Key Decisions`, `**Key Decisions:**`, `**Key Decisions**`, and `Key Decisions:`. Previously only worked with `##` headers, causing "- None identified" to be saved when AI used bold format.
-- 2026-02-26: Fixed `by_type` scope in Memory model - When type is blank (All tab), returns `all` instead of `where(memory_type: nil)` which returned no records
-- 2026-02-27: **Tool System** - Advisors now have 4 tools: `query_memories`, `query_conversations`, `read_conversation` (read-only), and `ask_advisor` (write). Scribe has 4 tools: `finish_conversation`, `create_memory`, `query_memories`, `browse_web`. Tools use `RubyLLM::Tool` base class with `AdvisorTool`/`ScribeTool` wrappers.
-- 2026-02-27: **ask_advisor behavior change** - Now posts in the same conversation instead of creating new conversations. Creates a mention message + pending placeholder, then enqueues response job.
-- 2026-02-27: **Delete conversation** - Added destroy action. Only conversation starter or council creator can delete. Available in both conversation list and detail views.
+- 2026-02-25: Fixed conversation summary parsing — `extract_section` in `GenerateConversationSummaryJob` supports multiple header formats (`## Key Decisions`, `**Key Decisions:**`, `Key Decisions:`).
+- 2026-02-26: Fixed `by_type` scope in Memory model — blank type returns `all`, not `where(memory_type: nil)`.
+- 2026-02-27: **Tool System** — 13 tools in `app/libs/ai/tools/` using `AI::Tools::BaseTool` (not old `AdvisorTool`/`ScribeTool`).
+- 2026-02-27: **ask_advisor** — Posts in same conversation; creates mention + pending placeholder + enqueues job.
+- 2026-02-27: **Delete conversation** — Only conversation starter or council creator can delete.
+- 2026-02-28: **AI::Client instance-based** — `AI::Client.new(model:, tools:, system_prompt:).chat(messages:, context:)`. Mock: `AI::Client.stubs(:new).returns(mock_client)`.
+- 2026-02-28: **Providers** — OpenAI and OpenRouter only (Anthropic removed). `ruby_llm` 1.12.1 is the unified LLM client.
 
 ## Gems
-- `ruby-openai` (~> 7.0) - OpenAI API client
-- `anthropic` (~> 0.3) - Anthropic API client
-- `mocha` - Test mocking (for service/job tests with any_instance/stubs)
-- `acts_as_tenant` - Multi-tenancy (automatic account scoping)
-- `simplecov` - Code coverage analysis (test group only, configured in test_helper.rb)
+- `ruby_llm` (~> 1.3, locked at 1.12.1) - Unified LLM client (OpenAI + OpenRouter)
+- `acts_as_tenant` (~> 1.0) - Multi-tenancy (automatic account scoping)
+- `mocha` - Test mocking (stubs/expects in unit/integration tests)
+- `simplecov` - Code coverage (test group; configured in test_helper.rb)
+- `faraday` (~> 2.0) + `faraday-follow_redirects` - HTTP client (browse_web tool)
+- `diffy` (~> 3.4) - Diff library (used by InlineDiff service for memory versions)
+- `commonmarker` (~> 2.0) - GitHub Flavored Markdown rendering (MarkdownHelper)
 
 ## UI Framework (2026-02-18)
 - Tailwind CSS v4.1.18 via `tailwindcss-rails` gem (no Node.js)
@@ -139,7 +136,7 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - Uses `ProviderConnectionTester` service to validate API keys before saving
 - Real-time connection testing via AJAX with loading/success/error states
 - Session-based state management for multi-step flow
-- Supports OpenAI, Anthropic, and GitHub Models
+- Supports OpenAI and OpenRouter (provider_type enum: openai, openrouter)
 - Provider-specific authentication fields (API Key, optional Organization ID)
 - Wizard URL: `/providers/wizard`
 
@@ -169,15 +166,25 @@ The Scribe/Advisors have access to tools via `app/libs/ai/tools/` (`AI::Tools::B
 - Tools are defined in `app/libs/ai/tools/` using `AI::Tools::BaseTool`
 - Context is passed via tool context object (conversation, space, advisor, user)
 
-## AI Architecture Update (2026-02-28)
-- `AI::Client` uses **class methods** — `AI::Client.test_connection(provider:)` and `AI::Client.list_models(provider:)`. Never stub `.new` + instance methods in tests.
+## AI Architecture (2026-02-28, verified 2026-02-28)
+- `AI::Client` is **instance-based**: `AI::Client.new(model:, tools: [], system_prompt:, temperature:)` then `.chat(messages:, context: {})`.
+- Class methods on `AI::Client`: `AI::Client.test_connection(provider:)` and `AI::Client.list_models(provider:)` — used by `ProviderConnectionTester` and `AI::ModelManager`.
+- `AI::Client#chat` returns `AI::Model::Response` (content, tool_calls, usage).
+- `AI::Client` auto-tracks usage via `UsageRecord.create!` inside `#track_usage`; no double-tracking.
 - `Provider.provider_type` enum: `openai`, `openrouter` only (no anthropic).
 - `Current.user` has no setter — to stub current user: `Current.session = stub(user: some_user)`.
 - `Space#create_scribe_advisor` rescues failures and returns nil; always ensure account has an LLM model before calling `scribe_advisor` or creating a Space in tests.
-- Tool system moved from `app/services/scribe_tools/`, `advisor_tools/`, `ruby_llm_tools/` → `app/libs/ai/tools/` with `AI::Tools::BaseTool`; adapter at `app/libs/ai/adapters/ruby_llm_tool_adapter.rb`.
-- 2026-02-28: Deleted stale test files referencing removed classes (ScribeTool, AdvisorTool, ToolExecutionContext, MemorySearch, ScribeToolExecutor).
-- AI::Client stubs: use class-method stubs `AI::Client.stubs(:test_connection).returns(...)` — NOT `.expects(:new)`.
-- Test coverage (2026-02-28): ~1486 runs, 96.71% line, 85.21% branch (Line: 96.71%, Branch: 85.21% as of 2026-02-28).
+- Tool system lives in `app/libs/ai/tools/` with `AI::Tools::BaseTool`; adapter at `app/libs/ai/adapters/ruby_llm_tool_adapter.rb`.
+- Deleted stale classes (2026-02-28): ScribeTool, AdvisorTool, ToolExecutionContext, MemorySearch, ScribeToolExecutor.
+- Mock pattern: `AI::Client.stubs(:new).returns(mock_client)` + `mock_client.stubs(:chat).returns(mock_response)`.
+- **RubyLLM::Message API**: uses `model_id` (NOT `model`). Available methods: `content`, `input_tokens`, `output_tokens`, `model_id`, `tool_calls`, `tool_call?`, `role`, `thinking`.
+- Test coverage (2026-03-01, verified): 1420 runs, 96.83% line, 85.79% branch.
+
+## Additional Services (2026-02-28)
+- `AI::ContentGenerator` — instance-based, intent-driven: `AI::ContentGenerator.new.generate_advisor_response(advisor:, conversation:, ...)`.
+- `InlineDiff` — module in `app/services/inline_diff.rb` for word-level diff display (used by memory versions).
+- `MarkdownHelper` — in `app/helpers/markdown_helper.rb`, uses `commonmarker` gem for GFM rendering.
+- `GenerateConversationSummaryJob` — async job that generates conversation summary on conclusion.
 
 ## Ruby Version (2026-02-19)
 - **Ruby 4.0.1** (upgraded from 3.4.8) - Uses mise for version management

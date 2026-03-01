@@ -49,10 +49,13 @@ t.references :updated_by, polymorphic: true
    - Search functionality
    - Export (Markdown, JSON)
 
-3. **Scribe Tool System** (`app/services/scribe_tool.rb`)
-   - `ScribeTool` base class for full-access tools
-   - `AdvisorTool` base class for read-only tools
-   - Tool execution framework with validation
+3. **Tool System** (`app/libs/ai/tools/`)
+   - Tools inherit from `AI::Tools::BaseTool`
+   - `AI::Tools::Internal::QueryMemoriesTool` - Search memories (all agents)
+   - `AI::Tools::Internal::CreateMemoryTool` - Create memory entries (Scribe only)
+   - `AI::Tools::Internal::ReadMemoryTool` - Read specific memory
+   - `AI::Tools::Internal::UpdateMemoryTool` - Edit memory entry
+   - `AI::Tools::Internal::ListMemoriesTool` - List memories in space
 
 4. **Available Tools**
    - `finish_conversation` - Conclude and summarize
@@ -87,51 +90,38 @@ Memory.create_conversation_summary!(
 # Get primary summary for AI context
 summary = Memory.primary_summary_for(space)
 
-# Search memories
-results = MemorySearch.new(
-  space: space,
-  query: "API authentication",
-  filters: { type: "knowledge" }
-).execute
+# Search memories (model scope)
+memories = space.memories.active.by_type("knowledge").where("content ILIKE ?", "%API%")
 
-# Quick search
-memories = MemorySearch.quick(space: space, query: "database", limit: 5)
+# Quick search via controller
+GET /spaces/:space_id/memories/search?q=authentication
 ```
 
 ### In Conversation Context
 
-Advisors can query memories on-demand:
+Agents query memories via tools (not direct method calls):
 
 ```ruby
-# In AIClient or tool execution
-context = ToolExecutionContext.new(
-  conversation: conversation,
-  space: space,
-  advisor: advisor,
-  user: user
-)
-
-# Query specific memories
-memories = context.query_memories(
-  query: "JWT authentication decision",
-  memory_type: "knowledge",
-  limit: 3
-)
+# In tool execution (AI::Tools::Internal::QueryMemoriesTool)
+# context = { space: space, conversation: conversation, advisor: advisor }
+# params = { "query" => "JWT authentication decision", "memory_type" => "knowledge", "limit" => 3 }
+result = tool.execute(params, context)
+# => { success: true, memories: [{ id: 1, title: "...", preview: "..." }, ...] }
 ```
 
 ## Memory Context in AI
 
-The `AIClient#build_memory_context` method **only includes the summary memory**:
+The context builder (`AI::ContextBuilders::ConversationContextBuilder`) **only includes the summary memory**:
 
 ```ruby
+# In context builder — only primary summary is injected automatically
 def build_memory_context
-  # Add the PRIMARY SUMMARY memory (ONLY this type is auto-fed)
   summary_memory = Memory.primary_summary_for(space)
   if summary_memory
     context_parts << "## Space Knowledge & Decisions"
     context_parts << summary_memory.content
   end
-  # Note: Other memory types are NOT auto-fed
+  # Note: Other memory types are NOT auto-fed; advisors query them via tools
 end
 ```
 

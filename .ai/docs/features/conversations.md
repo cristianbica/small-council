@@ -36,13 +36,15 @@ Conversations are chat sessions tied to a specific council. Each conversation ha
 /conversations/:conversation_id/messages  # create
 /conversations/:id/finish                 # Begin conclusion process
 /conversations/:id/cancel_pending         # Stop pending advisor responses
+/conversations/:id/invite_advisor         # POST - add advisor to conversation
+/conversations/quick_create               # POST - quick start from dashboard
 ```
 
 ### Models
-- `Conversation`: title, status (active/archived), rules_of_engagement, context (jsonb), council_id, user_id
-- `Message`: content, role (user/advisor/system), status (pending/complete/error), sender (polymorphic User/Advisor)
-- `Provider`: AI provider credentials (OpenAI, Anthropic, GitHub Models)
-- `LlmModel`: Available models per provider (GPT-4, Claude, etc.)
+- `Conversation`: title, status (active/concluding/resolved/archived), roe_type (open/consensus/brainstorming), conversation_type (council_meeting/adhoc), context (jsonb), council_id (nullable), user_id, scribe_initiated_count
+- `Message`: content, role (user/advisor/system), status (pending/complete/error/cancelled), sender (polymorphic User/Advisor), in_reply_to_id
+- `Provider`: AI provider credentials (OpenAI, OpenRouter)
+- `LlmModel`: Available models per provider
 
 ### Controllers
 - `ConversationsController`: index, show, new, create, update, destroy, finish, approve_summary, reject_summary, regenerate_summary, cancel_pending
@@ -50,8 +52,8 @@ Conversations are chat sessions tied to a specific council. Each conversation ha
 - `ProvidersController`: manage AI provider credentials
 
 ### Services
-- `ScribeCoordinator`: Determines which advisors should respond based on RoE mode and @mentions
-- `AIClient`: Calls LLM APIs (OpenAI, Anthropic, GitHub Models) with conversation context
+- `ConversationLifecycle`: Orchestrates message flow, advisor responses, and conversation conclusion
+- `AI::ContentGenerator`: Calls LLM APIs via `AI::Client` instance with conversation context
 
 ### Jobs
 - `GenerateAdvisorResponseJob`: Async AI response generation, usage tracking, Turbo Stream broadcasts
@@ -78,11 +80,9 @@ Rules of Engagement (RoE) control how advisors respond to user messages.
 
 | Mode | Behavior |
 |------|----------|
-| **Round Robin** | Advisors take turns responding in sequence |
-| **Moderated** | System selects advisor with fewest messages in conversation |
-| **On Demand** | Only @mentioned advisors respond |
-| **Silent** | No advisor responses (user-to-user mode) |
-| **Consensus** | All advisors respond (internal debate mode) |
+| **Open** | Advisors respond only when @mentioned; use @all for all advisors; max depth 1 |
+| **Consensus** | All advisors discuss until consensus; max depth 2 (advisors can reply to each other) |
+| **Brainstorming** | All advisors iterate on ideas; max depth 2 |
 
 ### Changing RoE
 
@@ -98,13 +98,14 @@ Use `@Advisor_Name` in messages to trigger specific advisors:
 ### AI Response Flow
 
 1. User posts message
-2. `MessagesController` calls `ScribeCoordinator` to determine responders
-3. Placeholder messages created with `pending` status and "thinking..." content
+2. `MessagesController` calls `ConversationLifecycle#user_posted_message`
+3. Placeholder messages created with `pending` status
 4. `GenerateAdvisorResponseJob` enqueued for each responder
 5. Background job:
-   - Calls LLM API via `AIClient`
+   - Calls `AI::ContentGenerator#generate_advisor_response`
    - Updates placeholder with AI response and `complete` status
-   - Creates `UsageRecord` with token count and cost
+   - Creates `UsageRecord` (auto-tracked inside `AI::Client#chat`)
+   - Calls `ConversationLifecycle#advisor_responded` for follow-up logic
    - Broadcasts via Turbo Streams to update UI in real-time
 6. User sees live message replacement without page refresh
 
@@ -125,11 +126,9 @@ Users can stop pending advisor responses if they were triggered by mistake or ar
 
 ### Implementation
 
-- Stored in `conversations.rules_of_engagement` (string enum)
-- Default: `round_robin`
-- State tracking (round robin position) in `conversations.context` jsonb
-- `ScribeCoordinator` service determines responders
-- `AIClient` handles OpenAI, Anthropic, and GitHub Models APIs with tool access for advisors
+- `roe_type` stored as string enum: `open`, `consensus`, `brainstorming`; default: `open`
+- `ConversationLifecycle` service handles all RoE logic, advisor triggering, depth control
+- `AI::ContentGenerator` handles prompt building; `AI::Client` handles LLM call + usage tracking
 - Credentials encrypted with Rails encrypted attributes
 - Turbo Streams provide real-time UI updates
 - Delete action uses `destroy!` with authorization check
@@ -139,15 +138,14 @@ Users can stop pending advisor responses if they were triggered by mistake or ar
 
 ### Adding a Provider
 1. Navigate to "AI Providers" in navigation
-2. Click "Add Provider"
-3. Enter provider name, type (OpenAI, Anthropic, GitHub Models), and API key
-4. Save (API key is encrypted at rest)
+2. Use the 4-step wizard: Select → Authenticate → Test → Name
+3. Supported types: `openai`, `openrouter`
+4. API key is encrypted at rest
 
 ### Adding Models
-Providers are created with models via console/seeds (UI coming in Phase 2):
-```ruby
-provider = account.providers.create!(name: "OpenAI", provider_type: "openai", api_key: "sk-...")
-provider.llm_models.create!(account: account, name: "GPT-4", identifier: "gpt-4")
+After provider is created, navigate to provider's model management page to enable/disable models:
+```
+/providers/:id/models
 ```
 
 ### Cost Tracking

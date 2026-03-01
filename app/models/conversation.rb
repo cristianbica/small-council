@@ -53,7 +53,6 @@ class Conversation < ApplicationRecord
   scope :recent, -> { order(last_message_at: :desc) }
   scope :active, -> { where(status: "active") }
   scope :adhoc_conversations, -> { where(conversation_type: "adhoc") }
-  scope :council_meetings, -> { where(conversation_type: "council_meeting") }
 
   # Returns the scribe participant for this conversation
   def scribe_participant
@@ -122,29 +121,6 @@ class Conversation < ApplicationRecord
     else
       1
     end
-  end
-
-  # Legacy methods for backward compatibility
-  def last_advisor_id
-    context["last_advisor_id"]
-  end
-
-  def mark_advisor_spoken(advisor_id)
-    update_column(:context, context.merge("last_advisor_id" => advisor_id))
-  end
-
-  def advisor_has_responded?(advisor_id)
-    context["responded_advisor_ids"]&.include?(advisor_id.to_s)
-  end
-
-  def mark_advisor_responded(advisor_id)
-    responded = context["responded_advisor_ids"] || []
-    update_column(:context, context.merge("responded_advisor_ids" => (responded + [ advisor_id.to_s ]).uniq))
-  end
-
-  def all_advisors_responded?
-    responded = context["responded_advisor_ids"] || []
-    participant_advisors.count == responded.count
   end
 
   def clear_responded_advisors

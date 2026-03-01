@@ -86,40 +86,6 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
     end
   end
 
-  test "creates usage record after successful generation" do
-    # Create mock response with token usage
-    token_usage = AI::Model::TokenUsage.new(
-      input: 100,
-      output: 50
-    )
-    mock_response = AI::Model::Response.new(
-      content: "Hello! I'm here to help!",
-      usage: token_usage
-    )
-
-    # Create a mock generator
-    mock_generator = mock("generator")
-    mock_generator.expects(:generate_advisor_response).returns(mock_response)
-    AI::ContentGenerator.expects(:new).returns(mock_generator)
-
-    assert_difference "UsageRecord.count", 1 do
-      GenerateAdvisorResponseJob.perform_now(
-        advisor_id: @advisor.id,
-        conversation_id: @conversation.id,
-        message_id: @message.id
-      )
-    end
-
-    usage = UsageRecord.last
-    assert_equal @account, usage.account
-    assert_equal @message, usage.message
-    assert_equal "openai", usage.provider
-    assert_equal "gpt-4", usage.model
-    assert_equal 100, usage.input_tokens
-    assert_equal 50, usage.output_tokens
-    assert usage.cost_cents > 0
-  end
-
   test "marks message as complete on success" do
     token_usage = AI::Model::TokenUsage.new(
       input: 50,
@@ -220,59 +186,6 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
     @message.reload
     assert @message.error?
     assert_match(/Unexpected error/, @message.content)
-  end
-
-  test "calculates cost for openrouter provider" do
-    openrouter_provider = @account.providers.create!(
-      name: "OpenRouter",
-      provider_type: "openrouter",
-      api_key: "openrouter-key"
-    )
-    openrouter_model = openrouter_provider.llm_models.create!(
-      account: @account,
-      name: "Claude via OpenRouter",
-      identifier: "anthropic/claude-3-sonnet"
-    )
-    advisor = @account.advisors.create!(
-      name: "OpenRouter Advisor",
-      system_prompt: "You are helpful",
-      llm_model: openrouter_model,
-      space: @space
-    )
-    message = @conversation.messages.create!(
-      account: @account,
-      sender: advisor,
-      role: "system",
-      content: "Thinking...",
-      status: "pending"
-    )
-
-    token_usage = AI::Model::TokenUsage.new(
-      input: 1000,
-      output: 500
-    )
-    mock_response = AI::Model::Response.new(
-      content: "Hello from Claude via OpenRouter!",
-      usage: token_usage
-    )
-
-    mock_generator = mock("generator")
-    mock_generator.expects(:generate_advisor_response).returns(mock_response)
-    AI::ContentGenerator.expects(:new).returns(mock_generator)
-
-    assert_difference "UsageRecord.count", 1 do
-      GenerateAdvisorResponseJob.perform_now(
-        advisor_id: advisor.id,
-        conversation_id: @conversation.id,
-        message_id: message.id
-      )
-    end
-
-    usage = UsageRecord.last
-    assert_equal "openrouter", usage.provider
-    # Using default rates: $0.03/1K input, $0.06/1K output
-    # Cost = (1000 * 0.03/1000) + (500 * 0.06/1000) = 0.03 + 0.03 = 0.06 dollars = 6 cents
-    assert_equal 6, usage.cost_cents
   end
 
   test "logs error on unexpected exception" do
@@ -437,49 +350,6 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
 
     adhoc_msg.reload
     assert adhoc_msg.complete?
-  end
-
-  # Cost calculation tests
-  # NOTE: calculate_cost_from_tokens has a dead code path for "anthropic" provider_type,
-  # which cannot be created (Provider enum only allows openai/openrouter). Tested via default rates.
-  test "calculates cost using default rates for openrouter provider" do
-    openrouter_provider = @account.providers.create!(
-      name: "Job Cost OR",
-      provider_type: "openrouter",
-      api_key: "or-key"
-    )
-    or_model = openrouter_provider.llm_models.create!(
-      account: @account, name: "Claude via OR", identifier: "anthropic/claude-3"
-    )
-    advisor = @account.advisors.create!(
-      name: "OR Advisor", system_prompt: "You are helpful",
-      llm_model: or_model, space: @space
-    )
-    message = @conversation.messages.create!(
-      account: @account, sender: advisor, role: "system",
-      content: "Thinking...", status: "pending"
-    )
-
-    # Default rates: $0.03/1K input, $0.06/1K output
-    # 1000 input + 1000 output = 0.03 + 0.06 = 0.09 dollars = 9 cents
-    token_usage = AI::Model::TokenUsage.new(input: 1000, output: 1000)
-    mock_response = AI::Model::Response.new(content: "Hello from OR", usage: token_usage)
-    mock_generator = mock("generator")
-    mock_generator.expects(:generate_advisor_response).returns(mock_response)
-    AI::ContentGenerator.expects(:new).returns(mock_generator)
-
-    assert_difference "UsageRecord.count", 1 do
-      GenerateAdvisorResponseJob.perform_now(
-        advisor_id: advisor.id,
-        conversation_id: @conversation.id,
-        message_id: message.id
-      )
-    end
-
-    usage = UsageRecord.last
-    assert_equal "openrouter", usage.provider
-    # (1000 * 0.03/1000) + (1000 * 0.06/1000) = 0.03 + 0.06 = 0.09 dollars = 9 cents
-    assert_equal 9, usage.cost_cents
   end
 
   test "skips usage record creation when advisor has no llm model" do

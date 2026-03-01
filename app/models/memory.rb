@@ -15,7 +15,6 @@ class Memory < ApplicationRecord
 
   # Callbacks for versioning
   after_create :create_initial_version
-  before_update :track_changes_for_versioning
 
   # Memory types
   MEMORY_TYPES = %w[summary conversation_summary conversation_notes knowledge].freeze
@@ -70,26 +69,10 @@ class Memory < ApplicationRecord
     update!(status: "active", updated_by: updater)
   end
 
-  # Update position in list
-  def move_to!(new_position, updater = nil)
-    update!(position: new_position, updated_by: updater)
-  end
-
   # Get a truncated preview of the content
   def content_preview(length: 200)
     return "" if content.blank?
     content.truncate(length)
-  end
-
-  # Get metadata value with default
-  def metadata_value(key, default = nil)
-    metadata.fetch(key.to_s, default)
-  end
-
-  # Set metadata value
-  def set_metadata(key, value, updater = nil)
-    new_metadata = metadata.merge(key.to_s => value)
-    update!(metadata: new_metadata, updated_by: updater)
   end
 
   # Memory type display name
@@ -137,21 +120,6 @@ class Memory < ApplicationRecord
          .first
   end
 
-  # Class method to create a primary summary memory for a space
-  def self.create_primary_summary!(space:, title:, content:, creator: nil)
-    create!(
-      account: space.account,
-      space: space,
-      title: title,
-      content: content,
-      memory_type: "summary",
-      status: "active",
-      position: 0,
-      created_by: creator,
-      updated_by: creator
-    )
-  end
-
   # Class method to create a conversation summary memory
   def self.create_conversation_summary!(conversation:, title:, content:, creator: nil)
     create!(
@@ -161,21 +129,6 @@ class Memory < ApplicationRecord
       title: title,
       content: content,
       memory_type: "conversation_summary",
-      status: "active",
-      created_by: creator,
-      updated_by: creator
-    )
-  end
-
-  # Class method to create conversation notes memory
-  def self.create_conversation_notes!(conversation:, title:, content:, creator: nil)
-    create!(
-      account: conversation.account,
-      space: conversation.council.space,
-      source: conversation,
-      title: title,
-      content: content,
-      memory_type: "conversation_notes",
       status: "active",
       created_by: creator,
       updated_by: creator
@@ -231,11 +184,5 @@ class Memory < ApplicationRecord
     )
   rescue => e
     Rails.logger.error "[Memory] Failed to create initial version: #{e.message}"
-  end
-
-  # Track changes before update - versions are now created by the tools explicitly
-  def track_changes_for_versioning
-    # This callback is a hook for future auto-versioning if needed
-    # For now, versions are created explicitly by update_memory tool
   end
 end

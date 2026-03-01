@@ -84,9 +84,12 @@ test "enqueues job on message create" do
 end
 
 test "updates message status" do
-  AIClient.any_instance.stubs(:generate_response).returns({ content: "Hi" })
-  GenerateAdvisorResponseJob.perform_now(message_id: message.id)
-  assert message.reload.complete?
+  mock_response = AI::Model::Response.new(content: "Hi", usage: AI::Model::TokenUsage.new(input: 5, output: 3))
+  mock_client = mock("AI::Client")
+  mock_client.stubs(:chat).returns(mock_response)
+  AI::Client.stubs(:new).returns(mock_client)
+  GenerateAdvisorResponseJob.perform_now(advisor_id: @advisor.id, conversation_id: @conversation.id, message_id: @message.id)
+  assert @message.reload.complete?
 end
 ```
 

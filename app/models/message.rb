@@ -9,6 +9,7 @@ class Message < ApplicationRecord
   has_many :replies, class_name: "Message", foreign_key: "in_reply_to_id", dependent: :nullify
 
   has_one :usage_record, dependent: :destroy
+  has_many :model_interactions, dependent: :destroy
 
   # Encrypt message content and prompt at rest
   encrypts :content
@@ -33,10 +34,8 @@ class Message < ApplicationRecord
   validates :role, presence: true
   validates :content, presence: true
 
-  scope :by_role, ->(role) { where(role: role) }
   scope :chronological, -> { order(created_at: :asc) }
   scope :root_messages, -> { where(in_reply_to_id: nil) }
-  scope :with_pending, -> { where("pending_advisor_ids <> '[]'::jsonb") }
   scope :solved, -> { where(pending_advisor_ids: []) }
 
   # Check if message has been solved (all pending advisors responded)
@@ -75,12 +74,6 @@ class Message < ApplicationRecord
   # Check if this message is a command
   def command?
     content&.start_with?("/")
-  end
-
-  # Get the command name if this is a command
-  def command_name
-    return nil unless command?
-    content[1..].split.first&.downcase
   end
 
   # Get thread messages (this message + all replies recursively)

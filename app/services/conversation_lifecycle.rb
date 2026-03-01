@@ -26,7 +26,7 @@ class ConversationLifecycle
     mentioned_advisors = parse_mentions(user_message.content)
 
     # For Open RoE with @all, expand to all participants (including scribe)
-    if should_expand_all_mentions?(user_message)
+    if user_message.mentions_all?
       mentioned_advisors = @conversation.all_participant_advisors
     end
 
@@ -211,10 +211,6 @@ class ConversationLifecycle
 
     advisor_name_normalized == mention_normalized ||
       advisor.name.downcase.include?(mention.downcase)
-  end
-
-  def should_expand_all_mentions?(message)
-    message.mentions_all?
   end
 
   def create_system_message(content)

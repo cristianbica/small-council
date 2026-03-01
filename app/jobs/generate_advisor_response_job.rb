@@ -60,9 +60,6 @@ class GenerateAdvisorResponseJob < ApplicationJob
         lifecycle = ConversationLifecycle.new(conversation)
         lifecycle.advisor_responded(message)
 
-        # Record usage
-        create_usage_record_from_response(message, advisor, response)
-
         Rails.logger.info "[GenerateAdvisorResponseJob] Successfully processed message #{message_id}"
       else
         Rails.logger.error "[GenerateAdvisorResponseJob] Empty response from AI for advisor #{advisor.id}"
@@ -91,7 +88,8 @@ class GenerateAdvisorResponseJob < ApplicationJob
     generator.generate_advisor_response(
       advisor: advisor,
       conversation: conversation,
-      parent_message: message.parent_message
+      parent_message: message.parent_message,
+      context: { message: message }
     )
   end
 
@@ -102,51 +100,17 @@ class GenerateAdvisorResponseJob < ApplicationJob
       generator.generate_scribe_followup(
         advisor: advisor,
         conversation: conversation,
-        message: message
+        message: message,
+        context: { message: message }
       )
     else
       generator.generate_advisor_response(
         advisor: advisor,
         conversation: conversation,
-        parent_message: message.parent_message
+        parent_message: message.parent_message,
+        context: { message: message }
       )
     end
-  end
-
-  def create_usage_record_from_response(message, advisor, response)
-    model = advisor.effective_llm_model
-    return unless model.present?
-
-    token_usage = response.usage
-    input_tokens = token_usage&.input_tokens || 0
-    output_tokens = token_usage&.output_tokens || 0
-
-    UsageRecord.create!(
-      account: advisor.account,
-      message: message,
-      provider: model.provider.provider_type,
-      model: model.identifier,
-      input_tokens: input_tokens,
-      output_tokens: output_tokens,
-      cost_cents: calculate_cost_from_tokens(model, input_tokens, output_tokens),
-      recorded_at: Time.current
-    )
-  end
-
-  def calculate_cost_from_tokens(llm_model, input_tokens, output_tokens)
-    # Default rates (dollars per token)
-    input_rate = 0.03 / 1000
-    output_rate = 0.06 / 1000
-
-    # Adjust for provider
-    case llm_model.provider.provider_type
-    when "anthropic"
-      input_rate = 0.008 / 1000
-      output_rate = 0.024 / 1000
-    end
-
-    cost_dollars = (input_tokens * input_rate) + (output_tokens * output_rate)
-    (cost_dollars * 100).round # Convert to cents
   end
 
   def handle_error(message, lifecycle, error_content)

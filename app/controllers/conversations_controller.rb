@@ -42,7 +42,7 @@ class ConversationsController < ApplicationController
   end
 
   def show
-    @messages = @conversation.messages.chronological.includes(:sender)
+    @messages = @conversation.messages.chronological.includes(:sender, :model_interactions)
     @new_message = Message.new
     @available_advisors = available_advisors_for_invite
   end

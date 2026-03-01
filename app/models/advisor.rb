@@ -21,12 +21,6 @@ class Advisor < ApplicationRecord
   validates :system_prompt, presence: true, unless: :is_scribe?
   validate :llm_model_belongs_to_account, if: -> { llm_model_id.present? }
 
-  scope :global, -> { where(global: true) }
-  scope :custom, -> { where(global: false) }
-  scope :for_space, ->(space) { where(space: space) }
-  scope :scribes, -> { where(is_scribe: true) }
-  scope :non_scribes, -> { where(is_scribe: false) }
-
   # Check if this is the Scribe advisor (using is_scribe flag)
   def scribe?
     is_scribe

@@ -112,7 +112,7 @@ module AI
         <% end %>
       PROMPT
 
-      scribe_followup: <<~PROMPT,
+      scribe_followup: <<~PROMPT
         You are the Scribe. The conversation has reached a natural pause point.
         Review the thread and determine the appropriate next step.
 
@@ -133,39 +133,6 @@ module AI
         Be helpful and guide the conversation toward productive outcomes.
       PROMPT
 
-      advisor_response_with_mentions: <<~PROMPT
-        You are <%= advisor_name %> participating in a conversation.
-
-        <% if parent_message %>
-        You are responding to:
-        <%= parent_message.sender.name %>: <%= parent_message.content %>
-        <% end %>
-
-        <% if mentions.any? %>
-        You were mentioned by <%= mentions.join(', ') %> in this conversation.
-        <% end %>
-
-        <% if other_responses.any? %>
-        Other advisors have also responded:
-        <% other_responses.each do |response| %>
-        <%= response[:sender] %>: <%= response[:content] %>
-        <% end %>
-        <% end %>
-
-        Conversation context:
-        <%= conversation_context %>
-
-        Engagement mode: <%= roe_type %>
-        Max depth: <%= max_depth %> (current: <%= current_depth %>)
-
-        Please respond as <%= advisor_name %>, taking into account your expertise and the conversation context.
-        Be thoughtful but concise (2-4 paragraphs).
-        <% if roe_type == 'consensus' %>
-        Focus on building agreement with other perspectives.
-        <% elsif roe_type == 'brainstorming' %>
-        Build on the ideas others have shared.
-        <% end %>
-      PROMPT
     }.freeze
 
     def initialize(client: nil, cache: Rails.cache)
@@ -211,7 +178,7 @@ module AI
     # @param conversation [Conversation] The conversation
     # @param message [Message] The scribe's placeholder message
     # @return [AI::Model::Response]
-    def generate_scribe_followup(advisor:, conversation:, message:)
+    def generate_scribe_followup(advisor:, conversation:, message:, context: {})
       cache_key = build_cache_key("scribe_followup", advisor.id, conversation.id, message.id)
 
       fetch_from_cache(cache_key) do
@@ -229,7 +196,15 @@ module AI
           conversation_text: conversation_text
         )
 
-        client.complete(prompt: prompt)
+        client.complete(
+          prompt: prompt,
+          context: context.merge(
+            message: message,
+            space: Current.space,
+            conversation: conversation,
+            account: conversation.account
+          )
+        )
       end
     end
 
@@ -335,7 +310,8 @@ module AI
       Client.new(
         model: model,
         system_prompt: advisor.system_prompt,
-        temperature: DEFAULT_TEMPERATURE
+        temperature: DEFAULT_TEMPERATURE,
+        tools: advisor_tools(advisor)
       )
     end
 
@@ -351,19 +327,37 @@ module AI
       )
     end
 
+    # Returns the tool instances appropriate for this advisor.
+    # All advisors get 10 read-only tools (memory, conversation, and web browsing).
+    # Scribe additionally gets 3 write tools (CreateMemory, UpdateMemory, FinishConversation).
+    def advisor_tools(advisor)
+      read_only = [
+        AI::Tools::Internal::QueryMemoriesTool.new,
+        AI::Tools::Internal::ListMemoriesTool.new,
+        AI::Tools::Internal::ReadMemoryTool.new,
+        AI::Tools::Internal::QueryConversationsTool.new,
+        AI::Tools::Internal::ListConversationsTool.new,
+        AI::Tools::Internal::ReadConversationTool.new,
+        AI::Tools::Internal::GetConversationSummaryTool.new,
+        AI::Tools::Conversations::SummarizeConversationTool.new,
+        AI::Tools::Conversations::AskAdvisorTool.new,
+        AI::Tools::External::BrowseWebTool.new
+      ]
+
+      if advisor.scribe?
+        read_only + [
+          AI::Tools::Internal::CreateMemoryTool.new,
+          AI::Tools::Internal::UpdateMemoryTool.new,
+          AI::Tools::Conversations::FinishConversationTool.new
+        ]
+      else
+        read_only
+      end
+    end
+
     def find_suitable_model(account)
       # Prefer account's default model, then fall back to free model
       account.default_llm_model&.enabled? ? account.default_llm_model : account.llm_models.enabled.free.first
-    end
-
-    def build_conversation_messages(conversation)
-      # Get messages from conversation (flat format for backwards compatibility)
-      conversation.messages.chronological.map do |msg|
-        {
-          role: msg.role == "advisor" ? "assistant" : msg.role,
-          content: msg.content
-        }
-      end
     end
 
     def build_conversation_messages_with_thread(conversation, parent_message = nil)

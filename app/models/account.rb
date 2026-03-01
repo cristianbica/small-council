@@ -8,6 +8,7 @@ class Account < ApplicationRecord
   has_many :councils, dependent: :destroy
   has_many :conversations, dependent: :destroy
   has_many :messages, dependent: :destroy
+  has_many :model_interactions, dependent: :destroy
   has_many :usage_records, dependent: :destroy
   has_many :providers, dependent: :destroy
   has_many :llm_models, dependent: :destroy
@@ -19,9 +20,6 @@ class Account < ApplicationRecord
   validates :slug, presence: true, uniqueness: true
   validate :default_llm_model_belongs_to_account, on: :update
   validate :default_llm_model_is_enabled, on: :update
-
-  # Scope for global advisors that can be shared across accounts
-  scope :with_global_advisors, -> { joins(:advisors).where(advisors: { global: true }) }
 
   private
 

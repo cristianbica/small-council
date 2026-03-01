@@ -163,7 +163,6 @@ class CouncilTest < ActiveSupport::TestCase
     # Stub scribe_advisor to return nil (simulates space with no scribe available)
     council.stubs(:scribe_advisor).returns(nil)
     assert_nothing_raised { council.ensure_scribe_assigned }
-    assert_not council.has_scribe?
   end
 
   test "ensure_scribe_assigned does not add duplicate scribe" do

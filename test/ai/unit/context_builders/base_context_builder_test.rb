@@ -185,36 +185,11 @@ module AI
         assert_nil builder.send(:primary_summary)
       end
 
-      test "validate_space! raises when space and conversation are nil" do
-        builder = TestBuilder.new(nil)
-        assert_raises(ArgumentError) do
-          builder.send(:validate_space!)
-        end
-      end
-
       test "validate_conversation! raises when conversation is nil" do
         builder = TestBuilder.new(@space)
         assert_raises(ArgumentError) do
           builder.send(:validate_conversation!)
         end
-      end
-
-      test "council returns conversation's council" do
-        builder = TestBuilder.new(@space, @conversation)
-        assert_equal @council.id, builder.send(:council).id
-      end
-
-      test "council returns nil when no conversation" do
-        builder = TestBuilder.new(@space)
-        assert_nil builder.send(:council)
-      end
-
-      test "council returns nil when conversation is adhoc" do
-        adhoc_conv = @account.conversations.create!(
-          user: @user, title: "Adhoc", conversation_type: "adhoc"
-        )
-        builder = TestBuilder.new(@space, adhoc_conv)
-        assert_nil builder.send(:council)
       end
 
       test "space_advisors returns empty array when space is nil" do
@@ -282,24 +257,6 @@ module AI
       test "roe_description returns nil when no conversation" do
         builder = TestBuilder.new(@space)
         assert_nil builder.send(:roe_description)
-      end
-
-      test "validate_space! does not raise when space is set" do
-        builder = TestBuilder.new(@space)
-        assert_nothing_raised { builder.send(:validate_space!) }
-      end
-
-      test "validate_space! does not raise for council_meeting with council having space" do
-        builder = TestBuilder.new(nil, @conversation)
-        assert_nothing_raised { builder.send(:validate_space!) }
-      end
-
-      test "validate_space! raises when space is nil and conversation is adhoc with no council" do
-        adhoc_conv = @account.conversations.create!(
-          user: @user, title: "Adhoc No Council", conversation_type: "adhoc"
-        )
-        builder = TestBuilder.new(nil, adhoc_conv)
-        assert_raises(ArgumentError) { builder.send(:validate_space!) }
       end
 
       test "roe_description returns unknown description for unknown roe_type" do

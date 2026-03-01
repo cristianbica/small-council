@@ -72,11 +72,6 @@ module AI
         Memory.primary_summary_for(@space)
       end
 
-      # Get council from conversation (if council meeting)
-      def council
-        @conversation&.council if @conversation&.council_meeting?
-      end
-
       # Get space from conversation (for adhoc) or council
       def effective_space
         return @space if @space
@@ -120,17 +115,6 @@ module AI
         else
           "Unknown engagement mode."
         end
-      end
-
-      # Validate that required objects are present
-      def validate_space!
-        # Space is not always required now (adhoc conversations may not have explicit space)
-        # But we should have a conversation to extract space from
-        return if @space
-        return if @conversation&.council_meeting? && @conversation.council&.space
-        # Allow adhoc conversations without explicit space
-        # Raise error if completely missing context
-        raise ArgumentError, "Space is required when no conversation with council is provided"
       end
 
       def validate_conversation!

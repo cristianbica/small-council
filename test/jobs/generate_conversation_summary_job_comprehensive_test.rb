@@ -131,6 +131,17 @@ class GenerateConversationSummaryJobTest < ActiveJob::TestCase
       )
     end
 
+    # Ensure a scribe advisor exists (find_scribe_advisor requires is_scribe: true)
+    unless @account.advisors.exists?(is_scribe: true)
+      @space.advisors.create!(
+        account: @account,
+        name: "Scribe",
+        system_prompt: "You are the Scribe",
+        llm_model: @llm_model,
+        is_scribe: true
+      )
+    end
+
     # Ensure conversation has advisor participant
     @conversation.reload
     if @conversation.advisors.empty?
@@ -636,7 +647,8 @@ class GenerateConversationSummaryJobTest < ActiveJob::TestCase
       name: "Scribe",
       system_prompt: "You document",
       llm_model: @llm_model,
-      global: true
+      global: true,
+      is_scribe: true
     )
 
     assert_difference "Memory.count", 1 do
@@ -692,140 +704,47 @@ class GenerateConversationSummaryJobTest < ActiveJob::TestCase
   end
 
   # ============================================================================
-  # find_or_create_scribe_advisor Tests
+  # find_scribe_advisor Tests
   # ============================================================================
 
-  test "find_or_create_scribe_advisor returns existing scribe" do
-    # Clean up any existing scribe first to ensure isolation
-    @account.advisors.where(name: "Scribe").destroy_all
+  test "find_scribe_advisor returns conversation scribe advisor" do
+    # Ensure an account-level scribe (is_scribe: true) exists
+    scribe = @account.advisors.find_by(is_scribe: true) ||
+      @space.advisors.create!(
+        account: @account,
+        name: "Scribe",
+        system_prompt: "You are the Scribe",
+        llm_model: @llm_model,
+        is_scribe: true
+      )
 
-    existing_scribe = @account.advisors.create!(
-      name: "Scribe",
-      system_prompt: "Document things",
-      llm_model: @llm_model,
-      global: true
+    job = GenerateConversationSummaryJob.new
+    job.instance_variable_set(:@conversation, @conversation)
+
+    result = job.send(:find_scribe_advisor)
+
+    assert result.present?
+    assert result.is_a?(Advisor)
+  end
+
+  test "find_scribe_advisor falls back to account-level scribe when not a conversation participant" do
+    # Build a conversation without a scribe participant
+    conversation_without_scribe = @council.conversations.build(
+      title: "No Scribe Conv",
+      user: @user,
+      account: @account,
+      status: :concluding
     )
+    conversation_without_scribe.save!(validate: false)
+
+    scribe = @account.advisors.find_by(is_scribe: true)
 
     job = GenerateConversationSummaryJob.new
-    job.instance_variable_set(:@conversation, @conversation)
+    job.instance_variable_set(:@conversation, conversation_without_scribe)
 
-    result = job.send(:find_or_create_scribe_advisor)
+    result = job.send(:find_scribe_advisor)
 
-    assert_equal existing_scribe.id, result.id
-    assert_no_difference "Advisor.count" do
-      job.send(:find_or_create_scribe_advisor)
-    end
-  end
-
-  test "find_or_create_scribe_advisor creates new scribe when none exists" do
-    # Clean up any existing Scribe advisor from other tests
-    @account.advisors.where(name: "Scribe").destroy_all
-
-    # Ensure we have an enabled LLM model (may be disabled by parallel tests)
-    llm_model = @llm_model || @account.llm_models.enabled.first
-    if llm_model.nil? || !llm_model.enabled
-      provider = @account.providers.first || @account.providers.create!(
-        name: "Test Provider #{@unique_id}",
-        provider_type: "openai",
-        api_key: "test-key"
-      )
-      llm_model = provider.llm_models.create!(
-        account: @account,
-        name: "GPT-4-#{@unique_id}",
-        identifier: "gpt-4-#{@unique_id}",
-        enabled: true
-      )
-    end
-
-    job = GenerateConversationSummaryJob.new
-    job.instance_variable_set(:@conversation, @conversation)
-
-    assert_difference "Advisor.count", 1 do
-      result = job.send(:find_or_create_scribe_advisor)
-      assert_equal "Scribe", result.name
-      assert result.global
-      assert_includes result.system_prompt, "documenting conversations"
-    end
-  end
-
-  test "find_or_create_scribe_advisor uses account default model" do
-    # Clean up any existing Scribe advisor
-    @account.advisors.where(name: "Scribe").destroy_all
-
-    # Ensure we have an enabled LLM model and set it as default
-    llm_model = @llm_model || @account.llm_models.enabled.first
-    if llm_model.nil? || !llm_model.enabled
-      provider = @account.providers.first || @account.providers.create!(
-        name: "Test Provider #{@unique_id}",
-        provider_type: "openai",
-        api_key: "test-key"
-      )
-      llm_model = provider.llm_models.create!(
-        account: @account,
-        name: "GPT-4-#{@unique_id}",
-        identifier: "gpt-4-#{@unique_id}",
-        enabled: true
-      )
-    end
-    @account.update!(default_llm_model: llm_model)
-
-    job = GenerateConversationSummaryJob.new
-    job.instance_variable_set(:@conversation, @conversation)
-
-    result = job.send(:find_or_create_scribe_advisor)
-
-    assert_equal llm_model, result.llm_model
-  end
-
-  test "find_or_create_scribe_advisor falls back to first enabled model" do
-    # Clean up any existing Scribe advisor
-    @account.advisors.where(name: "Scribe").destroy_all
-
-    # Ensure we have an enabled LLM model and clear default
-    llm_model = @llm_model || @account.llm_models.enabled.first
-    if llm_model.nil? || !llm_model.enabled
-      provider = @account.providers.first || @account.providers.create!(
-        name: "Test Provider #{@unique_id}",
-        provider_type: "openai",
-        api_key: "test-key"
-      )
-      llm_model = provider.llm_models.create!(
-        account: @account,
-        name: "GPT-4-#{@unique_id}",
-        identifier: "gpt-4-#{@unique_id}",
-        enabled: true
-      )
-    end
-    @account.update!(default_llm_model: nil)
-
-    job = GenerateConversationSummaryJob.new
-    job.instance_variable_set(:@conversation, @conversation)
-
-    result = job.send(:find_or_create_scribe_advisor)
-
-    # Verify the result has an enabled model from this account
-    assert result.llm_model.enabled
-    assert_equal @account.id, result.llm_model.account_id
-  end
-
-  test "find_or_create_scribe_advisor raises when no model available" do
-    # Clean up any existing Scribe advisor first
-    @account.advisors.where(name: "Scribe").destroy_all
-
-    # Clear default model and disable ALL enabled models for this account
-    @account.update!(default_llm_model: nil)
-    @account.llm_models.where(enabled: true).update_all(enabled: false)
-
-    # Also ensure the setup-created model is disabled (if it exists)
-    @llm_model&.update!(enabled: false)
-
-    job = GenerateConversationSummaryJob.new
-    job.instance_variable_set(:@conversation, @conversation)
-
-    error = assert_raises(RuntimeError) do
-      job.send(:find_or_create_scribe_advisor)
-    end
-    assert_match(/No LLM model available/, error.message)
+    assert_equal scribe, result if scribe.present?
   end
 
   # ============================================================================

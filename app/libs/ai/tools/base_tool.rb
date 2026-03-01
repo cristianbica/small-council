@@ -73,13 +73,6 @@ module AI
         raise NotImplementedError, "#{self.class} must implement #execute"
       end
 
-      # Format result for LLM consumption
-      # Override for custom formatting
-      def format_result(data)
-        return data if data.is_a?(String)
-        data.to_json
-      end
-
       # Convert to RubyLLM tool format (internal use only)
       def to_ruby_llm_tool
         AI::Adapters::RubyLLMToolAdapter.new(self)
@@ -93,20 +86,6 @@ module AI
         if missing.any?
           raise ArgumentError, "Missing required context: #{missing.join(', ')}"
         end
-      end
-
-      # Safely get a context value with optional default
-      def context_fetch(context, key, default = nil)
-        context.fetch(key, default)
-      end
-
-      # Require a context value or raise
-      def context_require(context, key)
-        value = context[key]
-        if value.nil?
-          raise ArgumentError, "Required context missing: #{key}"
-        end
-        value
       end
     end
   end

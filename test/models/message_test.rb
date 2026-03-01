@@ -292,26 +292,6 @@ class MessageTest < ActiveSupport::TestCase
     assert_equal({ "pending" => "pending", "complete" => "complete", "error" => "error", "cancelled" => "cancelled" }, Message.statuses)
   end
 
-  # Scope tests
-  test "by_role scope filters messages by role" do
-    user_msg = @account.messages.create!(
-      conversation: @conversation,
-      sender: @user,
-      role: "user",
-      content: "User message"
-    )
-    system_msg = @account.messages.create!(
-      conversation: @conversation,
-      sender: @user,
-      role: "system",
-      content: "System message"
-    )
-
-    user_messages = Message.by_role("user")
-    assert_includes user_messages, user_msg
-    assert_not_includes user_messages, system_msg
-  end
-
   test "chronological scope orders by created_at ascending" do
     msg1 = @account.messages.create!(
       conversation: @conversation,
@@ -546,16 +526,6 @@ class MessageTest < ActiveSupport::TestCase
   test "command? returns false for regular messages" do
     msg = @account.messages.new(content: "Hello everyone")
     assert_not msg.command?
-  end
-
-  test "command_name returns command for command messages" do
-    msg = @account.messages.new(content: "/invite @advisor")
-    assert_equal "invite", msg.command_name
-  end
-
-  test "command_name returns nil for non-command messages" do
-    msg = @account.messages.new(content: "Hello everyone")
-    assert_nil msg.command_name
   end
 
   # Mention Parsing Tests

@@ -139,6 +139,16 @@ Audit trail for memory edits.
 - `version_number`, `content`, `change_reason`
 - Belongs to `memory`
 
+### model_interactions
+LLM API request/response recording per message.
+- `sequence` — 0-indexed order per message
+- `request_payload` (JSONB) — model, provider, temperature, system_prompt, tools, messages
+- `response_payload` (JSONB) — content, tool_calls, tokens, model_used
+- `model_identifier` — Denormalized for quick display
+- `input_tokens`, `output_tokens` — Token counts
+- `duration_ms` — Wall-clock API latency
+- Belongs to `message` and `account`
+
 ## Design Decisions
 
 ### Scoped Multi-tenancy

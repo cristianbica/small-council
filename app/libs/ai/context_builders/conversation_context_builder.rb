@@ -23,7 +23,7 @@ module AI
     class ConversationContextBuilder < BaseContextBuilder
       def build
         validate_conversation!
-        validate_space_context!
+        validate_space!
 
         ctx = {
           space: effective_space,
@@ -75,7 +75,7 @@ module AI
         }
       end
 
-      def validate_space_context!
+      def validate_space!
         # Space can be passed directly or extracted from conversation's council
         return if @space
         return if @conversation&.council_meeting? && @conversation.council&.space

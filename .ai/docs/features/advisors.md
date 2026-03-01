@@ -79,13 +79,13 @@ Account
 When an advisor is triggered to respond:
 
 1. `GenerateAdvisorResponseJob` enqueues
-2. Job sets tenant context
-3. `AIClient` called with advisor's LLM model configuration
+2. Job sets tenant context and `Current.space`
+3. `AI::ContentGenerator#generate_advisor_response` builds context and calls `AI::Client.new(model:, tools:, system_prompt:).chat(...)`
 4. API call made with:
    - System prompt as system message
    - Conversation history as context
    - User message as prompt
-5. Response saved as Message with advisor as sender
+5. Response saved as Message with advisor as sender; `UsageRecord` auto-created
 
 ## Message Polymorphism
 
@@ -134,19 +134,22 @@ The `ask_advisor` tool is the **only** way for advisors to communicate with each
 
 ### Tool Implementation
 
-Tools are implemented in `app/services/advisor_tools/`:
-- `AskAdvisorTool` - Inter-advisor communication
-- `QueryMemoriesTool` - Memory search
-- `QueryConversationsTool` - Conversation search
-- `ReadConversationTool` - Read conversation messages
+Tools are implemented in `app/libs/ai/tools/internal/` and `app/libs/ai/tools/conversations/`:
+- `AI::Tools::Conversations::AskAdvisorTool` - Inter-advisor communication
+- `AI::Tools::Internal::QueryMemoriesTool` - Memory search
+- `AI::Tools::Internal::QueryConversationsTool` - Conversation search
+- `AI::Tools::Internal::ReadConversationTool` - Read conversation messages
 
-Tools use `AdvisorTool` base class (read-only by default, override `read_only?` for write access).
+All tools inherit from `AI::Tools::BaseTool` and receive context at execution time (not construction time).
+See [Tool System pattern](../patterns/tool-system.md) for implementation details.
 
 ## Implementation Notes
 
 - Advisors are scoped to account (acts_as_tenant)
-- Creator tracking for authorization (user_id)
-- System prompts can be overridden per council via `council_advisors.custom_prompt_override`
-- Deleting an advisor soft-removes from future use but preserves message history
-- LLM model must belong to the same account (security validation needed)
-- Tools are registered in `ScribeToolExecutor::ADVISOR_TOOLS` and passed to RubyLLM chat
+- `belongs_to :space, optional: true` — Scribe belongs to a space; regular advisors can too
+- `short_description` field (encrypted at rest) used in list views and AI profile generation
+- `effective_llm_model`: returns advisor's model or falls back to account default
+- `llm_model_configured?` always returns true for Scribe (uses special handling)
+- System prompts can be overridden per council via `council_advisors.custom_prompt_override` (JSONB)
+- Deleting an advisor raises error if messages exist (`restrict_with_error`)
+- LLM model validated to belong to same account

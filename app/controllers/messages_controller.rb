@@ -10,16 +10,8 @@ class MessagesController < ApplicationController
     if @message.save
       Rails.logger.info "[MessagesController#create] Message #{@message.id} saved successfully"
 
-      # Handle command if present
-      if @message.command?
-        handle_command
-      else
-        # Normal message flow - delegate to ConversationLifecycle
-        lifecycle = ConversationLifecycle.new(@conversation)
-        responders = lifecycle.user_posted_message(@message)
-
-        Rails.logger.info "[MessagesController#create] Posted message triggered #{responders&.count || 0} advisor(s) to respond"
-      end
+      lifecycle = ConversationLifecycle.new(@conversation)
+      lifecycle.user_posted_message(@message)
 
       redirect_to @conversation, notice: "Message posted successfully."
     else
@@ -40,18 +32,6 @@ class MessagesController < ApplicationController
       msg.role = "user"
       msg.status = "complete"
     end
-  end
-
-  def handle_command
-    command = CommandParser.parse(@message.content)
-    return unless command
-
-    lifecycle = ConversationLifecycle.new(@conversation)
-
-    # Command validation and execution happens in lifecycle
-    # We pass nil for the command since lifecycle parses it again
-    # This ensures consistent handling
-    lifecycle.user_posted_message(@message)
   end
 
   def set_conversation

@@ -180,21 +180,6 @@ class MemoryTest < ActiveSupport::TestCase
     assert_nil result, "Should not return archived summaries"
   end
 
-  test "create_primary_summary! should create a summary memory" do
-    user = users(:one)
-    memory = Memory.create_primary_summary!(
-      space: @space,
-      title: "Space Overview",
-      content: "Overview content",
-      creator: user
-    )
-
-    assert memory.persisted?
-    assert_equal "summary", memory.memory_type
-    assert_equal "active", memory.status
-    assert_equal user, memory.created_by
-  end
-
   test "create_conversation_summary! should create linked memory" do
     # Create a council and conversation directly
     council = @space.councils.create!(
@@ -318,43 +303,6 @@ class MemoryTest < ActiveSupport::TestCase
       created_by: advisor
     )
     assert_equal "Smart Advisor", memory.creator_display
-  end
-
-  # create_conversation_summary! and create_conversation_notes! tests
-  test "create_conversation_summary! creates memory with correct space from council" do
-    council = @space.councils.create!(
-      account: @account, user: @user, name: "Council for Summary"
-    )
-    conversation = council.conversations.create!(
-      account: @account, user: @user, title: "Summary Conversation"
-    )
-    memory = Memory.create_conversation_summary!(
-      conversation: conversation,
-      title: "Summary Title",
-      content: "Summary content",
-      creator: @user
-    )
-    assert memory.persisted?
-    assert_equal @space, memory.space
-    assert_equal "conversation_summary", memory.memory_type
-  end
-
-  test "create_conversation_notes! creates memory with correct space from council" do
-    council = @space.councils.create!(
-      account: @account, user: @user, name: "Council for Notes"
-    )
-    conversation = council.conversations.create!(
-      account: @account, user: @user, title: "Notes Conversation"
-    )
-    memory = Memory.create_conversation_notes!(
-      conversation: conversation,
-      title: "Notes Title",
-      content: "Notes content",
-      creator: @user
-    )
-    assert memory.persisted?
-    assert_equal @space, memory.space
-    assert_equal "conversation_notes", memory.memory_type
   end
 
   # restore_version! tests

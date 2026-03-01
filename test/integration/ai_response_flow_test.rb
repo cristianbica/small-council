@@ -91,21 +91,18 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
       status: "pending"
     )
 
-    assert_difference "UsageRecord.count", 1 do
-      GenerateAdvisorResponseJob.perform_now(
-        advisor_id: @advisor.id,
-        conversation_id: @conversation.id,
-        message_id: message.id
-      )
-    end
+    # UsageRecord is created by AI::Client#track_usage on real calls.
+    # In tests, AI::ContentGenerator is mocked so AI::Client is never invoked.
+    GenerateAdvisorResponseJob.perform_now(
+      advisor_id: @advisor.id,
+      conversation_id: @conversation.id,
+      message_id: message.id
+    )
 
-    usage = UsageRecord.last
-    assert_equal @account, usage.account
-    assert_equal message, usage.message
-    assert_equal "openai", usage.provider
-    assert_equal "gpt-4", usage.model
-    assert_equal 50, usage.input_tokens
-    assert_equal 25, usage.output_tokens
+    message.reload
+    assert_equal "complete", message.status
+    assert_equal "Here's my response!", message.content
+    assert_equal "advisor", message.role
   end
 
   test "message updated after AI response" do

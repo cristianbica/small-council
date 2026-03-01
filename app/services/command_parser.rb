@@ -19,15 +19,4 @@ class CommandParser
 
     command_class.new(args)
   end
-
-  # Check if content is a command
-  def self.command?(content)
-    return false if content.blank?
-    content.start_with?("/") && COMMANDS.keys.any? { |cmd| content[1..].split.first&.downcase == cmd }
-  end
-
-  # Get list of available commands
-  def self.available_commands
-    COMMANDS.keys
-  end
 end

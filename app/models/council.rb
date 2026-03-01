@@ -31,11 +31,6 @@ class Council < ApplicationRecord
     space.scribe_advisor
   end
 
-  # Check if this council has the Scribe advisor assigned
-  def has_scribe?
-    advisors.any?(&:scribe?)
-  end
-
   # Add Scribe advisor to this council if not already present
   def ensure_scribe_assigned
     scribe = scribe_advisor

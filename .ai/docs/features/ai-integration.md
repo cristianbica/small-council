@@ -13,7 +13,7 @@ Advisors generate responses using real LLM APIs. The system supports multiple pr
 ```
 app/libs/ai/
 ├── client.rb             # Unified wrapper: class methods for provider/model ops
-├── content_generator.rb  # High-level advisor response generation (replaces AIClient)
+├── content_generator.rb  # High-level intent-based generation (wraps AI::Client)
 ├── model_manager.rb      # Model lifecycle management (enable/disable/sync)
 ├── adapters/
 │   └── ruby_llm_tool_adapter.rb  # Wraps AI::Tools::BaseTool for RubyLLM
@@ -37,29 +37,37 @@ app/services/
 
 ### AI::Client
 
-`AI::Client` provides class methods for provider/model operations. Do **not** instantiate it directly for connection testing or model listing.
+`AI::Client` is **instance-based**. Instantiate it with a model, tools, and system prompt, then call `.chat`.
 
 ```ruby
-# Provider-level operations (class methods)
+# Instance usage (typical for response generation)
+client = AI::Client.new(
+  model: advisor.effective_llm_model,
+  tools: [AI::Tools::Internal::QueryMemoriesTool.new],
+  system_prompt: advisor.system_prompt
+)
+response = client.chat(
+  messages: conversation.messages_for_llm,
+  context: { space: space, conversation: conversation, user: user }
+)
+# response is AI::Model::Response: content, tool_calls, usage (AI::Model::TokenUsage)
+
+# Provider-level class methods (for connection testing / model listing)
 AI::Client.test_connection(provider: provider)
 AI::Client.list_models(provider: provider)
-
-# Model-level operations (still via class or instance depending on use)
-llm_model.api.info
-llm_model.api.supports?(:vision)
-llm_model.api.chat(messages, system_prompt: "...")
 ```
+
+Usage (tokens + cost) is automatically tracked inside `#chat` via `UsageRecord.create!`.
+Model interactions (full request/response payloads) are recorded via `#record_interaction`, called after `track_usage` when `context[:message]` is present. See [Model Interactions](model-interactions.md).
 
 ### Provider#api / LlmModel#api DSL
 
 ```ruby
-# Provider-level
-provider.api.list_models
-provider.api.test_connection
+# Provider-level (delegates to AI::Client class methods)
+provider.api.list_models     # => AI::Client.list_models(provider: provider)
+provider.api.test_connection # => AI::Client.test_connection(provider: provider)
 
-# Model-level
-llm_model.api.info
-llm_model.api.chat(messages, system_prompt: "...")
+# For model-level operations use AI::ContentGenerator or AI::Client.new directly
 ```
 
 ## Providers
@@ -106,7 +114,7 @@ result = generator.generate_response
 
 ## Error Handling
 
-`AI::APIError` is raised when API calls fail. There is no `LLM::Client::MissingModelError` — model-level guard is handled inside `AI::Client`.
+`AI::Client::APIError` and `AI::Client::RateLimitError` are raised when API calls fail. Model-level guards are handled inside `AI::ContentGenerator` (raises `AI::ContentGenerator::NoModelError` when no model is available).
 
 ## Background Jobs
 
@@ -152,15 +160,19 @@ Every API call creates a UsageRecord:
 ## Testing
 
 ### Mock Pattern
-Always stub `AI::Client` **class methods**, not instance methods:
+
+`AI::Client` is instance-based. Stub `.new` to return a mock:
 
 ```ruby
-# Correct
+# Correct — instance-based mock
+mock_response = AI::Model::Response.new(content: "Response", usage: AI::Model::TokenUsage.new(input: 10, output: 5))
+mock_client = mock("AI::Client")
+mock_client.stubs(:chat).returns(mock_response)
+AI::Client.stubs(:new).returns(mock_client)
+
+# For provider-level class methods only:
 AI::Client.stubs(:test_connection).returns({ success: true, model: "gpt-4o-mini" })
 AI::Client.stubs(:list_models).returns([{ id: "gpt-4", name: "GPT-4" }])
-
-# Wrong — AI::Client uses class methods, not new + instance methods
-AI::Client.expects(:new).returns(mock_client)  # Do NOT do this
 ```
 
 ### Test Files

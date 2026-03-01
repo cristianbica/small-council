@@ -22,11 +22,6 @@ class Space < ApplicationRecord
     create_scribe_advisor
   end
 
-  # Alias for backward compatibility
-  def find_or_create_scribe_advisor
-    scribe_advisor
-  end
-
   # Get all non-Scribe advisors in this space
   def non_scribe_advisors
     advisors.where(is_scribe: false)

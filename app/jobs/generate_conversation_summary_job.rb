@@ -149,8 +149,9 @@ class GenerateConversationSummaryJob < ApplicationJob
       #{summary[:open_questions]}
     CONTENT
 
-    # Find or create the Scribe advisor to use as creator
-    scribe = find_or_create_scribe_advisor
+    # Find the Scribe advisor to use as creator
+    scribe = find_scribe_advisor
+    return unless scribe
 
     # Create the memory entry
     memory = Memory.create_conversation_summary!(
@@ -167,22 +168,9 @@ class GenerateConversationSummaryJob < ApplicationJob
     # Don't raise - summary was already saved to draft_memory
   end
 
-  def find_or_create_scribe_advisor
-    # Look for existing scribe advisor or create a temporary one
-    advisor = @conversation.account.advisors.find_by(name: "Scribe")
-
-    return advisor if advisor.present?
-
-    # Use account's default LLM model or fall back to first enabled
-    llm_model = @conversation.account.default_llm_model || @conversation.account.llm_models.enabled.first
-
-    raise "No LLM model available. Please configure a default model or enable at least one model." unless llm_model
-
-    @conversation.account.advisors.create!(
-      name: "Scribe",
-      system_prompt: "You are the Scribe, an expert at documenting conversations and creating structured summaries.",
-      llm_model: llm_model,
-      global: true
-    )
+  def find_scribe_advisor
+    # Scribe is always present - created by Space's after_create callback
+    @conversation.scribe_advisor ||
+      @conversation.account.advisors.find_by(is_scribe: true)
   end
 end

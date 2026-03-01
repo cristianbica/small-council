@@ -195,21 +195,6 @@ class MessageAdditionalTest < ActiveSupport::TestCase
     assert_not msg.command?
   end
 
-  test "command_name extracts command from content" do
-    msg = @conversation.messages.new(content: "/invite @name")
-    assert_equal "invite", msg.command_name
-  end
-
-  test "command_name returns nil for non-commands" do
-    msg = @conversation.messages.new(content: "Hello")
-    assert_nil msg.command_name
-  end
-
-  test "command_name handles just slash" do
-    msg = @conversation.messages.new(content: "/")
-    assert_nil msg.command_name # Returns nil when no command name after /
-  end
-
   # ============================================================================
   # Mention Parsing Tests
   # ============================================================================
@@ -390,33 +375,6 @@ class MessageAdditionalTest < ActiveSupport::TestCase
   # Scope Tests
   # ============================================================================
 
-  test "by_role scope filters by role" do
-    user_msg = @conversation.messages.create!(
-      account: @account,
-      sender: @user,
-      role: "user",
-      content: "User"
-    )
-
-    advisor_msg = @conversation.messages.create!(
-      account: @account,
-      sender: @advisor,
-      role: "advisor",
-      content: "Advisor"
-    )
-
-    system_msg = @conversation.messages.create!(
-      account: @account,
-      sender: @user,
-      role: "system",
-      content: "System"
-    )
-
-    assert_equal [ user_msg ], @conversation.messages.by_role("user").to_a
-    assert_equal [ advisor_msg ], @conversation.messages.by_role("advisor").to_a
-    assert_equal [ system_msg ], @conversation.messages.by_role("system").to_a
-  end
-
   test "root_messages scope returns only parentless messages" do
     root = @conversation.messages.create!(
       account: @account,
@@ -434,27 +392,6 @@ class MessageAdditionalTest < ActiveSupport::TestCase
     )
 
     assert_equal [ root ], @conversation.messages.root_messages.to_a
-  end
-
-  test "with_pending scope returns messages with pending advisors" do
-    @conversation.messages.create!(
-      account: @account,
-      sender: @user,
-      role: "user",
-      content: "Solved",
-      pending_advisor_ids: []
-    )
-
-    pending_msg = @conversation.messages.create!(
-      account: @account,
-      sender: @user,
-      role: "user",
-      content: "Pending",
-      pending_advisor_ids: [ @advisor.id ]
-    )
-
-    with_pending = @conversation.messages.with_pending
-    assert_equal [ pending_msg ], with_pending.to_a
   end
 
   test "solved scope returns messages without pending advisors" do

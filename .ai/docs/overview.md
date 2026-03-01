@@ -17,7 +17,7 @@ The platform tracks AI usage per account with encrypted provider credentials, su
 | Jobs | Solid Queue |
 | Cache | Solid Cache |
 | Cable | Solid Cable |
-| Tests | Minitest (~1486 runs, 96.71% line / 85.21% branch coverage) |
+| Tests | Minitest (~1396 runs, 96.79% line / 85.38% branch coverage) |
 | Auth | authentication-zero |
 | Multi-tenancy | acts_as_tenant (active) |
 | AI APIs | ruby_llm |
@@ -37,16 +37,18 @@ The platform tracks AI usage per account with encrypted provider credentials, su
 ```
 app/
 ├── controllers/    # Request handling
-├── models/         # 12 models: Account, User, Space, Council, Advisor,
-│                   #   Conversation, ConversationParticipant, Message,
-│                   #   Memory, MemoryVersion, Provider, LlmModel
+├── models/         # 17 models: Account, User, Space, Council, Advisor,
+│                   #   CouncilAdvisor, Conversation, ConversationParticipant,
+│                   #   Message, Memory, MemoryVersion, Provider, LlmModel,
+│                   #   UsageRecord, Session, Current, ApplicationRecord
 ├── views/          # ERB templates with DaisyUI components
-├── services/       # ConversationLifecycle, ProviderConnectionTester, WebBrowserService
-├── libs/ai/        # AI::Client, AI::ContentGenerator, AI::ModelManager, tools/
-├── jobs/           # GenerateAdvisorResponseJob (Solid Queue)
+├── services/       # ConversationLifecycle, ProviderConnectionTester, InlineDiff, CommandParser
+├── libs/ai/        # AI::Client (instance), AI::ContentGenerator, AI::ModelManager,
+│                   #   AI::ContextBuilders, AI::Tools (13 tools), AI::Model (Response/TokenUsage)
+├── jobs/           # GenerateAdvisorResponseJob, GenerateConversationSummaryJob (Solid Queue)
 └── assets/         # Tailwind CSS v4 + DaisyUI
 
-test/               # ~1486 runs: models, controllers, integration, jobs, helpers
+test/               # ~1396 runs: models, controllers, integration, jobs, ai/unit, ai/integration
 config/
 ├── routes.rb       # All app routes
 └── initializers/   # App configuration

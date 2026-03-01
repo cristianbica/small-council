@@ -36,12 +36,11 @@ After creating a provider, models are managed through the UI:
 
 ### Enable/Disable Models
 ```ruby
-# Enable a model
-LLM::ModelManager.enable_model(account, provider, "gpt-4o")
-
-# Disable a model
-LLM::ModelManager.disable_model(account, provider, "gpt-4o")
+# Via AI::ModelManager service
+AI::ModelManager.sync_models(provider)  # Syncs metadata from ruby_llm
 ```
+
+Models can also be toggled via the UI at `/providers/:id/models` (toggle switch per model).
 
 ### Model Lifecycle
 - **Enabled**: Available for advisors to use
@@ -63,37 +62,30 @@ LLM::ModelManager.disable_model(account, provider, "gpt-4o")
 - `Provider.has_many :llm_models, dependent: :destroy`
 - `LlmModel`: name, identifier, enabled, metadata (capabilities, pricing), provider reference
 
-### LLM::Client
+### AI::Client (provider operations)
 
-The `LLM::Client` class handles all provider operations:
+Provider-level class methods (no model instance required):
 
 ```ruby
-# Provider-level operations (no model required)
-client = LLM::Client.new(provider: provider)
-client.list_models      # Fetch available models from API
-client.test_connection  # Validate API credentials
+# Test connection
+AI::Client.test_connection(provider: provider)
+# => { success: true, model: "gpt-4o-mini" } or { success: false, error: "..." }
 
-# Model-level operations (requires model)
-client = LLM::Client.new(provider: provider, model: llm_model)
-client.info             # Get model metadata from ruby_llm
-client.supports?(:vision)  # Check capability support
-client.chat(messages, system_prompt: "...")  # Execute chat completion
+# List available models
+AI::Client.list_models(provider: provider)
+# => [{ id: "gpt-4o", name: "GPT-4o", capabilities: {...} }, ...]
 ```
 
-### LLM::ModelManager
+### AI::ModelManager
 
-Manages model lifecycle and discovery:
+Manages model lifecycle and sync:
 
 ```ruby
-# List all available models across all providers
-models = LLM::ModelManager.available_models(account)
-# Returns array of ModelInfo structs with provider, model_id, name, enabled, capabilities
+# Sync all models for a provider from ruby_llm registry
+AI::ModelManager.sync_models(provider)
 
-# Enable a model (fetches metadata from ruby_llm)
-llm_model = LLM::ModelManager.enable_model(account, provider, "gpt-4o")
-
-# Disable a model
-LLM::ModelManager.disable_model(account, provider, "gpt-4o")
+# Validates model_id, enables/creates record
+# Model info (capabilities, pricing, context window) stored in llm_models.metadata
 ```
 
 ### Encrypted Credentials
@@ -109,9 +101,8 @@ Requirements:
 - Test environment uses deterministic keys (see `config/initializers/active_record_encryption.rb`)
 
 ### Controllers
-- `ProvidersController`: Standard CRUD + wizard flow
-- `Provider::ModelsController`: Model management (enable/disable)
-- All account users can manage providers (Phase 1 - no role restrictions)
+- `ProvidersController`: Standard CRUD + wizard flow + model toggle
+- All account users can manage providers (no role restrictions currently)
 
 ### Access Control
 - Scoped to account via acts_as_tenant
@@ -127,16 +118,19 @@ Requirements:
 
 ## Usage Tracking Integration
 
-Every API call creates a UsageRecord:
+`UsageRecord` is created automatically inside `AI::Client#chat` — no manual tracking needed:
 
 ```ruby
+# Auto-created by AI::Client#track_usage on every successful chat() call
 UsageRecord.create!(
-  account: account,
-  provider: provider.provider_type,
-  model: llm_model.identifier,
-  input_tokens: tokens[:input],
-  output_tokens: tokens[:output],
-  cost_cents: calculate_cost(tokens)
+  account: context[:account] || context[:space]&.account,
+  provider: model.provider.provider_type,
+  model: model.identifier,
+  input_tokens: ...,
+  output_tokens: ...,
+  cost_cents: ...,
+  message: context[:message],
+  recorded_at: Time.current
 )
 ```
 

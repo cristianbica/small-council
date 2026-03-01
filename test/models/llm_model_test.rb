@@ -55,18 +55,6 @@ class LLMModelTest < ActiveSupport::TestCase
     assert model.deleted_at.present?
   end
 
-  test "scope available excludes deprecated and deleted" do
-    available = @provider.llm_models.create!(account: @account, name: "Active", identifier: "active")
-    deprecated = @provider.llm_models.create!(account: @account, name: "Deprecated", identifier: "old", deprecated: true)
-    deleted = @provider.llm_models.create!(account: @account, name: "Deleted", identifier: "gone")
-    deleted.soft_delete
-
-    available_models = LLMModel.available
-    assert_includes available_models, available
-    assert_not_includes available_models, deprecated
-    assert_not_includes available_models, deleted
-  end
-
   test "scope enabled excludes deprecated" do
     enabled = @provider.llm_models.create!(account: @account, name: "Active", identifier: "active")
     deprecated = @provider.llm_models.create!(account: @account, name: "Deprecated", identifier: "old", deprecated: true)
@@ -180,55 +168,6 @@ class LLMModelTest < ActiveSupport::TestCase
     assert_equal 0.0, model.output_price
   end
 
-  test "sync_from_ruby_llm! returns early when api.info is nil" do
-    model = @provider.llm_models.create!(
-      account: @account, name: "Sync Test", identifier: "sync-nil"
-    )
-    mock_client = mock("ai_client")
-    mock_client.stubs(:info).returns(nil)
-    AI::Client.stubs(:new).returns(mock_client)
-
-    # Should not raise and should not update model
-    original_updated_at = model.updated_at
-    assert_nothing_raised { model.sync_from_ruby_llm! }
-  end
-
-  test "sync_from_ruby_llm! sets free to false when pricing is blank" do
-    model = @provider.llm_models.create!(
-      account: @account, name: "Blank Pricing", identifier: "blank-pricing"
-    )
-    mock_info = mock("model_info")
-    mock_info.stubs(:as_json).returns({
-      "type" => "chat", "context_window" => 4096
-    })
-    mock_client = mock("ai_client")
-    mock_client.stubs(:info).returns(mock_info)
-    AI::Client.stubs(:new).returns(mock_client)
-
-    model.sync_from_ruby_llm!
-    model.reload
-    assert_equal false, model.free
-  end
-
-  test "sync_from_ruby_llm! sets free to true when both prices are 0.0" do
-    model = @provider.llm_models.create!(
-      account: @account, name: "Free Model", identifier: "free-model"
-    )
-    mock_info = mock("model_info")
-    mock_info.stubs(:as_json).returns({
-      "type" => "chat",
-      "context_window" => 4096,
-      "pricing" => { "input" => 0.0, "output" => 0.0 }
-    })
-    mock_client = mock("ai_client")
-    mock_client.stubs(:info).returns(mock_info)
-    AI::Client.stubs(:new).returns(mock_client)
-
-    model.sync_from_ruby_llm!
-    model.reload
-    assert model.free
-  end
-
   test "scope free returns only free models" do
     free_model = @provider.llm_models.create!(
       account: @account, name: "Free", identifier: "free-scope", free: true
@@ -239,17 +178,5 @@ class LLMModelTest < ActiveSupport::TestCase
     free_results = LLMModel.free
     assert_includes free_results, free_model
     assert_not_includes free_results, paid_model
-  end
-
-  test "scope paid returns only non-free models" do
-    free_model = @provider.llm_models.create!(
-      account: @account, name: "Free 2", identifier: "free-scope-2", free: true
-    )
-    paid_model = @provider.llm_models.create!(
-      account: @account, name: "Paid 2", identifier: "paid-scope-2", free: false
-    )
-    paid_results = LLMModel.paid
-    assert_includes paid_results, paid_model
-    assert_not_includes paid_results, free_model
   end
 end

@@ -10,11 +10,6 @@ class UsageRecord < ApplicationRecord
   validates :output_tokens, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :cost_cents, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 
-  scope :by_provider, ->(provider) { where(provider: provider) }
-  scope :by_model, ->(model) { where(model: model) }
-  scope :recorded_since, ->(time) { where("recorded_at >= ?", time) }
-  scope :recorded_before, ->(time) { where("recorded_at < ?", time) }
-
   # Helper to calculate total tokens
   def total_tokens
     input_tokens + output_tokens

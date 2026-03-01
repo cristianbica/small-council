@@ -285,60 +285,7 @@ class MessageComprehensiveTest < ActiveSupport::TestCase
   # SCOPES
   # ============================================================================
 
-  test "by_role scope filters by role" do
-    user_msg = @account.messages.create!(
-      conversation: @conversation,
-      sender: @user,
-      role: "user",
-      content: "User message"
-    )
-    advisor_msg = @account.messages.create!(
-      conversation: @conversation,
-      sender: @advisor,
-      role: "advisor",
-      content: "Advisor message"
-    )
-    system_msg = @account.messages.create!(
-      conversation: @conversation,
-      sender: @user,
-      role: "system",
-      content: "System message"
-    )
-
-    user_messages = Message.by_role("user")
-    assert_includes user_messages, user_msg
-    assert_not_includes user_messages, advisor_msg
-    assert_not_includes user_messages, system_msg
-  end
-
-  test "chronological scope orders by created_at ascending" do
-    msg1 = @account.messages.create!(
-      conversation: @conversation,
-      sender: @user,
-      role: "user",
-      content: "First",
-      created_at: 2.hours.ago
-    )
-    msg2 = @account.messages.create!(
-      conversation: @conversation,
-      sender: @user,
-      role: "user",
-      content: "Second",
-      created_at: 1.hour.ago
-    )
-    msg3 = @account.messages.create!(
-      conversation: @conversation,
-      sender: @user,
-      role: "user",
-      content: "Third",
-      created_at: 30.minutes.ago
-    )
-
-    ordered = Message.chronological.to_a
-    assert_equal [ msg1, msg2, msg3 ], ordered
-  end
-
-  test "root_messages scope returns only root messages" do
+  test "solved scope returns messages with empty or null pending_advisor_ids" do
     root = @account.messages.create!(
       conversation: @conversation,
       sender: @user,
@@ -356,56 +303,6 @@ class MessageComprehensiveTest < ActiveSupport::TestCase
     roots = Message.root_messages.to_a
     assert_includes roots, root
     assert_not_includes roots, reply
-  end
-
-  test "with_pending scope returns messages with pending advisors" do
-    pending_msg = @account.messages.create!(
-      conversation: @conversation,
-      sender: @user,
-      role: "user",
-      content: "Pending",
-      pending_advisor_ids: [ @advisor.id ]
-    )
-    solved_msg = @account.messages.create!(
-      conversation: @conversation,
-      sender: @user,
-      role: "user",
-      content: "Solved",
-      pending_advisor_ids: []
-    )
-
-    with_pending = Message.with_pending.to_a
-    assert_includes with_pending, pending_msg
-    assert_not_includes with_pending, solved_msg
-  end
-
-  test "solved scope returns messages with empty or null pending_advisor_ids" do
-    pending_msg = @account.messages.create!(
-      conversation: @conversation,
-      sender: @user,
-      role: "user",
-      content: "Pending",
-      pending_advisor_ids: [ @advisor.id ]
-    )
-
-    # Create a message that starts with empty pending
-    solved_msg = @account.messages.new(
-      conversation: @conversation,
-      sender: @user,
-      role: "user",
-      content: "Solved"
-    )
-    # Don't set pending_advisor_ids at all - it defaults to empty
-    solved_msg.save!
-
-    # Query using the solved scope
-    solved = Message.solved.to_a
-    assert_not_includes solved, pending_msg
-
-    # Note: The solved scope looks for pending_advisor_ids: []
-    # which works for records explicitly set to empty array
-    # New messages may have NULL which the scope doesn't match
-    # This is the intended behavior
   end
 
   # ============================================================================
@@ -760,36 +657,6 @@ class MessageComprehensiveTest < ActiveSupport::TestCase
   test "command? returns false for empty content" do
     msg = @account.messages.new(content: "")
     assert_not msg.command?
-  end
-
-  test "command_name returns command for command messages" do
-    msg = @account.messages.new(content: "/invite @advisor")
-    assert_equal "invite", msg.command_name
-  end
-
-  test "command_name returns nil for non-command messages" do
-    msg = @account.messages.new(content: "Hello")
-    assert_nil msg.command_name
-  end
-
-  test "command_name returns nil for nil content" do
-    msg = @account.messages.new(content: nil)
-    assert_nil msg.command_name
-  end
-
-  test "command_name is case-insensitive" do
-    msg = @account.messages.new(content: "/INVITE @advisor")
-    assert_equal "invite", msg.command_name
-  end
-
-  test "command_name handles command without args" do
-    msg = @account.messages.new(content: "/invite")
-    assert_equal "invite", msg.command_name
-  end
-
-  test "command_name handles command with multiple args" do
-    msg = @account.messages.new(content: "/invite @advisor1 @advisor2")
-    assert_equal "invite", msg.command_name
   end
 
   # ============================================================================

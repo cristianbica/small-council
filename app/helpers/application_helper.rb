@@ -16,7 +16,7 @@ module ApplicationHelper
   end
 
   # Check if user can finish the conversation
-  # Available for: On Demand, Silent, Round Robin, and Moderated modes
+  # Available for: Open, Consensus, and Brainstorming modes
   def can_finish_conversation?(conversation)
     # Only conversation starter or council creator can finish
     return false unless conversation.user_id == Current.user.id || conversation.council&.user_id == Current.user.id

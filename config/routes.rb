@@ -73,7 +73,6 @@ Rails.application.routes.draw do
     end
 
     collection do
-      get :adhoc
       post :quick_create
     end
   end
