@@ -365,6 +365,8 @@ module AI
 
       # Get root messages and their replies
       conversation.messages.root_messages.chronological.each do |root_msg|
+        next if thinking_placeholder?(root_msg)
+
         # Add root message
         messages << {
           role: root_msg.role == "advisor" ? "assistant" : root_msg.role,
@@ -374,6 +376,8 @@ module AI
 
         # Add replies
         root_msg.replies.chronological.each do |reply|
+          next if thinking_placeholder?(reply)
+
           messages << {
             role: reply.role == "advisor" ? "assistant" : reply.role,
             content: reply.content,
@@ -440,6 +444,10 @@ module AI
       return sender.name if sender.respond_to?(:name)
 
       sender.to_s
+    end
+
+    def thinking_placeholder?(message)
+      message.status == "pending" && message.content&.include?("is thinking...")
     end
   end
 end

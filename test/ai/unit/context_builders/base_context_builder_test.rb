@@ -294,6 +294,31 @@ module AI
         reply_entry = root[:replies].find { |entry| entry[:parent_id] == user_msg.id }
         assert_equal "Thread Advisor", reply_entry[:sender_name]
       end
+
+      test "conversation_thread excludes thinking placeholders" do
+        user_msg = @conversation.messages.create!(
+          account: @account, sender: @user, role: "user", content: "Hello"
+        )
+        provider = @account.providers.create!(name: "ThinkProv", provider_type: "openai", api_key: "k")
+        model = provider.llm_models.create!(account: @account, name: "T", identifier: "t-1")
+        advisor = @account.advisors.create!(
+          name: "Think Advisor", system_prompt: "Expert", space: @space, llm_model: model
+        )
+        @conversation.messages.create!(
+          account: @account,
+          sender: advisor,
+          role: "system",
+          content: "[Think Advisor] is thinking...",
+          status: "pending",
+          in_reply_to_id: user_msg.id
+        )
+
+        builder = TestBuilder.new(@space, @conversation)
+        thread = builder.send(:conversation_thread)
+
+        reply_contents = thread.flat_map { |message| message[:replies].map { |reply| reply[:content] } }
+        refute_includes reply_contents, "[Think Advisor] is thinking..."
+      end
     end
 
     # Test builder for testing base class methods

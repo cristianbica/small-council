@@ -89,7 +89,9 @@ module AI
             content: msg.content,
             sender_name: sender_display_name(msg.sender),
             message_id: msg.id,
-            replies: msg.replies.chronological.map do |reply|
+            replies: msg.replies.chronological.filter_map do |reply|
+              next if thinking_placeholder?(reply)
+
               {
                 role: reply.role == "advisor" ? "assistant" : reply.role,
                 content: reply.content,
@@ -106,6 +108,10 @@ module AI
         return sender.name if sender.respond_to?(:name)
 
         sender.to_s
+      end
+
+      def thinking_placeholder?(message)
+        message.status == "pending" && message.content&.include?("is thinking...")
       end
 
       # Get conversation rules of engagement description
