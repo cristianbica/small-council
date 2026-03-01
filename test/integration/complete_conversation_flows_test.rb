@@ -299,7 +299,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
   # @ALL MENTION EXPANSION FLOW
   # ============================================================================
 
-  test "@all mention expands to all participants in Open RoE" do
+  test "@all mention expands to all advisors in Open RoE" do
     sign_in_as(@user)
     set_tenant(@account)
 
@@ -313,15 +313,15 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     conversation.conversation_participants.create!(advisor: @advisor2, role: :advisor, position: 1)
     conversation.conversation_participants.create!(advisor: @scribe, role: :scribe)
 
-    # @all includes all participants (2 advisors + scribe = 3)
-    assert_enqueued_jobs 3, only: GenerateAdvisorResponseJob do
+    # @all includes all advisors (2 advisors)
+    assert_enqueued_jobs 2, only: GenerateAdvisorResponseJob do
       post conversation_messages_path(conversation), params: {
         message: { content: "@all what are your thoughts?" }
       }
     end
   end
 
-  test "@everyone mention expands to all participants in Open RoE" do
+  test "@everyone mention expands to all advisors in Open RoE" do
     sign_in_as(@user)
     set_tenant(@account)
 
@@ -335,8 +335,8 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     conversation.conversation_participants.create!(advisor: @advisor2, role: :advisor, position: 1)
     conversation.conversation_participants.create!(advisor: @scribe, role: :scribe)
 
-    # @everyone includes all participants (2 advisors + scribe = 3)
-    assert_enqueued_jobs 3, only: GenerateAdvisorResponseJob do
+    # @everyone includes all advisors (2 advisors)
+    assert_enqueued_jobs 2, only: GenerateAdvisorResponseJob do
       post conversation_messages_path(conversation), params: {
         message: { content: "@everyone please respond" }
       }

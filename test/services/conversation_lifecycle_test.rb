@@ -223,7 +223,7 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
     assert_empty msg.pending_advisor_ids
   end
 
-  test "Open RoE: @all expands to all participants including scribe" do
+  test "Open RoE: @all expands to all advisors excluding scribe" do
     conv = create_conversation(roe_type: :open)
 
     msg = conv.messages.create!(
@@ -236,10 +236,10 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
     lifecycle = ConversationLifecycle.new(conv)
     lifecycle.user_posted_message(msg)
 
-    # @all now includes all participants: 2 advisors + scribe
+    # @all includes all advisors: 2 advisors
     assert_includes msg.pending_advisor_ids, @advisor1.id
     assert_includes msg.pending_advisor_ids, @advisor2.id
-    assert_includes msg.pending_advisor_ids, @scribe.id
+    assert_not_includes msg.pending_advisor_ids, @scribe.id
   end
 
   # Consensus RoE Tests

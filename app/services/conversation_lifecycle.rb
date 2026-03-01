@@ -25,9 +25,9 @@ class ConversationLifecycle
     # Normal message flow
     mentioned_advisors = parse_mentions(user_message.content)
 
-    # For Open RoE with @all, expand to all participants (including scribe)
+    # For Open RoE with @all, expand to all advisors (excluding scribe)
     if user_message.mentions_all?
-      mentioned_advisors = @conversation.all_participant_advisors
+      mentioned_advisors = @conversation.conversation_participants.where(role: "advisor").map(&:advisor)
     end
 
     # If Open RoE and no mentions, check if conversation has only scribe
