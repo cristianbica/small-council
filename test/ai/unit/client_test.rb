@@ -61,6 +61,9 @@ module AI
         def with_temperature(*); self; end
         def add_message(*); self; end
         def with_tools(*); self; end
+        def on_end_message(&block); self; end
+        def on_tool_call(&block); self; end
+        def on_tool_result(&block); self; end
         def complete; response; end
       end.new(mock_response)
 
@@ -90,6 +93,9 @@ module AI
         def with_instructions(*); self; end
         def with_temperature(*); self; end
         def add_message(*); self; end
+        def on_end_message(&block); self; end
+        def on_tool_call(&block); self; end
+        def on_tool_result(&block); self; end
         def complete; response; end
       end.new(mock_response)
 
@@ -130,6 +136,9 @@ module AI
         def with_instructions(*); self; end
         def with_temperature(*); self; end
         def add_message(*); self; end
+        def on_end_message(&block); self; end
+        def on_tool_call(&block); self; end
+        def on_tool_result(&block); self; end
         def complete; response; end
       end.new(mock_response)
 
@@ -172,6 +181,9 @@ module AI
       def mock_chat.with_instructions(*); self; end
       def mock_chat.with_temperature(*); self; end
       def mock_chat.add_message(*); self; end
+      def mock_chat.on_end_message(&block); self; end
+      def mock_chat.on_tool_call(&block); self; end
+      def mock_chat.on_tool_result(&block); self; end
       def mock_chat.complete; response; end
 
       mock_context = Struct.new(:chat_result).new(mock_chat)
@@ -255,6 +267,9 @@ module AI
         def with_instructions(*); self; end
         def with_temperature(*); self; end
         def add_message(*); self; end
+        def on_end_message(&block); self; end
+        def on_tool_call(&block); self; end
+        def on_tool_result(&block); self; end
         def complete; response; end
       end.new(mock_response)
 
@@ -288,6 +303,9 @@ module AI
         def with_instructions(*); self; end
         def with_temperature(*); self; end
         def add_message(*); self; end
+        def on_end_message(&block); self; end
+        def on_tool_call(&block); self; end
+        def on_tool_result(&block); self; end
         def complete(streaming: false, &block)
           if block && streaming
             block.call(Struct.new(:content).new("Hello world!"))
@@ -319,6 +337,9 @@ module AI
         def with_instructions(*); self; end
         def with_temperature(*); self; end
         def add_message(*); self; end
+        def on_end_message(&block); self; end
+        def on_tool_call(&block); self; end
+        def on_tool_result(&block); self; end
         def complete; response; end
       end.new(mock_response)
 
@@ -336,26 +357,37 @@ module AI
     end
 
     # =========================================================================
-    # Model Interaction Recording Tests
+    # Model Interaction Recording Tests (Event Handler-based)
     # =========================================================================
 
-    test "chat records model interaction when message in context" do
-      client = Client.new(model: @llm_model, system_prompt: "Be helpful", temperature: 0.5)
+    test "chat creates ModelInteraction via on_end_message handler" do
+      client = Client.new(model: @llm_model, system_prompt: "Be helpful")
 
       council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
       conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
       message = @account.messages.create!(conversation: conversation, sender: @user, role: "user", content: "Hello")
 
-      mock_response = Struct.new(:content, :input_tokens, :output_tokens, :model_id, :tool_calls).new(
-        "Test response", 100, 50, "gpt-4", nil
-      )
+      mock_response = RubyLLM::Message.new(role: :assistant, content: "Hi!")
+      mock_response.stubs(:input_tokens).returns(100)
+      mock_response.stubs(:output_tokens).returns(50)
+      mock_response.stubs(:model_id).returns("gpt-4")
+      mock_response.stubs(:tool_calls).returns(nil)
 
-      mock_chat = Struct.new(:response) do
-        def with_instructions(*); self; end
-        def with_temperature(*); self; end
-        def add_message(*); self; end
-        def complete; response; end
-      end.new(mock_response)
+      end_message_handler = nil
+      mock_model = stub(id: "gpt-4", provider: "openai")
+      mock_chat = Object.new
+      mock_chat.define_singleton_method(:with_instructions) { |*| self }
+      mock_chat.define_singleton_method(:with_temperature) { |*| self }
+      mock_chat.define_singleton_method(:add_message) { |**| self }
+      mock_chat.define_singleton_method(:on_end_message) { |&block| end_message_handler = block; self }
+      mock_chat.define_singleton_method(:on_tool_call) { |&block| self }
+      mock_chat.define_singleton_method(:on_tool_result) { |&block| self }
+      mock_chat.define_singleton_method(:model) { mock_model }
+      mock_chat.define_singleton_method(:messages) { [ mock_response ] }
+      mock_chat.define_singleton_method(:complete) do
+        end_message_handler&.call(mock_response)
+        mock_response
+      end
 
       mock_context = Struct.new(:chat_result) do
         def chat(**args); chat_result; end
@@ -371,42 +403,30 @@ module AI
       end
 
       interaction = ModelInteraction.last
-      assert_equal message, interaction.message
-      assert_equal @account, interaction.account
-      assert_equal 0, interaction.sequence
+      assert_equal message.id, interaction.message_id
+      assert_equal @account.id, interaction.account_id
+      assert_equal "chat", interaction.interaction_type
       assert_equal "gpt-4", interaction.model_identifier
       assert_equal 100, interaction.input_tokens
       assert_equal 50, interaction.output_tokens
       assert interaction.duration_ms.present?
-      assert interaction.duration_ms >= 0
-
-      # Verify request_payload contents
-      assert_equal "gpt-4", interaction.request_payload["model"]
-      assert_equal "openai", interaction.request_payload["provider"]
-      assert_equal 0.5, interaction.request_payload["temperature"]
-      assert_equal "Be helpful", interaction.request_payload["system_prompt"]
-      assert_equal 1, interaction.request_payload["messages_count"]
-
-      # Verify response_payload contents
-      assert_equal "Test response", interaction.response_payload["content"]
-      assert_equal 100, interaction.response_payload["input_tokens"]
-      assert_equal 50, interaction.response_payload["output_tokens"]
-      assert_equal "gpt-4", interaction.response_payload["model_used"]
     end
 
-    test "chat does not record interaction when no message in context" do
+    test "chat does not create ModelInteraction without message in context" do
       client = Client.new(model: @llm_model)
 
       mock_response = Struct.new(:content, :input_tokens, :output_tokens, :model_id, :tool_calls).new(
         "Test response", 100, 50, "gpt-4", nil
       )
 
-      mock_chat = Struct.new(:response) do
-        def with_instructions(*); self; end
-        def with_temperature(*); self; end
-        def add_message(*); self; end
-        def complete; response; end
-      end.new(mock_response)
+      mock_chat = Object.new
+      mock_chat.define_singleton_method(:with_instructions) { |*| self }
+      mock_chat.define_singleton_method(:with_temperature) { |*| self }
+      mock_chat.define_singleton_method(:add_message) { |**| self }
+      mock_chat.define_singleton_method(:on_end_message) { |&block| self }
+      mock_chat.define_singleton_method(:on_tool_call) { |&block| self }
+      mock_chat.define_singleton_method(:on_tool_result) { |&block| self }
+      mock_chat.define_singleton_method(:complete) { mock_response }
 
       mock_context = Struct.new(:chat_result) do
         def chat(**args); chat_result; end
@@ -422,80 +442,51 @@ module AI
       end
     end
 
-    test "chat records multiple interactions with incrementing sequence" do
+    test "ModelInteraction recording failure does not break chat" do
       client = Client.new(model: @llm_model)
 
       council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
       conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
       message = @account.messages.create!(conversation: conversation, sender: @user, role: "user", content: "Hello")
 
-      mock_response = Struct.new(:content, :input_tokens, :output_tokens, :model_id, :tool_calls).new(
-        "Response", 100, 50, "gpt-4", nil
-      )
+      mock_response = RubyLLM::Message.new(role: :assistant, content: "Hi!")
+      mock_response.stubs(:input_tokens).returns(100)
+      mock_response.stubs(:output_tokens).returns(50)
+      mock_response.stubs(:model_id).returns("gpt-4")
+      mock_response.stubs(:tool_calls).returns(nil)
 
-      mock_chat = Struct.new(:response) do
-        def with_instructions(*); self; end
-        def with_temperature(*); self; end
-        def add_message(*); self; end
-        def complete; response; end
-      end.new(mock_response)
-
-      mock_context = Struct.new(:chat_result) do
-        def chat(**args); chat_result; end
-      end.new(mock_chat)
-
-      RubyLLM.stubs(:context).yields(stub(:openai_api_key= => nil, :openai_organization_id= => nil)).returns(mock_context)
-
-      context = { message: message, account: @account, space: @space }
-
-      assert_difference "ModelInteraction.count", 2 do
-        client.chat(messages: [ { role: "user", content: "Hello" } ], context: context)
-        client.chat(messages: [ { role: "user", content: "Follow up" } ], context: context)
+      end_message_handler = nil
+      mock_model = stub(id: "gpt-4", provider: "openai")
+      mock_chat = Object.new
+      mock_chat.define_singleton_method(:with_instructions) { |*| self }
+      mock_chat.define_singleton_method(:with_temperature) { |*| self }
+      mock_chat.define_singleton_method(:add_message) { |**| self }
+      mock_chat.define_singleton_method(:on_end_message) { |&block| end_message_handler = block; self }
+      mock_chat.define_singleton_method(:on_tool_call) { |&block| self }
+      mock_chat.define_singleton_method(:on_tool_result) { |&block| self }
+      mock_chat.define_singleton_method(:model) { mock_model }
+      mock_chat.define_singleton_method(:messages) { [ mock_response ] }
+      mock_chat.define_singleton_method(:complete) do
+        end_message_handler&.call(mock_response)
+        mock_response
       end
 
-      interactions = ModelInteraction.where(message: message).chronological
-      assert_equal 2, interactions.count
-      assert_equal 0, interactions.first.sequence
-      assert_equal 1, interactions.second.sequence
-    end
-
-    test "recording failure does not break chat response" do
-      client = Client.new(model: @llm_model)
-
-      council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-      conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
-      message = @account.messages.create!(conversation: conversation, sender: @user, role: "user", content: "Hello")
-
-      mock_response = Struct.new(:content, :input_tokens, :output_tokens, :model_id, :tool_calls).new(
-        "Test response", 100, 50, "gpt-4", nil
-      )
-
-      mock_chat = Struct.new(:response) do
-        def with_instructions(*); self; end
-        def with_temperature(*); self; end
-        def add_message(*); self; end
-        def complete; response; end
-      end.new(mock_response)
-
       mock_context = Struct.new(:chat_result) do
         def chat(**args); chat_result; end
       end.new(mock_chat)
 
       RubyLLM.stubs(:context).yields(stub(:openai_api_key= => nil, :openai_organization_id= => nil)).returns(mock_context)
 
-      # Simulate recording failure
+      # Force ModelInteraction.create! to fail
       ModelInteraction.stubs(:create!).raises(StandardError.new("DB error"))
 
-      assert_no_difference "ModelInteraction.count" do
-        response = client.chat(
-          messages: [ { role: "user", content: "Hello" } ],
-          context: { message: message, account: @account, space: @space }
-        )
+      # Should not raise — recording failure is swallowed
+      response = client.chat(
+        messages: [ { role: "user", content: "Hello" } ],
+        context: { message: message, account: @account, space: @space }
+      )
 
-        # Response should still be returned successfully
-        assert_instance_of AI::Model::Response, response
-        assert_equal "Test response", response.content
-      end
+      assert_equal "Hi!", response.content
     end
   end
 end

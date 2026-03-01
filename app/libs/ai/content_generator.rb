@@ -422,6 +422,7 @@ module AI
     end
 
     def fetch_from_cache(key)
+      return yield # disable cahing for now
       return yield unless @cache
 
       @cache.fetch(key, expires_in: CACHE_EXPIRY) do

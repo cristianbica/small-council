@@ -1,138 +1,52 @@
 # TODO
 
-## Security & Correctness Audit Follow-ups
+This a list of bugs and todos. These will be handled on demand as I ask for them to be fixed / implmented. This is not a backlog or roadmap — just a scratchpad for current known issues and tasks.
 
-**Status**: All critical and high priority security fixes completed.
 
-### Encryption at Rest ✅
-- [x] Messages content encrypted at rest
-- [x] Conversation memories encrypted at rest
-- [x] Advisor system prompts encrypted at rest
-- [x] Rails Active Record Encryption configured
+## Sender name for User in model messages is currently `user.to_s`
 
----
+Noticed this in model interaction and found this code:
+sender_name = msg.sender.respond_to?(:name) ? msg.sender.name : msg.sender.to_s
 
-## Remaining Features to Implement
+## Mentioning @all behaviour
 
-### Phase 3: Meeting Lifecycle ✅ IMPLEMENTED
+Noticed 2 issues here:
+- Scribe should not respond to @all mentions (currently does)
+- Advisors should respond in order (currently all start "thinkning" at the same time, which is a bit chaotic)
 
-#### 1. Conversation Resolution ✅
-- [x] Add `status` enum to conversations (active, concluding, resolved, archived)
-- [x] "Resolve/End Conversation" button in conversation UI (for On Demand, Silent modes)
-- [x] Auto-conclusion for Consensus, Round Robin, Moderated modes
-- [x] Resolved conversations become read-only (no new messages)
-- [x] Visual indicator (badge/icon) for resolved/concluding conversations
 
-#### 2. AI Memory Generation ✅
-- [x] On conversation resolution, trigger background job
-- [x] AI analyzes full conversation transcript
-- [x] Store generated memory in conversation.draft_memory
-- [x] Rich AI-generated summary with structured fields (key decisions, action items, insights, open questions)
+## Advisors' models receives also "is thinking ..." messages
 
-#### 3. User Review & Edit ✅
-- [x] Display AI-generated memory to user for review
-- [x] Text area for editing/saving changes
-- [x] Accept/Reject options (approve_summary, reject_summary actions)
-- [x] Option to regenerate with different focus
+When debugging model interactions I noticed that the API is receiving "[ADVISOR_NAME] is thinking..." messages, which provides little to no value in the response
 
-#### 4. Persist to Space Memory ✅
-- [x] Save approved memory to conversation.memory
-- [x] Link back to source conversation
-- [x] Append to space.memory (cumulative knowledge)
-- [x] Memory browser/search in space view
-- [ ] **PENDING**: Deduplication/similarity detection for repeated insights
+## Conversation UI is buggy
 
----
+- I see multiple scrollbars everywhere
+- those letters avatars are badly centered
+- for message bubbles daisyui has proper support (chat-* classes) - see https://daisyui.com/llms.txt
 
-### Phase 4: Usage Dashboard (NOT STARTED)
+## Implement tools to manager council and advisors
 
-#### 1. Cost Visualization
-- [ ] Monthly/weekly cost charts
-- [ ] Breakdown by:
-  - Provider (OpenAI, Anthropic, etc.)
-  - Model (GPT-4, Claude 3, etc.)
-  - Council (which councils use most)
-  - Advisor (which advisors are most active)
+I can see a workflow where the user would create a space, start a conversation with the scribe and tell scribe what's the purpose of the space. The it can ask the scribe to propose a council(s) and advisors structure. After iterating on those the user might be fine with it and just ask the scribe to create the council and advisors based on the proposed structure. This would be a great way to leverage the scribe to do the initial setup of the council and advisors, which can be a bit tedious to do manually.
 
-#### 2. Token Usage Metrics
-- [ ] Input vs output token ratios
-- [ ] Average tokens per conversation
-- [ ] Peak usage times
+## Investigate RubyLLM::Agent
 
-#### 3. Billing Observability
-- [ ] Estimated monthly cost projection
-- [ ] Budget alerts/thresholds
-- [ ] Export usage reports (CSV)
-- [ ] Cost per conversation/advisor
+How would using RubyLLM::Agent help us? Can Scribe be an RubyLLM::Agent?
+https://rubyllm.com/agents/
+https://rubyllm.com/agentic-workflows/
 
-#### 4. Dashboard UI
-- [ ] New `/usage` route
-- [ ] Charts (use Chart.js or similar)
-- [ ] Date range picker
-- [ ] Filter by space/council/advisor
 
----
+## Scribe summary not streamed to chat
 
-### Dashboard Enhancements (NOT STARTED)
+When Scribe automaticallty generates a summary at the end of the conversation, that summary is not streamed to the chat, but only appears if I refresh the page.
 
-#### 1. Recent Activity
-- [ ] List recent conversations across all councils
-- [ ] "Continue conversation" quick action
-- [ ] Last activity timestamp
-- [ ] Unread/new message indicators
 
-#### 2. Quick Actions Widget
-- [ ] "Start new conversation" (with recent councils dropdown)
-- [ ] "Create new council" button
-- [ ] "Switch space" shortcut
-- [ ] "Add provider" if none configured
+## Allow changing model per-cenversation or even per-advisor in a conversation
 
-#### 3. Activity Feed
-- [ ] Timeline of recent events:
-  - New councils created
-  - Conversations started/resolved
-  - Advisors added
-  - AI responses received
-- [ ] Filter by type
-- [ ] Real-time updates (Turbo Streams)
+This would allow more flexibility and better cost management, as users could choose to use cheaper models for some conversations or advisors, and more powerful models for others.
+For example in usual scenarios I'd use a cheaper model. For for something more involved I'd like to switch all advisors in a conversation to a more powerful model. And for something really important I'd like to be able to switch to the best model available, even if it's expensive, just for that conversation for a particular advisor.
+It would also allow users to experiment with different models and see how they perform in different scenarios.
 
-#### 4. Empty State Improvements
-- [ ] Better onboarding for new users
-- [ ] Guided setup wizard (optional)
-- [ ] Example/template councils
-- [ ] Help/tooltip system
+## Use a a diff gem instead of our own diff implementation
 
----
-
-## Technical Debt & Polish
-
-- [ ] Performance: Conversation pagination, message lazy loading
-- [ ] Error handling: Retry logic, graceful degradation
-- [ ] Background job monitoring (Solid Queue UI)
-
----
-
-## Priority Order
-
-1. ✅ ~~**Critical Security Fixes**~~ - All completed
-2. ✅ ~~**Phase 3 (Meeting Lifecycle)**~~ - Core implementation complete
-3. **Phase 4 (Usage Dashboard)** - Critical for production/billing
-4. **Dashboard Enhancements** - Nice UX improvements
-5. **Documentation** - Keep docs in sync with code
-6. **Technical Debt** - As needed based on usage
-
----
-
-## Recently Completed
-
-- ✅ Multi-tenancy with acts_as_tenant
-- ✅ Spaces, Councils, Advisors, Providers
-- ✅ AI Integration (OpenAI, Anthropic)
-- ✅ Rules of Engagement (5 modes)
-- ✅ Security audit & hardening (417+ tests)
-- ✅ Conversation Lifecycle & RoE refactoring
-- ✅ Conversation auto-conclusion based on RoE
-
----
-
-Last updated: 2026-02-28
+For example https://github.com/samg/diffy

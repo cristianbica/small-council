@@ -8,6 +8,7 @@ class ModelInteraction < ApplicationRecord
   validates :sequence, presence: true,
             numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :request_payload, presence: true
+  validates :interaction_type, presence: true, inclusion: { in: %w[chat tool] }
 
   scope :chronological, -> { order(sequence: :asc) }
 

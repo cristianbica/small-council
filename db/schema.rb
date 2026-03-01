@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_28_202218) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_01_080438) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -263,6 +263,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_28_202218) do
     t.datetime "created_at", null: false
     t.float "duration_ms"
     t.integer "input_tokens", default: 0
+    t.string "interaction_type", default: "chat", null: false
     t.bigint "message_id", null: false
     t.string "model_identifier"
     t.integer "output_tokens", default: 0
@@ -271,6 +272,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_28_202218) do
     t.integer "sequence", default: 0, null: false
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_model_interactions_on_account_id"
+    t.index ["interaction_type"], name: "index_model_interactions_on_interaction_type"
     t.index ["message_id", "sequence"], name: "index_model_interactions_on_message_id_and_sequence"
     t.index ["message_id"], name: "index_model_interactions_on_message_id"
     t.index ["request_payload"], name: "index_model_interactions_on_request_payload", using: :gin

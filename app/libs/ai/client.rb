@@ -54,7 +54,7 @@ module AI
     def chat(messages:, context: {}, &stream_handler)
       with_retry do
         @tool_adapters = []
-        ruby_llm_chat = build_ruby_llm_chat
+        ruby_llm_chat = build_ruby_llm_chat(context: context)
 
         # Set context on all tool adapters so they can pass it to tools
         @tool_adapters.each { |adapter| adapter.context = context }
@@ -69,12 +69,9 @@ module AI
         if stream_handler
           handle_streaming(ruby_llm_chat, stream_handler)
         else
-          started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
           response = ruby_llm_chat.complete
-          duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000).round(1)
 
           track_usage(response, context)
-          record_interaction(messages, response, context, duration_ms)
           normalize_response(response)
         end
       end
@@ -166,7 +163,7 @@ module AI
 
     private
 
-    def build_ruby_llm_chat
+    def build_ruby_llm_chat(context: {})
       ruby_context = RubyLLM.context do |config|
         configure_provider(config)
       end
@@ -182,6 +179,9 @@ module AI
         @tool_adapters << adapter
       end
 
+      # Register ModelInteraction recording via event handlers
+      register_interaction_handler(chat, context)
+
       chat
     end
 
@@ -196,6 +196,30 @@ module AI
         config.openrouter_api_key = provider.api_key
       else
         raise APIError, "Unsupported provider type: #{provider.provider_type}"
+      end
+    end
+
+    def register_interaction_handler(chat, context)
+      message = context[:message]
+      account = context[:account] || context[:space]&.account
+      return unless message && account
+
+      recorder = AI::ModelInteractionRecorder.new(
+        message_id: message.id,
+        account_id: account.id
+      )
+      recorder.start_timing
+
+      chat.on_end_message do |response|
+        recorder.record_chat(chat: chat, response: response)
+      end
+
+      chat.on_tool_call do |tool_call|
+        recorder.record_tool_call(tool_call)
+      end
+
+      chat.on_tool_result do |result|
+        recorder.record_tool_result(result)
       end
     end
 
@@ -254,46 +278,6 @@ module AI
     rescue => e
       # Log but don't fail the request if tracking fails
       Rails.logger.error "[AI::Client] Failed to track usage: #{e.message}"
-    end
-
-    def record_interaction(messages, ruby_response, context, duration_ms)
-      message = context[:message]
-      account = context[:account] || context[:space]&.account
-      return unless message && account
-
-      sequence = ModelInteraction.where(message: message).count
-
-      request_payload = {
-        model: model.identifier,
-        provider: model.provider.provider_type,
-        temperature: temperature,
-        system_prompt: system_prompt,
-        tools: tools.map { |t| t.class.name },
-        messages: messages.map { |m| { role: m[:role] || m["role"], content: (m[:content] || m["content"]).to_s.truncate(500) } },
-        messages_count: messages.size
-      }
-
-      response_payload = {
-        content: ruby_response.content.to_s.truncate(1000),
-        tool_calls: ruby_response.tool_calls&.map { |tc| { id: tc.id, name: tc.name, params: tc.params } } || [],
-        input_tokens: ruby_response.input_tokens,
-        output_tokens: ruby_response.output_tokens,
-        model_used: ruby_response.model_id
-      }
-
-      ModelInteraction.create!(
-        account: account,
-        message: message,
-        sequence: sequence,
-        request_payload: request_payload,
-        response_payload: response_payload,
-        model_identifier: model.identifier,
-        input_tokens: ruby_response.input_tokens || 0,
-        output_tokens: ruby_response.output_tokens || 0,
-        duration_ms: duration_ms
-      )
-    rescue => e
-      Rails.logger.error "[AI::Client] Failed to record interaction: #{e.message}"
     end
 
     def with_retry(max_attempts: MAX_RETRIES)

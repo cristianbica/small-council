@@ -71,7 +71,7 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - Advisors: AI personas with configurable LLM models and tool access; `is_scribe` flag for Scribe
 - Tool System: 13 tools in `app/libs/ai/tools/` using `AI::Tools::BaseTool`
 - Usage tracking: per-account billing via `UsageRecord` (auto-created by `AI::Client#chat`)
-- Model interactions: per-message LLM call recording via `ModelInteraction` (auto-created by `AI::Client#chat` when `context[:message]` present)
+- Model interactions: per-message LLM call recording via `ModelInteraction` (`AI::ModelInteractionRecorder` using RubyLLM event handlers; closure-based context in `AI::Client#chat`; records both "chat" and "tool" interaction types)
 - AI Providers: OpenAI, OpenRouter with encrypted API credentials
 - LlmModels: Per-account model configuration; `account.default_llm_model` fallback
 - Memories: 4 types (summary auto-fed to AI; others query-on-demand via tools)
@@ -107,6 +107,7 @@ Note: Rails integration tests default to `www.example.com` which may not be in a
 - `faraday` (~> 2.0) + `faraday-follow_redirects` - HTTP client (browse_web tool)
 - `diffy` (~> 3.4) - Diff library (used by InlineDiff service for memory versions)
 - `commonmarker` (~> 2.0) - GitHub Flavored Markdown rendering (MarkdownHelper)
+- `AI::ModelInteractionRecorder` — event-handler-based recorder wired into `AI::Client#build_ruby_llm_chat` via `on_end_message`, `on_tool_call`, `on_tool_result`; records chat and tool interactions to `ModelInteraction` table
 
 ## UI Framework (2026-02-18)
 - Tailwind CSS v4.1.18 via `tailwindcss-rails` gem (no Node.js)
