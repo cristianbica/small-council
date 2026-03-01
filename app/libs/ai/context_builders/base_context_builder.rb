@@ -87,18 +87,25 @@ module AI
           {
             role: msg.role == "advisor" ? "assistant" : msg.role,
             content: msg.content,
-            sender_name: msg.sender.respond_to?(:name) ? msg.sender.name : msg.sender.to_s,
+            sender_name: sender_display_name(msg.sender),
             message_id: msg.id,
             replies: msg.replies.chronological.map do |reply|
               {
                 role: reply.role == "advisor" ? "assistant" : reply.role,
                 content: reply.content,
-                sender_name: reply.sender.respond_to?(:name) ? reply.sender.name : reply.sender.to_s,
+                sender_name: sender_display_name(reply.sender),
                 parent_id: reply.in_reply_to_id
               }
             end
           }
         end
+      end
+
+      def sender_display_name(sender)
+        return sender.display_name if sender.respond_to?(:display_name)
+        return sender.name if sender.respond_to?(:name)
+
+        sender.to_s
       end
 
       # Get conversation rules of engagement description

@@ -38,7 +38,7 @@ class GenerateConversationSummaryJob < ApplicationJob
       # Skip regular advisor "is thinking..." placeholders, but keep Scribe "selecting an advisor" messages
       next if msg.content&.include?("is thinking...") && !msg.sender.try(:scribe?)
 
-      sender_name = msg.sender.is_a?(User) ? msg.sender.email : msg.sender.name
+      sender_name = sender_display_name(msg.sender)
       "#{sender_name}: #{msg.content}"
     end.join("\n\n")
   end
@@ -126,6 +126,13 @@ class GenerateConversationSummaryJob < ApplicationJob
       partial: "conversations/summary_review",
       locals: { conversation: conversation }
     )
+  end
+
+  def sender_display_name(sender)
+    return sender.display_name if sender.respond_to?(:display_name)
+    return sender.name if sender.respond_to?(:name)
+
+    sender.to_s
   end
 
   # Create a memory entry for this conversation

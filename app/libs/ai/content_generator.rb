@@ -369,7 +369,7 @@ module AI
         messages << {
           role: root_msg.role == "advisor" ? "assistant" : root_msg.role,
           content: root_msg.content,
-          sender_name: root_msg.sender.respond_to?(:name) ? root_msg.sender.name : root_msg.sender.to_s
+          sender_name: sender_display_name(root_msg.sender)
         }
 
         # Add replies
@@ -377,7 +377,7 @@ module AI
           messages << {
             role: reply.role == "advisor" ? "assistant" : reply.role,
             content: reply.content,
-            sender_name: reply.sender.respond_to?(:name) ? reply.sender.name : reply.sender.to_s,
+            sender_name: sender_display_name(reply.sender),
             in_reply_to: reply.in_reply_to_id
           }
         end
@@ -388,7 +388,7 @@ module AI
 
     def format_conversation_for_summary(conversation)
       conversation.messages.chronological.map do |msg|
-        sender_name = msg.sender.respond_to?(:name) ? msg.sender.name : msg.sender.to_s
+        sender_name = sender_display_name(msg.sender)
         depth_indicator = "  " * msg.depth
         "#{depth_indicator}#{sender_name}: #{msg.content}"
       end.join("\n\n")
@@ -433,6 +433,13 @@ module AI
     def build_cache_key(prefix, *components)
       parts = components.compact.map { |c| c.to_s.hash.to_s(16) }
       "ai/content_generator/#{prefix}/#{parts.join('/')}"
+    end
+
+    def sender_display_name(sender)
+      return sender.display_name if sender.respond_to?(:display_name)
+      return sender.name if sender.respond_to?(:name)
+
+      sender.to_s
     end
   end
 end

@@ -26,6 +26,10 @@ class Advisor < ApplicationRecord
     is_scribe
   end
 
+  def display_name
+    name
+  end
+
   # Get the effective LLM model for this advisor
   # Returns the advisor's specific model, or falls back to account default
   def effective_llm_model
