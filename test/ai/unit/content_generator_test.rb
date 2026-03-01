@@ -67,7 +67,11 @@ module AI
     test "generate_advisor_response calls client with proper context" do
       mock_response = AI::Model::Response.new(content: "Test response")
       mock_client = stub("client")
-      mock_client.stubs(:chat).returns(mock_response)
+      captured_messages = nil
+      mock_client.stubs(:chat).with do |payload|
+        captured_messages = payload[:messages]
+        true
+      end.returns(mock_response)
 
       generator = ContentGenerator.new(client: mock_client)
 
@@ -78,6 +82,12 @@ module AI
         role: "user",
         content: "Hello"
       )
+      @account.messages.create!(
+        conversation: @conversation,
+        sender: @advisor,
+        role: "advisor",
+        content: "Welcome"
+      )
 
       response = generator.generate_advisor_response(
         advisor: @advisor,
@@ -85,6 +95,8 @@ module AI
       )
 
       assert_equal "Test response", response.content
+      assert_equal "user", captured_messages.first[:sender_name]
+      assert_includes captured_messages.map { |message| message[:sender_name] }, "Test Advisor"
     end
 
     test "generate_advisor_response raises NoModelError when no model available" do

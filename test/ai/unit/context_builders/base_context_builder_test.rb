@@ -289,7 +289,10 @@ module AI
         assert thread.any? { |m| m[:message_id] == user_msg.id }
         root = thread.find { |m| m[:message_id] == user_msg.id }
         assert_equal "user", root[:role]
+        assert_equal "user", root[:sender_name]
         assert reply.in_reply_to_id == user_msg.id
+        reply_entry = root[:replies].find { |entry| entry[:parent_id] == user_msg.id }
+        assert_equal "Thread Advisor", reply_entry[:sender_name]
       end
     end
 
