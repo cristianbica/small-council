@@ -45,12 +45,19 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
   end
 
   def create_conversation(roe_type: :open, type: :adhoc)
-    conv = @account.conversations.create!(
+    attrs = {
       title: "Test Conversation",
       user: @user,
       conversation_type: type,
       roe_type: roe_type
-    )
+    }
+
+    if type == :council_meeting
+      council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+      attrs[:council] = council
+    end
+
+    conv = @account.conversations.create!(**attrs)
 
     conv.conversation_participants.create!(advisor: @scribe, role: :scribe)
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
@@ -535,7 +542,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
   # ============================================================================
 
   test "scribe follows up when root message is solved at count 0" do
-    conv = create_conversation(roe_type: :open)
+    conv = create_conversation(roe_type: :open, type: :council_meeting)
 
     root_msg = conv.messages.create!(
       account: @account,
@@ -564,7 +571,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
   end
 
   test "scribe follows up at count 1" do
-    conv = create_conversation(roe_type: :open)
+    conv = create_conversation(roe_type: :open, type: :council_meeting)
     conv.update!(scribe_initiated_count: 1)
 
     root_msg = conv.messages.create!(
@@ -594,7 +601,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
   end
 
   test "scribe follows up at count 2" do
-    conv = create_conversation(roe_type: :open)
+    conv = create_conversation(roe_type: :open, type: :council_meeting)
     conv.update!(scribe_initiated_count: 2)
 
     root_msg = conv.messages.create!(
@@ -624,7 +631,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
   end
 
   test "scribe does NOT follow up at count 3 (limit reached)" do
-    conv = create_conversation(roe_type: :open)
+    conv = create_conversation(roe_type: :open, type: :council_meeting)
     conv.update!(scribe_initiated_count: 3)
 
     root_msg = conv.messages.create!(
@@ -654,7 +661,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
   end
 
   test "scribe does NOT follow up for non-root messages" do
-    conv = create_conversation(roe_type: :open)
+    conv = create_conversation(roe_type: :open, type: :council_meeting)
 
     root_msg = conv.messages.create!(
       account: @account,

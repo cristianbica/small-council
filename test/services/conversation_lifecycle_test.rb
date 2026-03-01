@@ -45,12 +45,19 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
   end
 
   def create_conversation(roe_type: :open, type: :adhoc)
-    conv = @account.conversations.create!(
+    attrs = {
       title: "Test Conversation",
       user: @user,
       conversation_type: type,
       roe_type: roe_type
-    )
+    }
+
+    if type == :council_meeting
+      council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+      attrs[:council] = council
+    end
+
+    conv = @account.conversations.create!(**attrs)
 
     # Add scribe
     conv.conversation_participants.create!(advisor: @scribe, role: :scribe)
@@ -299,8 +306,8 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
   end
 
   # Scribe Follow-up Tests
-  test "scribe follows up when root message is solved" do
-    conv = create_conversation(roe_type: :open)
+  test "scribe follows up when root message is solved in council meeting" do
+    conv = create_conversation(roe_type: :open, type: :council_meeting)
 
     parent_msg = conv.messages.create!(
       account: @account,
@@ -328,7 +335,7 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
   end
 
   test "scribe stops after 3 consecutive follow-ups" do
-    conv = create_conversation(roe_type: :open)
+    conv = create_conversation(roe_type: :open, type: :council_meeting)
     conv.update!(scribe_initiated_count: 3)
 
     parent_msg = conv.messages.create!(
@@ -400,5 +407,92 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
     assert_difference "Message.where(role: :system).count", 1 do
       lifecycle.user_posted_message(msg)
     end
+  end
+
+  # Scribe Follow-up Guard Clause Tests
+  test "handle_message_solved is a no-op for adhoc conversations" do
+    conv = create_conversation(roe_type: :open, type: :adhoc)
+
+    parent_msg = conv.messages.create!(
+      account: @account,
+      sender: @user,
+      role: "user",
+      content: "@strategic_advisor what do you think?",
+      pending_advisor_ids: [ @advisor1.id ]
+    )
+
+    reply = conv.messages.create!(
+      account: @account,
+      sender: @advisor1,
+      role: "advisor",
+      content: "Here's my response",
+      parent_message: parent_msg
+    )
+
+    lifecycle = ConversationLifecycle.new(conv)
+
+    assert_no_enqueued_jobs do
+      lifecycle.advisor_responded(reply)
+    end
+
+    assert_equal 0, conv.reload.scribe_initiated_count
+  end
+
+  test "handle_message_solved is a no-op when conversation is concluding" do
+    conv = create_conversation(roe_type: :open, type: :council_meeting)
+    conv.update!(status: :concluding)
+
+    parent_msg = conv.messages.create!(
+      account: @account,
+      sender: @user,
+      role: "user",
+      content: "@strategic_advisor what do you think?",
+      pending_advisor_ids: [ @advisor1.id ]
+    )
+
+    reply = conv.messages.create!(
+      account: @account,
+      sender: @advisor1,
+      role: "advisor",
+      content: "Here's my response",
+      parent_message: parent_msg
+    )
+
+    lifecycle = ConversationLifecycle.new(conv)
+
+    assert_no_enqueued_jobs do
+      lifecycle.advisor_responded(reply)
+    end
+
+    assert_equal 0, conv.reload.scribe_initiated_count
+  end
+
+  test "handle_message_solved is a no-op when conversation is resolved" do
+    conv = create_conversation(roe_type: :open, type: :council_meeting)
+    conv.update!(status: :resolved)
+
+    parent_msg = conv.messages.create!(
+      account: @account,
+      sender: @user,
+      role: "user",
+      content: "@strategic_advisor what do you think?",
+      pending_advisor_ids: [ @advisor1.id ]
+    )
+
+    reply = conv.messages.create!(
+      account: @account,
+      sender: @advisor1,
+      role: "advisor",
+      content: "Here's my response",
+      parent_message: parent_msg
+    )
+
+    lifecycle = ConversationLifecycle.new(conv)
+
+    assert_no_enqueued_jobs do
+      lifecycle.advisor_responded(reply)
+    end
+
+    assert_equal 0, conv.reload.scribe_initiated_count
   end
 end

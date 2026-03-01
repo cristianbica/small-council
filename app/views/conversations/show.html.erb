@@ -116,14 +116,6 @@
         </p>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
-        <% if @conversation.active? && @conversation.messages.pending.exists? %>
-          <%= button_to "Stop", cancel_pending_conversation_path(@conversation),
-              method: :post, class: "btn btn-error btn-sm", data: { turbo_confirm: "Stop all advisors from responding?" } %>
-        <% end %>
-        <% if @conversation.active? && can_finish_conversation?(@conversation) %>
-          <%= button_to "Finish", finish_conversation_path(@conversation),
-              method: :post, class: "btn btn-primary btn-sm" %>
-        <% end %>
         <% if @conversation.active? && @available_advisors.any? %>
           <div class="dropdown dropdown-end">
             <div tabindex="0" role="button" class="btn btn-outline btn-sm">

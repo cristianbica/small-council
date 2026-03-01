@@ -107,6 +107,10 @@ class ConversationLifecycle
   private
 
   def handle_message_solved(message)
+    # Only fire scribe follow-up for council meetings
+    return unless @conversation.council_meeting?
+    # Only fire when conversation is still active
+    return unless @conversation.active?
     # Only handle root messages (not replies) for scribe follow-up
     return unless message.root_message?
 

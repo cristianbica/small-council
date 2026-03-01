@@ -88,18 +88,6 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
         message: { content: "What does everyone think?" }
       }
     end
-
-    # Step 5: Finish conversation
-    assert_enqueued_with(job: GenerateConversationSummaryJob) do
-      post finish_conversation_path(conversation)
-    end
-    assert_redirected_to conversation_path(conversation)
-    assert conversation.reload.concluding?
-
-    # Step 6: Reject summary and continue
-    post reject_summary_conversation_path(conversation)
-    assert_redirected_to conversation_path(conversation)
-    assert conversation.reload.active?
   end
 
   test "complete adhoc conversation lifecycle with Consensus RoE" do
@@ -219,10 +207,17 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     set_tenant(@account)
 
+    council = @account.councils.create!(
+      name: "Scribe Test Council",
+      user: @user,
+      space: @space
+    )
+
     conversation = @account.conversations.create!(
       title: "Scribe Test",
       user: @user,
-      conversation_type: :adhoc,
+      council: council,
+      conversation_type: :council_meeting,
       roe_type: :open,
       scribe_initiated_count: 0
     )
@@ -259,10 +254,17 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     set_tenant(@account)
 
+    council = @account.councils.create!(
+      name: "Scribe Limit Council",
+      user: @user,
+      space: @space
+    )
+
     conversation = @account.conversations.create!(
       title: "Scribe Limit Test",
       user: @user,
-      conversation_type: :adhoc,
+      council: council,
+      conversation_type: :council_meeting,
       roe_type: :open,
       scribe_initiated_count: 3
     )
@@ -531,95 +533,5 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to conversation_path(conversation)
     assert flash[:alert].present?
-  end
-
-  # ============================================================================
-  # CANCEL PENDING FLOW
-  # ============================================================================
-
-  test "cancel pending messages flow" do
-    sign_in_as(@user)
-    set_tenant(@account)
-
-    conversation = @account.conversations.create!(
-      title: "Cancel Test",
-      user: @user,
-      conversation_type: :adhoc,
-      roe_type: :consensus
-    )
-    conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
-
-    # Create pending messages
-    3.times do |i|
-      conversation.messages.create!(
-        account: @account,
-        sender: @advisor1,
-        role: "system",
-        content: "[Response #{i}] is thinking...",
-        status: "pending"
-      )
-    end
-
-    post cancel_pending_conversation_path(conversation)
-    assert_redirected_to conversation_path(conversation)
-    assert flash[:notice].present?
-
-    conversation.messages.where(status: :pending).each do |msg|
-      assert msg.cancelled?
-    end
-  end
-
-  # ============================================================================
-  # CONVERSATION APPROVAL/REJECTION FLOW
-  # ============================================================================
-
-  test "approve summary saves memory and creates conversation_summary" do
-    sign_in_as(@user)
-    set_tenant(@account)
-
-    conversation = @account.conversations.create!(
-      title: "Approval Test",
-      user: @user,
-      conversation_type: :adhoc,
-      roe_type: :open,
-      status: :concluding
-    )
-    conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
-
-    post approve_summary_conversation_path(conversation), params: {
-      key_decisions: "Decision 1",
-      action_items: "Action 1",
-      insights: "Insight 1",
-      open_questions: "Question 1",
-      raw_summary: "Full summary"
-    }
-
-    assert_redirected_to conversation_path(conversation)
-    assert conversation.reload.resolved?
-    assert conversation.memory.present?
-
-    memory_data = conversation.memory_data
-    assert_equal "Decision 1", memory_data["key_decisions"]
-  end
-
-  test "reject summary resets conversation to active" do
-    sign_in_as(@user)
-    set_tenant(@account)
-
-    conversation = @account.conversations.create!(
-      title: "Rejection Test",
-      user: @user,
-      conversation_type: :adhoc,
-      roe_type: :open,
-      status: :concluding,
-      scribe_initiated_count: 2
-    )
-    conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
-
-    post reject_summary_conversation_path(conversation)
-
-    assert_redirected_to conversation_path(conversation)
-    assert conversation.reload.active?
-    assert_equal 0, conversation.scribe_initiated_count
   end
 end

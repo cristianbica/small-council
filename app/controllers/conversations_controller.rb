@@ -1,6 +1,6 @@
 class ConversationsController < ApplicationController
   before_action :set_council, only: [ :index, :new, :create ], if: -> { params[:council_id].present? }
-  before_action :set_conversation, only: [ :show, :update, :destroy, :finish, :approve_summary, :reject_summary, :regenerate_summary, :cancel_pending, :invite_advisor ]
+  before_action :set_conversation, only: [ :show, :update, :destroy, :invite_advisor ]
   before_action :set_sidebar_conversations, only: [ :show ]
 
   layout :choose_layout
@@ -70,96 +70,6 @@ class ConversationsController < ApplicationController
       redirect_to @conversation, notice: "Conversation updated to #{@conversation.roe_type.humanize} mode."
     else
       redirect_to @conversation, alert: "Failed to update conversation."
-    end
-  end
-
-  def finish
-    # Only user who started or conversation creator can finish
-    if can_manage_conversation?
-      lifecycle = ConversationLifecycle.new(@conversation)
-      lifecycle.begin_conclusion_process
-      redirect_to @conversation, notice: "Generating conversation summary..."
-    else
-      redirect_to @conversation, alert: "Only the conversation starter can finish."
-    end
-  end
-
-  def approve_summary
-    # Build structured memory from form params
-    memory = {
-      "key_decisions" => params[:key_decisions],
-      "action_items" => params[:action_items],
-      "insights" => params[:insights],
-      "open_questions" => params[:open_questions],
-      "raw_summary" => params[:raw_summary],
-      "approved_at" => Time.current.iso8601,
-      "conversation_id" => @conversation.id
-    }
-
-    Rails.logger.info "[ConversationsController#approve_summary] Saving memory for conversation #{@conversation.id}"
-
-    @conversation.update!(
-      memory: memory.to_json,
-      status: :resolved
-    )
-
-    # Create memory record
-    Memory.create_conversation_summary!(
-      conversation: @conversation,
-      title: "Summary: #{@conversation.title}",
-      content: format_memory_content(memory),
-      creator: Current.user
-    )
-
-    Rails.logger.info "[ConversationsController#approve_summary] Created conversation_summary memory"
-
-    redirect_to @conversation, notice: "Conversation resolved and memory saved to space."
-  rescue ActiveRecord::RecordInvalid => e
-    Rails.logger.error "[ConversationsController#approve_summary] Failed to save: #{e.message}"
-    redirect_to @conversation, alert: "Failed to save memory: #{e.message}"
-  rescue => e
-    Rails.logger.error "[ConversationsController#approve_summary] Unexpected error: #{e.message}"
-    Rails.logger.error e.backtrace.first(5).join("\n")
-    redirect_to @conversation, alert: "An error occurred while saving memory."
-  end
-
-  def reject_summary
-    @conversation.update!(status: :active)
-    @conversation.clear_responded_advisors
-    @conversation.reset_scribe_initiated_count!
-
-    redirect_to @conversation, notice: "Conversation continued. You can finish again later."
-  end
-
-  def regenerate_summary
-    if @conversation.concluding?
-      @conversation.update!(draft_memory: nil)
-      GenerateConversationSummaryJob.perform_later(@conversation.id)
-      redirect_to @conversation, notice: "Regenerating summary..."
-    else
-      redirect_to @conversation, alert: "Can only regenerate while reviewing."
-    end
-  end
-
-  def cancel_pending
-    unless @conversation.active?
-      redirect_to @conversation, alert: "Can only stop pending responses in active conversations."
-      return
-    end
-
-    unless can_manage_conversation?
-      redirect_to @conversation, alert: "Only the conversation starter can stop advisor responses."
-      return
-    end
-
-    pending_messages = @conversation.messages.pending
-    count = pending_messages.count
-
-    if count > 0
-      pending_messages.update_all(status: :cancelled)
-      redirect_to @conversation, notice: "Stopped #{count} advisor response(s)."
-    else
-      redirect_to @conversation, alert: "No pending advisor responses to stop."
     end
   end
 
@@ -380,29 +290,6 @@ class ConversationsController < ApplicationController
 
   def conversation_params_for_create
     params.require(:conversation).permit(:title, :roe_type)
-  end
-
-  def format_memory_content(memory)
-    timestamp = Time.current.strftime("%Y-%m-%d %H:%M")
-    <<~CONTENT
-      ## Conversation Summary - #{timestamp}
-
-      **Key Decisions:**
-      #{memory["key_decisions"]}
-
-      **Action Items:**
-      #{memory["action_items"]}
-
-      **Insights:**
-      #{memory["insights"]}
-
-      **Open Questions:**
-      #{memory["open_questions"]}
-
-      ---
-      *Raw Summary:*
-      #{memory["raw_summary"]}
-    CONTENT
   end
 
   def set_sidebar_conversations

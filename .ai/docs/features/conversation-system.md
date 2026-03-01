@@ -15,6 +15,7 @@ Both types share the same underlying mechanics but differ in how they're created
 - The Scribe (using `is_scribe` flag) is automatically present in ALL conversations
 - Scribe role handled through `conversation_participants` join table
 - Scribe can initiate follow-ups when messages are "solved" (all pending advisors responded)
+- **Scribe follow-ups only fire for `council_meeting` conversations that are `active`** — adhoc, concluding, and resolved conversations are skipped
 - Maximum 3 consecutive scribe-initiated interactions without user input
 
 ### Rules of Engagement (RoE)

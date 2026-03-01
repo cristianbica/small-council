@@ -64,11 +64,6 @@ Rails.application.routes.draw do
   resources :conversations do
     resources :messages, only: [ :create ]
     member do
-      post :finish
-      post :approve_summary
-      post :reject_summary
-      post :regenerate_summary
-      post :cancel_pending
       post :invite_advisor
     end
 
