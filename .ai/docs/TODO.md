@@ -41,9 +41,3 @@ See conversation 22
 ## View model interactions as they happen
 
 Current model interactions are visible after the advisor has responded. I should be able to see them as they happen, especially for long responses. This would allow me to understand better what the model is doing and if it's going in the right direction. It would also allow me to stop it if I see it's going in the wrong direction.
-
-
-## Council Meeting status simplification
-
-No need for "concluding" state, alerters about generating summaries. User will ask for the scribe for summaries. Users will click the finish button to mark it as finished.
-Remove any current code doing this automaticall or via tools

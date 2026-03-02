@@ -1,0 +1,191 @@
+<%# Conversations show page - Stage 1: Layout Foundation %>
+<%# Two-column layout: sidebar (w-80) + chat area %>
+
+<%# Wrapper for full-height chat in application layout context %>
+<div class="h-[calc(100vh-8rem)] flex overflow-hidden">
+  <% if @sidebar_conversations.present? %>
+    <%# Left Sidebar: Conversation List %>
+    <aside id="conversation-sidebar" class="w-80 flex-none border-r bg-base-200 overflow-y-auto overflow-x-hidden hidden lg:block" data-controller="conversation-sidebar">
+      <div class="p-4 border-b bg-base-100">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold text-lg">Conversations</h2>
+          <%= button_to quick_create_conversations_path,
+              method: :post,
+              class: "btn btn-primary btn-sm btn-circle",
+              title: "New conversation" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+          <% end %>
+        </div>
+        <p class="text-xs text-base-content/60">
+          <%= Current.account.conversations.adhoc_conversations.count %> total conversations
+        </p>
+      </div>
+
+      <%# DaisyUI Menu for conversation list %>
+      <ul id="conversation-list" class="menu menu-sm bg-base-200 ">
+        <% @sidebar_conversations.each do |conv| %>
+          <li>
+            <div class="flex items-start gap-2 min-w-0">
+              <%= link_to conversation_path(conv), class: "flex-1 min-w-0 #{conv.id == @conversation.id ? 'active border-l-4 border-primary pl-2' : ''}" do %>
+                <div class="flex items-start gap-3 w-full">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="font-medium text-sm truncate"><%= conv.title %></span>
+                    <% if conv.active? %>
+                      <span class="w-2 h-2 rounded-full bg-success flex-shrink-0"></span>
+                    <% end %>
+                  </div>
+                  <% last_msg = conv.messages.chronological.last %>
+                  <% if last_msg %>
+                    <p class="text-xs text-base-content/60 truncate mb-1">
+                      <% if last_msg.sender.is_a?(User) %>
+                        You: <%= truncate(last_msg.content, length: 40) %>
+                      <% elsif last_msg.sender.is_a?(Advisor) %>
+                        <%= last_msg.sender.name %>: <%= truncate(last_msg.content, length: 35) %>
+                      <% end %>
+                    </p>
+                    <p class="text-xs text-base-content/40">
+                      <%= time_ago_in_words(last_msg.created_at) %> ago
+                    </p>
+                  <% else %>
+                    <p class="text-xs text-base-content/40">No messages yet</p>
+                  <% end %>
+                </div>
+                </div>
+              <% end %>
+              <div class="dropdown dropdown-end self-center flex-none">
+                <button tabindex="0" class="btn btn-ghost btn-xs btn-circle" title="Conversation actions" aria-label="Conversation actions">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6h.01M12 12h.01M12 18h.01" />
+                  </svg>
+                </button>
+                <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-36 z-20 right-0">
+                  <% if conv.active? && can_delete_conversation?(conv) %>
+                    <li>
+                      <%= button_to archive_conversation_path(conv), method: :post, class: "w-full text-left" do %>
+                        Archive
+                      <% end %>
+                    </li>
+                  <% end %>
+                  <% if can_delete_conversation?(conv) %>
+                    <li>
+                      <%= button_to conversation_path(conv),
+                          method: :delete,
+                          class: "w-full text-left text-error",
+                          data: { turbo_confirm: "Delete this conversation?" } do %>
+                        Delete
+                      <% end %>
+                    </li>
+                  <% end %>
+                </ul>
+              </div>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+
+      <% if Current.account.conversations.adhoc_conversations.count > @sidebar_conversations.count %>
+        <div class="p-4 border-t">
+          <button class="btn btn-ghost btn-sm w-full" data-action="click->conversation-sidebar#loadMore">
+            Load more
+          </button>
+        </div>
+      <% end %>
+    </aside>
+
+    <%# Mobile Toggle Button (visible on small screens) %>
+    <div class="lg:hidden fixed top-20 left-4 z-30">
+      <label for="conversation-drawer" class="btn btn-ghost btn-sm drawer-button">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </label>
+    </div>
+
+    <%# Mobile Drawer %>
+    <div class="drawer lg:hidden">
+      <input id="conversation-drawer" type="checkbox" class="drawer-toggle" />
+      <div class="drawer-content">
+        <%# Main content goes here - rendered below %>
+      </div>
+      <div class="drawer-side z-40 overflow-x-hidden">
+        <label for="conversation-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+        <div class="menu bg-base-200 text-base-content min-h-full w-80 p-4">
+          <div class="p-4 border-b bg-base-100 -mx-4 -mt-4 mb-4">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="font-semibold text-lg">Conversations</h2>
+              <%= button_to quick_create_conversations_path,
+                  method: :post,
+                  class: "btn btn-primary btn-sm btn-circle",
+                  title: "New conversation" do %>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              <% end %>
+            </div>
+          </div>
+          <ul class="menu menu-sm overflow-x-hidden">
+            <% @sidebar_conversations.each do |conv| %>
+              <li>
+                <div class="flex items-center gap-2 min-w-0">
+                  <%= link_to conversation_path(conv), class: "flex-1 min-w-0 #{conv.id == @conversation.id ? 'active border-l-4 border-primary pl-2' : ''}" do %>
+                    <div class="flex items-center gap-2">
+                      <span class="truncate"><%= conv.title %></span>
+                      <% if conv.active? %>
+                        <span class="w-2 h-2 rounded-full bg-success flex-shrink-0"></span>
+                      <% end %>
+                    </div>
+                  <% end %>
+                  <div class="dropdown dropdown-end flex-none">
+                    <button tabindex="0" class="btn btn-ghost btn-xs btn-circle" title="Conversation actions" aria-label="Conversation actions">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6h.01M12 12h.01M12 18h.01" />
+                      </svg>
+                    </button>
+                    <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-36 z-20 right-0">
+                      <% if conv.active? && can_delete_conversation?(conv) %>
+                        <li>
+                          <%= button_to archive_conversation_path(conv), method: :post, class: "w-full text-left" do %>
+                            Archive
+                          <% end %>
+                        </li>
+                      <% end %>
+                      <% if can_delete_conversation?(conv) %>
+                        <li>
+                          <%= button_to conversation_path(conv),
+                              method: :delete,
+                              class: "w-full text-left text-error",
+                              data: { turbo_confirm: "Delete this conversation?" } do %>
+                            Delete
+                          <% end %>
+                        </li>
+                      <% end %>
+                    </ul>
+                  </div>
+                </div>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <%# Main Content: Chat Area %>
+  <%
+    # Build mentionable list: @all + all participants including scribe
+    mentionable_advisors = @conversation.all_participant_advisors.map { |a| { name: a.name } }
+    mentionable_advisors.unshift({ name: "all" })
+  %>
+
+  <div class="flex-1 flex flex-col min-w-0 h-full">
+    <%= render "shared/chat",
+        conversation: @conversation,
+        messages: @messages,
+        new_message: @new_message,
+        available_advisors: @available_advisors,
+        mentionable_advisors: mentionable_advisors %>
+  </div>
+</div>
