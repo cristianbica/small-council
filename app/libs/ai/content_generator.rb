@@ -328,8 +328,7 @@ module AI
     end
 
     # Returns the tool instances appropriate for this advisor.
-    # All advisors get 10 read-only tools (memory, conversation, and web browsing).
-    # Scribe additionally gets 3 write tools (CreateMemory, UpdateMemory, FinishConversation).
+    # All advisors get 9 read-only tools (memory, conversation, and web browsing).
     def advisor_tools(advisor)
       read_only = [
         AI::Tools::Internal::QueryMemoriesTool.new,
@@ -340,7 +339,6 @@ module AI
         AI::Tools::Internal::ReadConversationTool.new,
         AI::Tools::Internal::GetConversationSummaryTool.new,
         AI::Tools::Conversations::SummarizeConversationTool.new,
-        AI::Tools::Conversations::AskAdvisorTool.new,
         AI::Tools::External::BrowseWebTool.new
       ]
 

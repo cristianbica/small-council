@@ -444,7 +444,7 @@ module AI
       client = generator.send(:build_client, @advisor)
 
       tool_classes = client.tools.map(&:class)
-      # All 10 read-only tools
+      # All 9 read-only tools
       assert_includes tool_classes, AI::Tools::Internal::QueryMemoriesTool
       assert_includes tool_classes, AI::Tools::Internal::ListMemoriesTool
       assert_includes tool_classes, AI::Tools::Internal::ReadMemoryTool
@@ -453,7 +453,7 @@ module AI
       assert_includes tool_classes, AI::Tools::Internal::ReadConversationTool
       assert_includes tool_classes, AI::Tools::Internal::GetConversationSummaryTool
       assert_includes tool_classes, AI::Tools::Conversations::SummarizeConversationTool
-      assert_includes tool_classes, AI::Tools::Conversations::AskAdvisorTool
+      refute_includes tool_classes, AI::Tools::Conversations::AskAdvisorTool
       assert_includes tool_classes, AI::Tools::External::BrowseWebTool
       # Write tools excluded for regular advisors
       refute_includes tool_classes, AI::Tools::Internal::CreateMemoryTool
@@ -474,7 +474,7 @@ module AI
       client = generator.send(:build_client, scribe)
 
       tool_classes = client.tools.map(&:class)
-      # All 10 read-only tools
+      # All 9 read-only tools
       assert_includes tool_classes, AI::Tools::Internal::QueryMemoriesTool
       assert_includes tool_classes, AI::Tools::Internal::ListMemoriesTool
       assert_includes tool_classes, AI::Tools::Internal::ReadMemoryTool
@@ -483,7 +483,7 @@ module AI
       assert_includes tool_classes, AI::Tools::Internal::ReadConversationTool
       assert_includes tool_classes, AI::Tools::Internal::GetConversationSummaryTool
       assert_includes tool_classes, AI::Tools::Conversations::SummarizeConversationTool
-      assert_includes tool_classes, AI::Tools::Conversations::AskAdvisorTool
+      refute_includes tool_classes, AI::Tools::Conversations::AskAdvisorTool
       assert_includes tool_classes, AI::Tools::External::BrowseWebTool
       # All 3 write tools
       assert_includes tool_classes, AI::Tools::Internal::CreateMemoryTool
@@ -498,14 +498,14 @@ module AI
       assert_empty client.tools
     end
 
-    test "advisor_tools returns 10 tools for regular advisor" do
+    test "advisor_tools returns 9 tools for regular advisor" do
       generator = ContentGenerator.new
       tools = generator.send(:advisor_tools, @advisor)
 
-      assert_equal 10, tools.size
+      assert_equal 9, tools.size
     end
 
-    test "advisor_tools returns 13 tools for scribe" do
+    test "advisor_tools returns 22 tools for scribe" do
       scribe = @space.advisors.create!(
         account: @account,
         name: "Scribe",
@@ -517,7 +517,7 @@ module AI
       generator = ContentGenerator.new
       tools = generator.send(:advisor_tools, scribe)
 
-      assert_equal 13, tools.size
+      assert_equal 22, tools.size
     end
   end
 end
