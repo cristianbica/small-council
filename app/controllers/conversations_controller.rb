@@ -36,7 +36,7 @@ class ConversationsController < ApplicationController
       # Add only scribe as participant
       @conversation.ensure_scribe_present!
 
-      redirect_to @conversation, notice: "New conversation started. Add advisors by using /invite @advisor or type your first message."
+      redirect_to @conversation
     else
       redirect_to conversations_path, alert: "Failed to create conversation."
     end
@@ -172,7 +172,7 @@ class ConversationsController < ApplicationController
         content: initial_content
       )
 
-      redirect_to @conversation, notice: "Meeting started successfully."
+      redirect_to @conversation
     else
       @available_advisors = available_advisors_for_conversation
       render :new, status: :unprocessable_entity
@@ -212,7 +212,7 @@ class ConversationsController < ApplicationController
         content: initial_content
       )
 
-      redirect_to @conversation, notice: "Conversation started successfully."
+      redirect_to @conversation
     else
       @available_advisors = available_advisors_for_conversation
       render :new, status: :unprocessable_entity
@@ -233,7 +233,7 @@ class ConversationsController < ApplicationController
       @conversation.ensure_scribe_present!
       @conversation.reload
 
-      redirect_to @conversation, notice: "New conversation created."
+      redirect_to @conversation
     else
       # If auto-creation fails, redirect to new form
       redirect_to new_conversation_path, alert: "Could not auto-create conversation."

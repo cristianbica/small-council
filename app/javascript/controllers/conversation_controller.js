@@ -7,6 +7,8 @@ export default class extends Controller {
     console.log("[ConversationController] Connected")
     this.scrollToBottom()
     this.autoExpand()
+    this.isAtBottom = true
+    this.updateScrollPosition()
   }
 
   // Auto-expand textarea as user types
@@ -48,8 +50,23 @@ export default class extends Controller {
     }
   }
 
+  // Track if user is near bottom of messages
+  updateScrollPosition() {
+    if (!this.hasMessagesContainerTarget) {
+      this.isAtBottom = true
+      return
+    }
+
+    const container = this.messagesContainerTarget
+    const threshold = 40
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
+    this.isAtBottom = distanceFromBottom <= threshold
+  }
+
   // Called after Turbo stream renders a new message
   messageRendered() {
-    this.scrollToBottom()
+    if (this.isAtBottom) {
+      this.scrollToBottom()
+    }
   }
 }

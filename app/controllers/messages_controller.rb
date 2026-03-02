@@ -13,7 +13,7 @@ class MessagesController < ApplicationController
       lifecycle = ConversationLifecycle.new(@conversation)
       lifecycle.user_posted_message(@message)
 
-      redirect_to @conversation, notice: "Message posted successfully."
+      redirect_to @conversation
     else
       Rails.logger.warn "[MessagesController#create] Failed to save message: #{@message.errors.full_messages.join(', ')}"
       @messages = @conversation.messages.chronological.includes(:sender)

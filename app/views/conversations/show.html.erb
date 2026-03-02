@@ -220,9 +220,10 @@
     <section class="card bg-base-100 shadow">
       <div class="card-body">
         <% if @messages.any? %>
-          <div id="messages"
-               class="space-y-4 p-2"
-               data-conversation-target="messagesContainer">
+           <div id="messages"
+                class="space-y-4 p-2"
+                data-conversation-target="messagesContainer"
+                data-action="scroll->conversation#updateScrollPosition">
             <% @messages.root_messages.each do |message| %>
               <%= render "messages/message_thread", message: message, current_user: Current.user %>
             <% end %>
