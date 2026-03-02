@@ -85,24 +85,38 @@
       <% if @council.conversations.any? %>
         <div class="space-y-3">
           <% @council.conversations.recent.limit(5).each do |conversation| %>
-            <%= link_to conversation, class: "flex items-center justify-between p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors" do %>
-              <div class="min-w-0 flex-1">
-                <h3 class="font-semibold truncate"><%= conversation.title %></h3>
-                <p class="text-sm text-base-content/60">
-                  <%= conversation.messages.count %> messages ·
-                  <% if conversation.last_message_at %>
-                    Last activity <%= time_ago_in_words(conversation.last_message_at) %> ago
-                  <% else %>
-                    Created <%= time_ago_in_words(conversation.created_at) %> ago
-                  <% end %>
-                </p>
-              </div>
+            <div class="flex items-center gap-2 p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors group" id="<%= dom_id(conversation) %>">
+              <%= link_to conversation, class: "flex-1 min-w-0" do %>
+                <div class="min-w-0 flex-1">
+                  <h3 class="font-semibold truncate"><%= conversation.title %></h3>
+                  <p class="text-sm text-base-content/60">
+                    <%= conversation.messages.count %> messages ·
+                    <% if conversation.last_message_at %>
+                      Last activity <%= time_ago_in_words(conversation.last_message_at) %> ago
+                    <% else %>
+                      Created <%= time_ago_in_words(conversation.created_at) %> ago
+                    <% end %>
+                  </p>
+                </div>
+              <% end %>
               <div class="flex items-center gap-2 ml-4">
                 <span class="badge <%= conversation.active? ? 'badge-success' : 'badge-ghost' %> badge-sm">
                   <%= conversation.status %>
                 </span>
+                <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <% if can_delete_conversation?(conversation) %>
+                    <%= button_to conversation_path(conversation),
+                        method: :delete,
+                        class: "btn btn-ghost btn-xs btn-circle text-error",
+                        data: { turbo_confirm: "Delete this meeting?" } do %>
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    <% end %>
+                  <% end %>
+                </div>
               </div>
-            <% end %>
+            </div>
           <% end %>
           <% if @council.conversations.count > 5 %>
             <div class="text-center mt-4">

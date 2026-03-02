@@ -21,6 +21,7 @@ For example https://github.com/samg/diffy
 ## Chat UI is awful
 
 Let's find some UI pattern/lib to make the chat work like any other AI chat.
+generated with v0 https://vm-nogn5tykd7jhy2l67bzncp.vusercontent.net/index.html
 
 ## Ability to show in chat resources
 
@@ -34,3 +35,19 @@ When asking scribe to do an action similar with another one it previously did th
 ## Meeting context
 
 When starting a meeting the advisors have little context. We should provide them with some stuff from memories.
+
+
+## Advisors answer all at once
+
+They should take turns so I can actually see their answers
+
+
+## Many automatically messages created for user
+
+I see in some conversation that many messages are created by the system but as if they were coming from the user. Very wrong.
+See conversation 22
+
+
+## View model interactions as they happen
+
+Current model interactions are visible after the advisor has responded. I should be able to see them as they happen, especially for long responses. This would allow me to understand better what the model is doing and if it's going in the right direction. It would also allow me to stop it if I see it's going in the wrong direction.
