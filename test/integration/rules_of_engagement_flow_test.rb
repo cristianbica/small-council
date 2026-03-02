@@ -83,7 +83,7 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
 
     assert_difference "Message.count", 2 do
       post conversation_messages_path(@conversation), params: {
-        message: { content: "@Helper_Bot I need help" }
+        message: { content: "@helper-bot I need help" }
       }
     end
 

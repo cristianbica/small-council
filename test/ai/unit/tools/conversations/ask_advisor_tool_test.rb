@@ -86,18 +86,18 @@ module AI
 
         test "execute finds advisor by exact name match" do
           result = @tool.execute(
-            { advisor_name: "Test Advisor One", question: "What do you think?" },
+            { advisor_name: "test-advisor-one", question: "What do you think?" },
             { space: @space, conversation: @conversation, user: @user }
           )
 
           assert result[:success]
           assert_equal @advisor1.id, result[:advisor_id]
-          assert_equal "Test Advisor One", result[:advisor_name]
+          assert_equal "test-advisor-one", result[:advisor_name]
         end
 
         test "execute finds advisor by partial name match" do
           result = @tool.execute(
-            { advisor_name: "Advisor Two", question: "What do you think?" },
+            { advisor_name: "advisor-two", question: "What do you think?" },
             { space: @space, conversation: @conversation, user: @user }
           )
 
@@ -118,7 +118,7 @@ module AI
 
         test "execute returns error when asking self" do
           result = @tool.execute(
-            { advisor_name: "Test Advisor One", question: "What do you think?" },
+            { advisor_name: "test-advisor-one", question: "What do you think?" },
             { space: @space, conversation: @conversation, user: @user, advisor: @advisor1 }
           )
 
@@ -130,7 +130,7 @@ module AI
           message_count_before = @conversation.messages.count
 
           result = @tool.execute(
-            { advisor_name: "Test Advisor One", question: "What is your opinion?" },
+            { advisor_name: "test-advisor-one", question: "What is your opinion?" },
             { space: @space, conversation: @conversation, user: @user }
           )
 
@@ -139,7 +139,7 @@ module AI
           assert_equal message_count_before + 1, @conversation.messages.count
 
           message = @conversation.messages.find(result[:message_id])
-          assert message.content.include?("@Test Advisor One")
+          assert message.content.include?("@test-advisor-one")
           assert message.content.include?("What is your opinion?")
           assert_equal "user", message.role
           assert_equal @user, message.sender
@@ -147,7 +147,7 @@ module AI
 
         test "execute works with advisor as sender" do
           result = @tool.execute(
-            { advisor_name: "Test Advisor Two", question: "Please advise" },
+            { advisor_name: "test-advisor-two", question: "Please advise" },
             { space: @space, conversation: @conversation, advisor: @advisor1 }
           )
 

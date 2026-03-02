@@ -303,7 +303,7 @@ class MemoryTest < ActiveSupport::TestCase
       memory_type: "knowledge", status: "active",
       created_by: advisor
     )
-    assert_equal "Smart Advisor", memory.creator_display
+    assert_equal "smart-advisor", memory.creator_display
   end
 
   # restore_version! tests

@@ -470,7 +470,7 @@ class AdvisorComprehensiveTest < ActiveSupport::TestCase
       llm_model: @llm_model
     )
     assert advisor.valid?
-    assert_equal "Advisor-Name_123 (Test)", advisor.name
+    assert_equal "advisor-name-123-test", advisor.name
   end
 
   test "advisor with long system_prompt is valid" do
@@ -484,7 +484,7 @@ class AdvisorComprehensiveTest < ActiveSupport::TestCase
     assert advisor.valid?
   end
 
-  test "advisor name uniqueness is not enforced at model level" do
+  test "advisor name uniqueness is enforced at model level within a space" do
     # Create first advisor
     @account.advisors.create!(
       name: "Duplicate Name",
@@ -500,7 +500,8 @@ class AdvisorComprehensiveTest < ActiveSupport::TestCase
       space: @space,
       llm_model: @llm_model
     )
-    assert second.valid?  # No uniqueness validation on name
+    assert_not second.valid?
+    assert_includes second.errors[:name], "has already been taken"
   end
 
   test "advisor can be assigned to multiple councils" do

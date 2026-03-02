@@ -40,7 +40,7 @@ class MemoryVersionTest < ActiveSupport::TestCase
       llm_model: model, space: @space
     )
     @version.update!(created_by: advisor)
-    assert_equal "Advisor Bob", @version.created_by_display
+      assert_equal "advisor-bob", @version.created_by_display
   end
 
   test "created_by_display falls through to to_s for other types" do

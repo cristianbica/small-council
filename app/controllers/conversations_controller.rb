@@ -193,13 +193,13 @@ class ConversationsController < ApplicationController
   def set_council
     @council = Current.space.councils.find(params[:council_id])
   rescue ActiveRecord::RecordNotFound
-    redirect_to space_councils_path(Current.space), alert: "Council not found."
+    head :not_found
   end
 
   def set_conversation
     @conversation = Current.space.conversations.find(params[:id])
   rescue ActiveRecord::RecordNotFound
-    redirect_to space_councils_path(Current.space), alert: "Conversation not found."
+    head :not_found
   end
 
   def can_manage_conversation?

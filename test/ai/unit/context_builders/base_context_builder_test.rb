@@ -295,7 +295,7 @@ module AI
         assert_equal "user", root[:sender_name]
         assert reply.in_reply_to_id == user_msg.id
         reply_entry = root[:replies].find { |entry| entry[:parent_id] == user_msg.id }
-        assert_equal "Thread Advisor", reply_entry[:sender_name]
+        assert_equal "thread-advisor", reply_entry[:sender_name]
       end
 
       test "conversation_thread excludes thinking placeholders" do

@@ -105,7 +105,7 @@ class SpaceTest < ActiveSupport::TestCase
     scribe = space.scribe_advisor
     assert_not_nil scribe
     assert scribe.is_scribe
-    assert_equal "Scribe", scribe.name
+    assert_equal "scribe", scribe.name
   end
 
   test "non_scribe_advisors excludes scribe advisor" do

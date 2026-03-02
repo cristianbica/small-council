@@ -267,9 +267,7 @@ class SecurityControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    # Should be redirected with alert
-    assert_redirected_to conversations_path
-    assert_equal "You can only post to conversations in your current space.", flash[:alert]
+    assert_response :not_found
   end
 
   # ============================================================================

@@ -59,7 +59,7 @@ module AI
 
           assert result[:success]
           advisor = Advisor.find(result[:advisor_id])
-          assert_equal "New Advisor", advisor.name
+          assert_equal "new-advisor", advisor.name
           assert_equal @space, advisor.space
           assert_equal @account, advisor.account
           assert_not advisor.is_scribe

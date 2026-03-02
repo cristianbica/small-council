@@ -13,7 +13,7 @@ Verify users cannot access resources from other accounts.
 test "cannot access [resource] from different account" do
   sign_in_as(users(:one))
   set_tenant(accounts(:one))
-  
+
   # Create resource in other account without tenant scoping
   other_account = ActsAsTenant.without_tenant do
     Account.create!(name: "Other", slug: "other-#{Time.now.to_i}")
@@ -21,7 +21,7 @@ test "cannot access [resource] from different account" do
   other_resource = ActsAsTenant.without_tenant do
     other_account.[resources].create!(...)
   end
-  
+
   get [resource]_url(other_resource)
   assert_response :not_found # or :forbidden
 end
@@ -36,10 +36,10 @@ Verify only creators can modify/delete their resources.
 test "non-creator cannot [action] [resource]" do
   sign_in_as(users(:regular)) # Not the creator
   set_tenant(accounts(:one))
-  
+
   # Resource created by admin
   resource = [resources](:one) # created by admin in fixtures
-  
+
   assert_no_difference "[Resource].count" do
     [action] [resource]_url(resource)
   end
@@ -57,10 +57,10 @@ Verify changing IDs in URLs doesn't grant unauthorized access.
 test "cannot access [resource] from different [parent] via ID manipulation" do
   sign_in_as(users(:one))
   set_tenant(accounts(:one))
-  
+
   other_parent = create_other_parent
   other_resource = create_resource_in(other_parent)
-  
+
   # Try to access via direct URL
   get [resource]_url(other_resource)
   assert_response :not_found
@@ -76,16 +76,16 @@ Verify users cannot manipulate form parameters to bypass security.
 test "cannot manipulate [param] via [resource] form" do
   sign_in_as(users(:one))
   set_tenant(accounts(:one))
-  
+
   other_account = accounts(:two)
-  
-  post [resources]_url, params: { 
-    [resource]: { 
+
+  post [resources]_url, params: {
+    [resource]: {
       name: "Test",
       [param]: other_account.id # Attempt to set unauthorized value
-    } 
+    }
   }
-  
+
   created = [Resource].last
   assert_equal users(:one).account_id, created.account_id
   refute_equal other_account.id, created.account_id
@@ -114,6 +114,9 @@ assert_response :forbidden
 assert_redirected_to sign_in_url
 assert_redirected_to appropriate_fallback_path
 
+# Tenant-scoped inaccessible resource assertions (preferred)
+assert_response :not_found
+
 # Data integrity assertions
 assert_equal expected_account_id, resource.account_id
 refute_equal other_account_id, resource.account_id
@@ -123,7 +126,6 @@ end
 
 # Flash message assertions
 assert_equal "Only the creator can modify this council.", flash[:alert]
-assert_equal "Council not found.", flash[:alert]
 ```
 
 ## Test Helper Patterns

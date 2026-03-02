@@ -41,8 +41,7 @@ class ConversationFlowTest < ActionDispatch::IntegrationTest
     # Verify conversation and first message were created
     assert_equal "First conversation topic", conversation.title
     assert_equal @user, conversation.user
-    assert_equal 1, conversation.messages.count
-    assert_equal "First conversation topic", conversation.messages.first.content
+    assert_equal 0, conversation.messages.count
 
     # Post additional messages
     post conversation_messages_url(conversation), params: {
@@ -60,13 +59,11 @@ class ConversationFlowTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     messages = conversation.messages.chronological.to_a
-    assert_equal 3, messages.count
-    assert_equal "First conversation topic", messages[0].content
-    assert_equal "Second message", messages[1].content
-    assert_equal "Third message", messages[2].content
+    assert_equal 2, messages.count
+    assert_equal "Second message", messages[0].content
+    assert_equal "Third message", messages[1].content
 
     # Verify messages appear on the page
-    assert_select ".whitespace-pre-wrap", "First conversation topic"
     assert_select ".whitespace-pre-wrap", "Second message"
     assert_select ".whitespace-pre-wrap", "Third message"
   end

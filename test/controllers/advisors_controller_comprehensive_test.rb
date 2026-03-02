@@ -307,7 +307,7 @@ class AdvisorsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     end
 
     advisor = Advisor.last
-    assert_equal "Complete Advisor", advisor.name
+    assert_equal "complete-advisor", advisor.name
     assert_equal "A helpful advisor", advisor.short_description
     assert_equal "You are very helpful", advisor.system_prompt
     assert_equal @llm_model, advisor.llm_model
@@ -340,7 +340,7 @@ class AdvisorsControllerComprehensiveTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to space_advisors_path(@space)
     @advisor.reload
-    assert_equal "Updated Name Only", @advisor.name
+    assert_equal "updated-name-only", @advisor.name
     # Other fields should remain unchanged
     assert_equal "You are a test advisor", @advisor.system_prompt
   end

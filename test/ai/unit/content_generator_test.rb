@@ -105,8 +105,8 @@ module AI
 
       assert_equal "Test response", response.content
       assert_equal "user", captured_messages.first[:sender_name]
-      assert_includes captured_messages.map { |message| message[:sender_name] }, "Test Advisor"
-      refute_includes captured_messages.map { |message| message[:content] }, "[Test Advisor] is thinking..."
+      assert_includes captured_messages.map { |message| message[:sender_name] }, "test-advisor"
+      refute_includes captured_messages.map { |message| message[:content] }, "[test-advisor] is thinking..."
     end
 
     test "generate_advisor_response raises NoModelError when no model available" do

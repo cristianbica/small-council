@@ -41,7 +41,7 @@ module AI
           )
 
           assert result[:success]
-          assert_equal "Updated", @advisor.reload.name
+          assert_equal "updated", @advisor.reload.name
         end
 
         test "execute rejects missing fields" do

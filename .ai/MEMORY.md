@@ -30,6 +30,7 @@ Max ~200 lines. Keep durable, high-signal facts only.
 - `Conversation` belongs to `space` (required), and `Current.space` is used for access scoping in controllers/jobs.
 - Conversation statuses are `active`, `resolved`, `archived`.
 - Conversation RoE types are `open`, `consensus`, `brainstorming`.
+- Advisor names are canonicalized to lowercase dash handles (for example, `Strategic Advisor` -> `strategic-advisor`) and mentions/invites should use this handle form.
 - Messages use polymorphic sender (`User` or `Advisor`) and `pending_advisor_ids` JSONB for response tracking.
 - Sensitive fields are encrypted at rest (e.g., provider credentials, conversation memory fields, advisor prompts).
 

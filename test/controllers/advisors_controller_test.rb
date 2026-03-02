@@ -81,7 +81,7 @@ class AdvisorsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to space_advisors_path(@space)
 
     advisor.reload
-    assert_equal "Updated Name", advisor.name
+    assert_equal "updated-name", advisor.name
   end
 
   test "should destroy advisor" do

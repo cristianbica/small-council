@@ -261,8 +261,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     other_conversation = other_account.conversations.create!(council: other_council, user: other_user, title: "Other Conversation", space: other_space)
 
     get conversation_url(other_conversation)
-    # Controller redirects when RecordNotFound or wrong space
-    assert_redirected_to space_councils_path(@account.spaces.first)
+    assert_response :not_found
   end
 
   test "redirects when council belongs to different space" do
@@ -275,9 +274,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
 
     # Try to access council from current space context
     get council_conversations_url(other_council)
-    # Should redirect because council is not in Current.space
-    assert_redirected_to space_councils_path(@space)
-    assert_equal "Council not found.", flash[:alert]
+    assert_response :not_found
   end
 
   test "update changes rules of engagement" do
@@ -302,8 +299,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     other_conversation = @account.conversations.create!(council: other_council, user: @user, title: "Test", space: other_space)
 
     get conversation_url(other_conversation)
-    assert_redirected_to space_councils_path(@space)
-    assert_equal "Conversation not found.", flash[:alert]
+    assert_response :not_found
   end
 
   test "invite_advisor redirects when conversation belongs to different space" do
@@ -324,8 +320,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
       advisor_id: advisor.id
     }
 
-    assert_redirected_to space_councils_path(@space)
-    assert_equal "Conversation not found.", flash[:alert]
+    assert_response :not_found
   end
 
   # ============================================================================
@@ -478,9 +473,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     # Try to access conversations from other account's council
     # Council won't be found in Current.account scope
     get council_conversations_url(other_council)
-    # The controller redirects when council is not found in Current.space
-    assert_redirected_to space_councils_path(@space)
-    assert_equal "Council not found.", flash[:alert]
+    assert_response :not_found
   end
 
   # ============================================================================

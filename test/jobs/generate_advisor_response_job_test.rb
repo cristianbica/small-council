@@ -246,11 +246,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
 
   # is_scribe_followup branch tests
   test "calls generate_scribe_followup when is_scribe_followup is true and advisor is scribe" do
-    # Create a scribe advisor
-    scribe = @account.advisors.create!(
-      name: "Scribe", system_prompt: "You are the scribe",
-      llm_model: @llm_model, space: @space, is_scribe: true
-    )
+    scribe = @space.scribe_advisor
     @council.council_advisors.create!(advisor: scribe, position: 0)
     message = @conversation.messages.create!(
       account: @account, sender: scribe, role: "system",
@@ -276,10 +272,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
   end
 
   test "calls generate_advisor_response for scribe when is_scribe_followup is false" do
-    scribe = @account.advisors.create!(
-      name: "Scribe", system_prompt: "You are the scribe",
-      llm_model: @llm_model, space: @space, is_scribe: true
-    )
+    scribe = @space.scribe_advisor
     @council.council_advisors.create!(advisor: scribe, position: 0)
     message = @conversation.messages.create!(
       account: @account, sender: scribe, role: "system",

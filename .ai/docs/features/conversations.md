@@ -74,6 +74,7 @@ Conversations are chat sessions tied to a specific space (and optionally a counc
 ### Access Control
 - All authenticated account users can view conversations in their current space
 - Any account user can post to conversations in their current space
+- Inaccessible councils/conversations outside `Current.space` return `404` (security-first)
 - **Delete permission**: Only conversation starter or council creator can delete
 - Provider management available to all account users (Phase 1)
 

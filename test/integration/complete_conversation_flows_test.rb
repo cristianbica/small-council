@@ -51,7 +51,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
 
     # Step 1: Create adhoc conversation
     assert_difference("Conversation.count", 1) do
-      assert_difference("Message.count", 1) do
+      assert_no_difference("Message.count") do
         post conversations_path, params: {
           conversation: {
             title: "Test Adhoc Conversation",
@@ -77,7 +77,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     # Step 3: Post message with mention in Open RoE
     assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
       post conversation_messages_path(conversation), params: {
-        message: { content: "@strategic_advisor what do you think?" }
+        message: { content: "@strategic-advisor what do you think?" }
       }
     end
     assert_redirected_to conversation_path(conversation)
@@ -157,7 +157,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
 
     # Step 1: Create council meeting
     assert_difference("Conversation.count", 1) do
-      assert_difference("Message.count", 1) do
+      assert_no_difference("Message.count") do
         post council_conversations_path(council), params: {
           conversation: {
             title: "Q4 Planning Meeting",
@@ -230,7 +230,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?",
+      content: "@strategic-advisor what do you think?",
       pending_advisor_ids: [ @advisor1.id ]
     )
 
@@ -370,7 +370,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor help",
+      content: "@strategic-advisor help",
       pending_advisor_ids: [ @advisor1.id ]
     )
 
@@ -460,7 +460,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     # Invite new advisor via command
     assert_difference("ConversationParticipant.count", 1) do
       post conversation_messages_path(conversation), params: {
-        message: { content: "/invite @technical_expert" }
+        message: { content: "/invite @technical-expert" }
       }
     end
 

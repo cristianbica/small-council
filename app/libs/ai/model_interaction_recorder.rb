@@ -115,7 +115,7 @@ module AI
 
     def build_chat_request_payload(chat, response)
       # Messages up to (but not including) this response
-      all_messages = chat.messages
+      all_messages = chat.respond_to?(:messages) ? chat.messages : []
       response_index = all_messages.rindex(response)
       input_messages = response_index ? all_messages[0...response_index] : all_messages[0..-2]
 
@@ -126,7 +126,7 @@ module AI
         model: chat.model&.id,
         provider: chat.model&.provider,
         temperature: chat.instance_variable_get(:@temperature),
-        tools: chat.tools.as_json
+        tools: serialize_tools(chat)
       }
 
       unless system_messages.empty?
@@ -138,6 +138,17 @@ module AI
       end
 
       payload.compact
+    end
+
+    def serialize_tools(chat)
+      return [] unless chat.respond_to?(:tools)
+
+      tools = chat.tools
+      return tools.as_json if tools.respond_to?(:as_json)
+
+      Array(tools)
+    rescue StandardError
+      []
     end
 
     def build_chat_response_payload(response)
