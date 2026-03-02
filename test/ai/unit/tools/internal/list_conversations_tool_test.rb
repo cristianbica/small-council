@@ -20,7 +20,8 @@ module AI
               account: @account,
               user: @user,
               title: "Conversation #{i + 1}",
-              status: i.even? ? "active" : "resolved"
+              status: i.even? ? "active" : "resolved",
+              space: @space
             )
           end
 
@@ -29,7 +30,8 @@ module AI
           @other_council.conversations.create!(
             account: @account,
             user: @user,
-            title: "Other Conversation"
+            title: "Other Conversation",
+            space: @space
           )
         end
 

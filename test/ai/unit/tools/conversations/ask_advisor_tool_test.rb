@@ -22,7 +22,8 @@ module AI
           @conversation = @council.conversations.create!(
             account: @account,
             user: @user,
-            title: "Test Conversation"
+            title: "Test Conversation",
+            space: @space
           )
 
           # Create test advisors

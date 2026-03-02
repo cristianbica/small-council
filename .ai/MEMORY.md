@@ -181,6 +181,7 @@ The Scribe/Advisors have access to tools via `app/libs/ai/tools/` (`AI::Tools::B
 - **RubyLLM::Message API**: uses `model_id` (NOT `model`). Available methods: `content`, `input_tokens`, `output_tokens`, `model_id`, `tool_calls`, `tool_call?`, `role`, `thinking`.
 - Test coverage (2026-03-01, verified): 1420 runs, 96.83% line, 85.79% branch.
 - 2026-03-01: **Conversation finishing is Scribe-only** — no UI routes for finish/cancel_pending/approve_summary/reject_summary/regenerate_summary. Scribe follow-ups gated to `council_meeting` + `active` only.
+- 2026-03-01: Conversations now belong to a space (`space_id` non-null); controllers/jobs scope access via `Current.space`.
 
 ## Additional Services (2026-02-28)
 - `AI::ContentGenerator` — instance-based, intent-driven: `AI::ContentGenerator.new.generate_advisor_response(advisor:, conversation:, ...)`.

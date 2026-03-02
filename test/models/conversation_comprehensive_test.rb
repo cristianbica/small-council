@@ -51,7 +51,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.new(
       title: "Test",
       user: @user,
-      council: @council
+      council: @council,
+      space: @space
     )
     # Default is council_meeting but needs validation
     conv.save(validate: false)
@@ -63,7 +64,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      conversation_type: :council_meeting
+      conversation_type: :council_meeting,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     assert conv.council_meeting?
@@ -73,7 +75,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     assert_not conv.council_meeting?
@@ -83,7 +86,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     assert conv.adhoc?
@@ -94,7 +98,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      conversation_type: :council_meeting
+      conversation_type: :council_meeting,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     assert_not conv.adhoc?
@@ -108,7 +113,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.new(
       title: "Test",
       user: @user,
-      council: @council
+      council: @council,
+      space: @space
     )
     conv.save(validate: false)
     assert_equal "open", conv.roe_type
@@ -120,7 +126,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     assert conv.open?
@@ -131,7 +138,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      roe_type: :consensus
+      roe_type: :consensus,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     assert conv.consensus?
@@ -142,7 +150,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      roe_type: :brainstorming
+      roe_type: :brainstorming,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     assert conv.brainstorming?
@@ -153,7 +162,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -173,7 +183,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     scribe_participant = conv.conversation_participants.create!(advisor: @scribe, role: :scribe)
@@ -185,7 +196,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -196,7 +208,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     conv.conversation_participants.create!(advisor: @scribe, role: :scribe)
@@ -208,7 +221,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -219,7 +233,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     conv.conversation_participants.create!(advisor: @scribe, role: :scribe)
@@ -231,7 +246,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -242,7 +258,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -258,7 +275,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     conv.conversation_participants.create!(advisor: @scribe, role: :scribe)
@@ -278,7 +296,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = account_without_scribe.conversations.create!(
       title: "Test",
       user: user2,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: account_without_scribe.spaces.create!(name: "No Scribe Space")
     )
 
     conv.ensure_scribe_present!
@@ -294,7 +313,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     p1 = conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     p2 = conv.conversation_participants.create!(advisor: @advisor2, role: :advisor, position: 1)
@@ -310,7 +330,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     conv.conversation_participants.create!(advisor: @advisor2, role: :advisor, position: 1)
@@ -327,7 +348,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -343,7 +365,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -356,7 +379,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -374,7 +398,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -386,7 +411,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      roe_type: :consensus
+      roe_type: :consensus,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -398,7 +424,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      roe_type: :brainstorming
+      roe_type: :brainstorming,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -410,7 +437,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -427,7 +455,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.new(
       title: "Test",
       user: @user,
-      council: @council
+      council: @council,
+      space: @space
     )
     conv.save(validate: false)
     assert_equal "active", conv.status
@@ -438,7 +467,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      status: :active
+      status: :active,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     assert conv.active?
@@ -449,7 +479,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      status: :concluding
+      status: :concluding,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     assert conv.concluding?
@@ -460,7 +491,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      status: :resolved
+      status: :resolved,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     assert conv.resolved?
@@ -471,7 +503,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      status: :archived
+      status: :archived,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     assert conv.archived?
@@ -482,7 +515,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      status: :active
+      status: :active,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -504,7 +538,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      council: @council
+      council: @council,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -515,7 +550,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      council: @council
+      council: @council,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     conv.update_column(:memory, nil)
@@ -527,7 +563,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      council: @council
+      council: @council,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     conv.update!(memory: '{"key": "value", "number": 42}')
@@ -541,7 +578,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      council: @council
+      council: @council,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -557,7 +595,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      council: @council
+      council: @council,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     conv.update_column(:memory, "not valid json {{{")
@@ -570,7 +609,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      scribe_initiated_count: 0
+      scribe_initiated_count: 0,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -586,7 +626,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      scribe_initiated_count: 5
+      scribe_initiated_count: 5,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -599,7 +640,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Test",
       user: @user,
       council: @council,
-      context: { "responded_advisor_ids" => [ "1", "2", "3" ], "other_key" => "value" }
+      context: { "responded_advisor_ids" => [ "1", "2", "3" ], "other_key" => "value" },
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -617,7 +659,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      council: @council
+      council: @council,
+      space: @space
     )
     # Skip validation on create
     conv.save(validate: false)
@@ -632,7 +675,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      council: @council
+      council: @council,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -643,7 +687,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      council: @council
+      council: @council,
+      space: @space
     )
     conv.conversation_participants.create!(advisor: @scribe, role: :scribe)
 
@@ -655,7 +700,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.new(
       title: "Test",
       user: @user,
-      conversation_type: :council_meeting
+      conversation_type: :council_meeting,
+      space: @space
     )
     conv.conversation_participants.build(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -667,7 +713,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     conv = @account.conversations.new(
       title: "Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv.conversation_participants.build(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -683,7 +730,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Conv 1",
       user: @user,
       council: @council,
-      last_message_at: 1.day.ago
+      last_message_at: 1.day.ago,
+      space: @space
     )
     conv1.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -691,7 +739,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Conv 2",
       user: @user,
       council: @council,
-      last_message_at: 1.hour.ago
+      last_message_at: 1.hour.ago,
+      space: @space
     )
     conv2.conversation_participants.create!(advisor: @advisor2, role: :advisor, position: 0)
 
@@ -699,7 +748,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Conv 3",
       user: @user,
       council: @council,
-      last_message_at: 1.minute.ago
+      last_message_at: 1.minute.ago,
+      space: @space
     )
     advisor3 = @account.advisors.create!(
       name: "Third Advisor",
@@ -718,7 +768,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Active",
       user: @user,
       council: @council,
-      status: :active
+      status: :active,
+      space: @space
     )
     active_conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -726,7 +777,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Archived",
       user: @user,
       council: @council,
-      status: :archived
+      status: :archived,
+      space: @space
     )
     archived_conv.conversation_participants.create!(advisor: @advisor2, role: :advisor, position: 0)
 
@@ -739,7 +791,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     adhoc_conv = @account.conversations.create!(
       title: "Adhoc",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     adhoc_conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -747,7 +800,8 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       title: "Council",
       user: @user,
       council: @council,
-      conversation_type: :council_meeting
+      conversation_type: :council_meeting,
+      space: @space
     )
     council_conv.conversation_participants.create!(advisor: @advisor2, role: :advisor, position: 0)
 

@@ -22,7 +22,8 @@ module AI
           @conv1 = @council.conversations.create!(
             account: @account,
             user: @user,
-            title: "Project Planning Discussion"
+            title: "Project Planning Discussion",
+            space: @space
           )
           @conv1.messages.create!(
             account: @account,
@@ -34,7 +35,8 @@ module AI
           @conv2 = @council.conversations.create!(
             account: @account,
             user: @user,
-            title: "Weekly Team Meeting"
+            title: "Weekly Team Meeting",
+            space: @space
           )
           @conv2.messages.create!(
             account: @account,
@@ -47,7 +49,8 @@ module AI
             account: @account,
             user: @user,
             title: "Technical Architecture Review",
-            status: "resolved"
+            status: "resolved",
+            space: @space
           )
         end
 
@@ -181,7 +184,8 @@ module AI
           other_council.conversations.create!(
             account: @account,
             user: @user,
-            title: "Project in Other Space"
+            title: "Project in Other Space",
+            space: other_space
           )
 
           result = @tool.execute({ query: "Project" }, { space: @space })

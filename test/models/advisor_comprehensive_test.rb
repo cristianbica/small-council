@@ -333,7 +333,8 @@ class AdvisorComprehensiveTest < ActiveSupport::TestCase
     conversation = @account.conversations.create!(
       title: "Test",
       user: user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: advisor, role: :advisor, position: 0)
 
@@ -353,7 +354,8 @@ class AdvisorComprehensiveTest < ActiveSupport::TestCase
     conversation = @account.conversations.create!(
       title: "Test",
       user: user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     @account.messages.create!(
       conversation: conversation,
@@ -525,12 +527,14 @@ class AdvisorComprehensiveTest < ActiveSupport::TestCase
     conv1 = @account.conversations.create!(
       title: "Conv 1",
       user: user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv2 = @account.conversations.create!(
       title: "Conv 2",
       user: user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
 
     advisor = @account.advisors.create!(

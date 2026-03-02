@@ -15,7 +15,8 @@ module AI
           @conversation = @council.conversations.create!(
             account: @account,
             user: @user,
-            title: "Project Discussion"
+            title: "Project Discussion",
+            space: @space
           )
           @tool = SummarizeConversationTool.new
 
@@ -111,7 +112,8 @@ module AI
           empty_conversation = @council.conversations.create!(
             account: @account,
             user: @user,
-            title: "Empty Discussion"
+            title: "Empty Discussion",
+            space: @space
           )
 
           result = @tool.execute(

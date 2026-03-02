@@ -35,7 +35,8 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
       title: "Test RoE Flow",
       council: @council,
       user: @user,
-      rules_of_engagement: :open
+      rules_of_engagement: :open,
+      space: @space
     )
 
     # Add advisors as participants

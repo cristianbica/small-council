@@ -11,7 +11,7 @@ class ModelInteractionTest < ActiveSupport::TestCase
     @provider = @account.providers.create!(name: "OpenAI", provider_type: "openai", api_key: "test-key")
     @llm_model = @provider.llm_models.create!(account: @account, name: "GPT-4", identifier: "gpt-4", enabled: true)
     @council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    @conversation = @account.conversations.create!(council: @council, user: @user, title: "Test")
+    @conversation = @account.conversations.create!(council: @council, user: @user, title: "Test", space: @space)
     @message = @account.messages.create!(conversation: @conversation, sender: @user, role: "user", content: "Hello")
   end
 

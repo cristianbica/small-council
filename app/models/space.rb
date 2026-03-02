@@ -2,7 +2,7 @@ class Space < ApplicationRecord
   acts_as_tenant :account
   belongs_to :account
   has_many :councils, dependent: :destroy
-  has_many :conversations, through: :councils
+  has_many :conversations, dependent: :destroy
   has_many :advisors, dependent: :destroy
   has_many :memories, dependent: :destroy
 

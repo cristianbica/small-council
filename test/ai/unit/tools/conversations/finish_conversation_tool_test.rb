@@ -24,7 +24,8 @@ module AI
             account: @account,
             user: @user,
             title: "Test Conversation",
-            status: "active"
+            status: "active",
+            space: @space
           )
 
           # Add advisor as participant to satisfy validation

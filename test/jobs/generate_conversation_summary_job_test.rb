@@ -16,7 +16,8 @@ class GenerateConversationSummaryJobTest < ActiveJob::TestCase
       title: "Test Conversation",
       user: @user,
       account: @account,
-      status: :concluding
+      status: :concluding,
+      space: @space
     )
   end
 

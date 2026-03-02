@@ -33,7 +33,8 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
       council: @council,
       user: @user,
       title: "AI Test Conversation",
-      roe_type: :consensus  # Consensus RoE makes all advisors respond
+      roe_type: :consensus,  # Consensus RoE makes all advisors respond
+      space: @space
     )
 
     # Add advisor as participant

@@ -47,7 +47,8 @@ class Council < ApplicationRecord
       user: user,
       title: title,
       conversation_type: :council_meeting,
-      roe_type: roe_type
+      roe_type: roe_type,
+      space: space
     )
 
     conversation.save!

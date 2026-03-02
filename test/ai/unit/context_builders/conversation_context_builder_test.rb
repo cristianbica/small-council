@@ -28,7 +28,8 @@ module AI
         @conversation = @account.conversations.create!(
           council: @council,
           user: @user,
-          title: "Test Conversation"
+          title: "Test Conversation",
+          space: @space
         )
 
         # Add advisor as participant
@@ -75,7 +76,8 @@ module AI
         other_conversation = @account.conversations.create!(
           council: @council,
           user: @user,
-          title: "Other Conversation"
+          title: "Other Conversation",
+          space: @space
         )
 
         builder = ConversationContextBuilder.new(@space, @conversation)
@@ -128,7 +130,7 @@ module AI
         # Use a new space that doesn't have the summary fixture
         new_space = @account.spaces.create!(name: "Empty Space")
         new_council = @account.councils.create!(name: "New Council", user: @user, space: new_space)
-        new_conversation = @account.conversations.create!(council: new_council, user: @user, title: "Test")
+        new_conversation = @account.conversations.create!(council: new_council, user: @user, title: "Test", space: new_space)
 
         builder = ConversationContextBuilder.new(new_space, new_conversation)
         context = builder.build
@@ -143,7 +145,8 @@ module AI
           title: "Adhoc Conversation",
           user: @user,
           conversation_type: :adhoc,
-          council: nil
+          council: nil,
+          space: @space
         )
 
         builder = ConversationContextBuilder.new(nil, adhoc_conversation)
@@ -183,7 +186,8 @@ module AI
           @account.conversations.create!(
             council: @council,
             user: @user,
-            title: "Conversation #{i}"
+            title: "Conversation #{i}",
+            space: @space
           )
         end
 
@@ -199,7 +203,8 @@ module AI
           title: "Adhoc No Council",
           user: @user,
           conversation_type: :adhoc,
-          council: nil
+          council: nil,
+          space: @space
         )
         # Add an advisor participant so validation passes
         adhoc_conversation.conversation_participants.create!(

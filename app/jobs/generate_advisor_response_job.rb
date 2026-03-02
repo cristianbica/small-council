@@ -27,14 +27,8 @@ class GenerateAdvisorResponseJob < ApplicationJob
     # Set tenant context for background job
     ActsAsTenant.current_tenant = advisor.account
 
-    # Set space context - required for adhoc conversations
-    # For council meetings, get space from council
-    # For adhoc, get from advisor's space or first participant's space
-    Current.space = if conversation.council_meeting? && conversation.council
-      conversation.council.space
-    else
-      advisor.space || conversation.advisors.where.not(space: nil).first&.space
-    end
+    # Set space context for conversation
+    Current.space = conversation.space || advisor.space || conversation.advisors.where.not(space: nil).first&.space
 
     Rails.logger.info "[GenerateAdvisorResponseJob] Processing message #{message_id} for advisor #{advisor.name} (space: #{Current.space&.id || 'nil'})"
 

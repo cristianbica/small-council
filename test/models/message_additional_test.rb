@@ -35,7 +35,8 @@ class MessageAdditionalTest < ActiveSupport::TestCase
     @conversation = @account.conversations.create!(
       council: @council,
       user: @user,
-      title: "Test Messages"
+      title: "Test Messages",
+      space: @space
     )
   end
 

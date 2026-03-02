@@ -44,7 +44,8 @@ module AI
             account: @account,
             user: @user,
             title: "Test Conversation",
-            conversation_type: :council_meeting
+            conversation_type: :council_meeting,
+            space: @space
           )
 
           # Add advisor participant
@@ -120,7 +121,8 @@ module AI
           other_conv = other_council.conversations.create!(
             account: @account,
             user: @user,
-            title: "Other Conversation"
+            title: "Other Conversation",
+            space: other_space
           )
 
           result = @tool.execute({ conversation_id: other_conv.id }, { space: @space })

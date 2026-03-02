@@ -4,7 +4,7 @@ Users can start conversations with AI advisors in their councils.
 
 ## Overview
 
-Conversations are chat sessions tied to a specific council. Each conversation has a title and can have multiple messages. Users can post messages and advisors respond based on the Rules of Engagement (RoE) mode. When advisors are triggered, placeholder "thinking..." messages appear immediately, and AI responses are generated asynchronously via background jobs.
+Conversations are chat sessions tied to a specific space (and optionally a council). Each conversation has a title and can have multiple messages. Users can post messages and advisors respond based on the Rules of Engagement (RoE) mode. When advisors are triggered, placeholder "thinking..." messages appear immediately, and AI responses are generated asynchronously via background jobs.
 
 ## Usage
 
@@ -39,7 +39,7 @@ Conversations are chat sessions tied to a specific council. Each conversation ha
 ```
 
 ### Models
-- `Conversation`: title, status (active/concluding/resolved/archived), roe_type (open/consensus/brainstorming), conversation_type (council_meeting/adhoc), context (jsonb), council_id (nullable), user_id, scribe_initiated_count
+- `Conversation`: title, status (active/concluding/resolved/archived), roe_type (open/consensus/brainstorming), conversation_type (council_meeting/adhoc), context (jsonb), space_id, council_id (nullable), user_id, scribe_initiated_count
 - `Message`: content, role (user/advisor/system), status (pending/complete/error/cancelled), sender (polymorphic User/Advisor), in_reply_to_id
 - `Provider`: AI provider credentials (OpenAI, OpenRouter)
 - `LlmModel`: Available models per provider
@@ -57,8 +57,8 @@ Conversations are chat sessions tied to a specific council. Each conversation ha
 - `GenerateAdvisorResponseJob`: Async AI response generation, usage tracking, Turbo Stream broadcasts
 
 ### Access Control
-- All authenticated account users can view all conversations in their councils
-- Any account user can post to any conversation in their councils
+- All authenticated account users can view conversations in their current space
+- Any account user can post to conversations in their current space
 - **Delete permission**: Only conversation starter or council creator can delete
 - Provider management available to all account users (Phase 1)
 

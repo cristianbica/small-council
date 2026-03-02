@@ -191,7 +191,8 @@ class MemoryTest < ActiveSupport::TestCase
     conversation = council.conversations.create!(
       account: @account,
       user: @user,
-      title: "Test Conversation"
+      title: "Test Conversation",
+      space: @space
     )
 
     memory = Memory.create_conversation_summary!(
@@ -204,7 +205,7 @@ class MemoryTest < ActiveSupport::TestCase
     assert memory.persisted?
     assert_equal "conversation_summary", memory.memory_type
     assert_equal conversation, memory.source
-    assert_equal conversation.council.space, memory.space
+    assert_equal conversation.space, memory.space
   end
 
   test "search scope should find by title" do
@@ -246,7 +247,7 @@ class MemoryTest < ActiveSupport::TestCase
       account: @account, user: @user, name: "Test Council"
     )
     conversation = council.conversations.create!(
-      account: @account, user: @user, title: "My Test Conversation"
+      account: @account, user: @user, title: "My Test Conversation", space: @space
     )
     memory = @space.memories.create!(
       account: @account, title: "Conv Memory", content: "Content",

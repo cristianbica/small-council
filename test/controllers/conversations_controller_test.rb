@@ -17,7 +17,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
   test "should redirect to sign in when not authenticated for show" do
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Test", space: @space)
     get conversation_url(conversation)
     assert_redirected_to sign_in_url
   end
@@ -40,7 +40,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    conversation = @account.conversations.create!(council: council, user: @user, title: "Test Conversation")
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Test Conversation", space: @space)
 
     get council_conversations_url(council)
     assert_response :success
@@ -52,7 +52,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    conversation = @account.conversations.create!(council: council, user: @user, title: "Test Conversation")
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Test Conversation", space: @space)
     message = @account.messages.create!(
       conversation: conversation,
       sender: @user,
@@ -145,7 +145,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     advisor = @account.advisors.create!(name: "Test Advisor", system_prompt: "Help", space: @space)
-    conversation = @account.conversations.create!(council: council, user: @user, title: "Old Title")
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Old Title", space: @space)
     # Add advisor as participant to pass validation
     conversation.conversation_participants.create!(advisor: advisor, role: :advisor, position: 0)
 
@@ -160,7 +160,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    conversation = @account.conversations.create!(council: council, user: @user, title: "Old Title")
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Old Title", space: @space)
 
     patch conversation_url(conversation), params: {
       conversation: { title: "" }
@@ -177,8 +177,9 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     # Create another account and conversation
     other_account = Account.create!(name: "Other Account", slug: "other-account")
     other_user = other_account.users.create!(email: "other@example.com", password: "password123")
-    other_council = other_account.councils.create!(name: "Other Council", user: other_user, space: other_account.spaces.create!(name: "Other Space"))
-    other_conversation = other_account.conversations.create!(council: other_council, user: other_user, title: "Other Conversation")
+    other_space = other_account.spaces.create!(name: "Other Space")
+    other_council = other_account.councils.create!(name: "Other Council", user: other_user, space: other_space)
+    other_conversation = other_account.conversations.create!(council: other_council, user: other_user, title: "Other Conversation", space: other_space)
 
     get conversation_url(other_conversation)
     # Controller redirects when RecordNotFound or wrong space
@@ -205,7 +206,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     advisor = @account.advisors.create!(name: "Test Advisor", system_prompt: "Help", space: @space)
-    conversation = @account.conversations.create!(council: council, user: @user, title: "Test", roe_type: :open)
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Test", roe_type: :open, space: @space)
     # Add advisor as participant to pass validation
     conversation.conversation_participants.create!(advisor: advisor, role: :advisor, position: 0)
 
@@ -222,9 +223,31 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
 
     other_space = @account.spaces.create!(name: "Other Space")
     other_council = @account.councils.create!(name: "Other Council", user: @user, space: other_space)
-    other_conversation = @account.conversations.create!(council: other_council, user: @user, title: "Test")
+    other_conversation = @account.conversations.create!(council: other_council, user: @user, title: "Test", space: other_space)
 
     get conversation_url(other_conversation)
+    assert_redirected_to space_councils_path(@space)
+    assert_equal "Conversation not found.", flash[:alert]
+  end
+
+  test "invite_advisor redirects when conversation belongs to different space" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    advisor = @account.advisors.create!(name: "Test Advisor", system_prompt: "Help", space: @space)
+    other_space = @account.spaces.create!(name: "Other Space")
+    other_council = @account.councils.create!(name: "Other Council", user: @user, space: other_space)
+    other_conversation = @account.conversations.create!(
+      council: other_council,
+      user: @user,
+      title: "Other Space Conv",
+      space: other_space
+    )
+
+    post invite_advisor_conversation_path(other_conversation), params: {
+      advisor_id: advisor.id
+    }
+
     assert_redirected_to space_councils_path(@space)
     assert_equal "Conversation not found.", flash[:alert]
   end
@@ -251,7 +274,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
       other_account.councils.create!(name: "Other Council", user: other_user, space: other_space)
     end
     other_conversation = ActsAsTenant.without_tenant do
-      other_account.conversations.create!(council: other_council, user: other_user, title: "Other Conv")
+      other_account.conversations.create!(council: other_council, user: other_user, title: "Other Conv", space: other_space)
     end
 
     # Try to access other account's conversation
@@ -277,7 +300,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
       other_account.councils.create!(name: "Other Council", user: other_user, space: other_space)
     end
     other_conversation = ActsAsTenant.without_tenant do
-      other_account.conversations.create!(council: other_council, user: other_user, title: "Other Conv")
+      other_account.conversations.create!(council: other_council, user: other_user, title: "Other Conv", space: other_space)
     end
 
     # Try to update other account's conversation
@@ -351,8 +374,8 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     council1 = @account.councils.create!(name: "Council 1", user: @user, space: @space)
     council2 = @account.councils.create!(name: "Council 2", user: @user, space: @space)
 
-    conv1 = @account.conversations.create!(council: council1, user: @user, title: "Conv in Council 1")
-    conv2 = @account.conversations.create!(council: council2, user: @user, title: "Conv in Council 2")
+    conv1 = @account.conversations.create!(council: council1, user: @user, title: "Conv in Council 1", space: @space)
+    conv2 = @account.conversations.create!(council: council2, user: @user, title: "Conv in Council 2", space: @space)
 
     # View conversations in council1
     get council_conversations_url(council1)
@@ -397,7 +420,8 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     conversation = @account.conversations.create!(
       council: council,
       user: @user,
-      title: "Test Conversation"
+      title: "Test Conversation",
+      space: @space
     )
 
     assert_difference("Conversation.count", -1) do
@@ -416,7 +440,8 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     conversation = @account.conversations.create!(
       council: council,
       user: other_user,
-      title: "Test Conversation"
+      title: "Test Conversation",
+      space: @space
     )
 
     # Council creator cannot delete if they didn't start the conversation
@@ -437,7 +462,8 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     conversation = @account.conversations.create!(
       council: council,
       user: other_user,
-      title: "Test Conversation"
+      title: "Test Conversation",
+      space: @space
     )
 
     assert_no_difference("Conversation.count") do
@@ -454,7 +480,8 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     conversation = @account.conversations.create!(
       council: council,
       user: @user,
-      title: "Test Conversation"
+      title: "Test Conversation",
+      space: @space
     )
 
     delete conversation_url(conversation)
@@ -468,7 +495,8 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     conversation = @account.conversations.create!(
       council: council,
       user: @user,
-      title: "Test Conversation"
+      title: "Test Conversation",
+      space: @space
     )
 
     assert_difference("Conversation.count", -1) do

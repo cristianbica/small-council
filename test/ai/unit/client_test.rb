@@ -119,7 +119,8 @@ module AI
       conversation = @account.conversations.create!(
         council: council,
         user: @user,
-        title: "Test"
+        title: "Test",
+        space: @space
       )
       message = @account.messages.create!(
         conversation: conversation,
@@ -364,7 +365,7 @@ module AI
       client = Client.new(model: @llm_model, system_prompt: "Be helpful")
 
       council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-      conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+      conversation = @account.conversations.create!(council: council, user: @user, title: "Test", space: @space)
       message = @account.messages.create!(conversation: conversation, sender: @user, role: "user", content: "Hello")
 
       mock_response = RubyLLM::Message.new(role: :assistant, content: "Hi!")
@@ -446,7 +447,7 @@ module AI
       client = Client.new(model: @llm_model)
 
       council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-      conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+      conversation = @account.conversations.create!(council: council, user: @user, title: "Test", space: @space)
       message = @account.messages.create!(conversation: conversation, sender: @user, role: "user", content: "Hello")
 
       mock_response = RubyLLM::Message.new(role: :assistant, content: "Hi!")

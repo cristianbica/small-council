@@ -17,6 +17,7 @@ Rules:
 - [Spaces](spaces.md) - Contextual workspaces for organizing councils
 - [Councils](councils.md) - Groups of AI advisors that collaborate
 - [Advisors](advisors.md) - AI personas with configurable LLM models and tools
+- [Council Management Tools](council-management-tools.md) - Scribe-only tools for council and advisor management
 
 ## Conversation Features
 

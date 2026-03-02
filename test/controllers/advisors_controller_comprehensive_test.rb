@@ -231,7 +231,8 @@ class AdvisorsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     conversation = @account.conversations.create!(
       council: @council,
       user: @user,
-      title: "Test"
+      title: "Test",
+      space: @space
     )
     @account.messages.create!(
       conversation: conversation,

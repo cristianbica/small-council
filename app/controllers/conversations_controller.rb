@@ -8,11 +8,11 @@ class ConversationsController < ApplicationController
   def index
     if @council
       # Show council-specific conversations list
-      @conversations = @council.conversations.recent
+      @conversations = Current.space.conversations.where(council: @council).recent
       render :index
     else
       # For adhoc conversations, redirect to most recent or auto-create one
-      last_conversation = Current.account.conversations.adhoc_conversations.recent.first
+      last_conversation = Current.space.conversations.adhoc_conversations.recent.first
       if last_conversation
         redirect_to last_conversation
       else
@@ -24,11 +24,12 @@ class ConversationsController < ApplicationController
 
   def quick_create
     # Create adhoc conversation with roe_type: :open
-    @conversation = Current.account.conversations.new(
+    @conversation = Current.space.conversations.new(
       title: "New conversation #{Time.current.strftime('%b %d, %H:%M')}",
       conversation_type: :adhoc,
       roe_type: :open,
-      user: Current.user
+      user: Current.user,
+      space: Current.space
     )
 
     if @conversation.save
@@ -49,9 +50,9 @@ class ConversationsController < ApplicationController
 
   def new
     if @council
-      @conversation = @council.conversations.new
+      @conversation = Current.space.conversations.new(council: @council)
     else
-      @conversation = Current.account.conversations.new(conversation_type: :adhoc)
+      @conversation = Current.space.conversations.new(conversation_type: :adhoc)
     end
     @available_advisors = available_advisors_for_conversation
   end
@@ -80,7 +81,7 @@ class ConversationsController < ApplicationController
     end
 
     advisor_id = params[:advisor_id]
-    advisor = Current.account.advisors.find_by(id: advisor_id)
+    advisor = Current.space.advisors.find_by(id: advisor_id)
 
     if advisor.nil?
       redirect_to @conversation, alert: "Advisor not found."
@@ -139,21 +140,9 @@ class ConversationsController < ApplicationController
   end
 
   def set_conversation
-    @conversation = Current.account.conversations.find(params[:id])
-    # Verify conversation belongs to current space
-    unless conversation_in_current_space?
-      redirect_to space_councils_path(Current.space), alert: "Conversation not found."
-    end
-  end
-
-  def conversation_in_current_space?
-    if @conversation.council_meeting?
-      @conversation.council.space_id == Current.space.id
-    else
-      # Adhoc conversations are accessible from any space context
-      # Could add additional checks here if needed
-      true
-    end
+    @conversation = Current.space.conversations.find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    redirect_to space_councils_path(Current.space), alert: "Conversation not found."
   end
 
   def can_manage_conversation?
@@ -161,10 +150,11 @@ class ConversationsController < ApplicationController
   end
 
   def create_council_meeting
-    @conversation = @council.conversations.new(conversation_params_for_create)
+    @conversation = Current.space.conversations.new(conversation_params_for_create)
     @conversation.account = Current.account
     @conversation.user = Current.user
     @conversation.conversation_type = :council_meeting
+    @conversation.council = @council
 
     if @conversation.save
       # Add council advisors as participants within the same transaction
@@ -190,7 +180,7 @@ class ConversationsController < ApplicationController
   end
 
   def create_adhoc_conversation
-    @conversation = Current.account.conversations.new(conversation_params_for_create)
+    @conversation = Current.space.conversations.new(conversation_params_for_create)
     @conversation.account = Current.account
     @conversation.user = Current.user
     @conversation.conversation_type = :adhoc
@@ -231,7 +221,7 @@ class ConversationsController < ApplicationController
 
   def auto_create_conversation
     # Auto-create adhoc conversation with just the scribe
-    @conversation = Current.account.conversations.new(
+    @conversation = Current.space.conversations.new(
       title: "New conversation #{Time.current.strftime('%b %d, %H:%M')}",
       user: Current.user,
       conversation_type: :adhoc,
@@ -264,7 +254,7 @@ class ConversationsController < ApplicationController
 
   def add_selected_participants(conversation)
     advisor_ids = conversation_params[:advisor_ids] || []
-    advisors = Current.account.advisors.where(id: advisor_ids).where(is_scribe: false)
+    advisors = Current.space.advisors.where(id: advisor_ids).where(is_scribe: false)
 
     advisors.each_with_index do |advisor, index|
       conversation.conversation_participants.create!(
@@ -294,7 +284,7 @@ class ConversationsController < ApplicationController
 
   def set_sidebar_conversations
     return unless @conversation&.adhoc?
-    @sidebar_conversations = Current.account.conversations.adhoc_conversations.recent.limit(10)
+    @sidebar_conversations = Current.space.conversations.adhoc_conversations.recent.limit(10)
   end
 
   def choose_layout

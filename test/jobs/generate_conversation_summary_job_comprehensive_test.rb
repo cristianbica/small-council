@@ -46,7 +46,8 @@ class GenerateConversationSummaryJobTest < ActiveJob::TestCase
       title: "Test Conversation #{@unique_id}",
       user: @user,
       account: @account,
-      status: :concluding
+      status: :concluding,
+      space: @space
     )
     @conversation.conversation_participants.create!(
       advisor: @advisor,
@@ -675,7 +676,8 @@ class GenerateConversationSummaryJobTest < ActiveJob::TestCase
       user: @user,
       title: "Orphan Conversation",
       status: :concluding,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
 
     job = GenerateConversationSummaryJob.new
@@ -733,7 +735,8 @@ class GenerateConversationSummaryJobTest < ActiveJob::TestCase
       title: "No Scribe Conv",
       user: @user,
       account: @account,
-      status: :concluding
+      status: :concluding,
+      space: @space
     )
     conversation_without_scribe.save!(validate: false)
 
@@ -771,7 +774,8 @@ class GenerateConversationSummaryJobTest < ActiveJob::TestCase
       user: @user,
       account: @account,
       status: :concluding,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     # Add advisor as participant
     adhoc_conversation.conversation_participants.create!(

@@ -35,17 +35,13 @@ class MessagesController < ApplicationController
   end
 
   def set_conversation
-    @conversation = Current.account.conversations.find(params[:conversation_id])
+    @conversation = Current.space.conversations.find(params[:conversation_id])
   end
 
   def verify_conversation_accessible
-    # For council meetings, verify space context
-    if @conversation.council_meeting?
-      unless @conversation.council&.space == Current.space
-        redirect_to conversations_path, alert: "You can only post to conversations in your current space."
-      end
-    end
-    # Adhoc conversations are accessible from any space context
+    return if @conversation.space_id == Current.space.id
+
+    redirect_to conversations_path, alert: "You can only post to conversations in your current space."
   end
 
   def message_params

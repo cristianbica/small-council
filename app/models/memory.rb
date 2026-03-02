@@ -124,7 +124,7 @@ class Memory < ApplicationRecord
   def self.create_conversation_summary!(conversation:, title:, content:, creator: nil)
     create!(
       account: conversation.account,
-      space: conversation.council.space,
+      space: conversation.space,
       source: conversation,
       title: title,
       content: content,

@@ -47,7 +47,8 @@ class Commands::InviteCommandTest < ActiveSupport::TestCase
       user: @user,
       account: @account,
       conversation_type: :adhoc,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
 
     # Add scribe as participant first

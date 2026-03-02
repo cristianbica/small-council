@@ -219,7 +219,8 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
       council: council,
       conversation_type: :council_meeting,
       roe_type: :open,
-      scribe_initiated_count: 0
+      scribe_initiated_count: 0,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     conversation.conversation_participants.create!(advisor: @scribe, role: :scribe)
@@ -266,7 +267,8 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
       council: council,
       conversation_type: :council_meeting,
       roe_type: :open,
-      scribe_initiated_count: 3
+      scribe_initiated_count: 3,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     conversation.conversation_participants.create!(advisor: @scribe, role: :scribe)
@@ -307,7 +309,8 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
       title: "@all Test",
       user: @user,
       conversation_type: :adhoc,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     conversation.conversation_participants.create!(advisor: @advisor2, role: :advisor, position: 1)
@@ -329,7 +332,8 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
       title: "@everyone Test",
       user: @user,
       conversation_type: :adhoc,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     conversation.conversation_participants.create!(advisor: @advisor2, role: :advisor, position: 1)
@@ -356,7 +360,8 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
       user: @user,
       conversation_type: :adhoc,
       roe_type: :open,
-      scribe_initiated_count: 3  # Disable scribe
+      scribe_initiated_count: 3,  # Disable scribe
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -395,7 +400,8 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
       user: @user,
       conversation_type: :adhoc,
       roe_type: :consensus,
-      scribe_initiated_count: 3
+      scribe_initiated_count: 3,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     conversation.conversation_participants.create!(advisor: @advisor2, role: :advisor, position: 1)
@@ -445,7 +451,8 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
       title: "Command Test",
       user: @user,
       conversation_type: :adhoc,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     conversation.conversation_participants.create!(advisor: @scribe, role: :scribe)
@@ -469,7 +476,8 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
       title: "Invalid Command Test",
       user: @user,
       conversation_type: :adhoc,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -497,7 +505,8 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
       title: "Invite Test",
       user: @user,
       conversation_type: :adhoc,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -520,7 +529,8 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
       title: "Duplicate Invite Test",
       user: @user,
       conversation_type: :adhoc,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 

@@ -50,7 +50,8 @@ class ConversationParticipantTest < ActiveSupport::TestCase
       title: "Test Conversation",
       user: users(:one),
       conversation_type: :adhoc,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
 
     # Add initial advisor to satisfy validation (for update validation)
@@ -150,7 +151,8 @@ class ConversationParticipantTest < ActiveSupport::TestCase
       title: "Test Conversation 2",
       user: users(:one),
       conversation_type: :adhoc,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
     conv2.conversation_participants.create!(
       advisor: @advisor1,

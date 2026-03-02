@@ -11,7 +11,8 @@ class MessageComprehensiveTest < ActiveSupport::TestCase
     @conversation = @account.conversations.create!(
       title: "Test Conversation",
       user: @user,
-      council: @council
+      council: @council,
+      space: @space
     )
 
     provider = @account.providers.create!(

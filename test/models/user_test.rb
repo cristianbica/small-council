@@ -88,7 +88,7 @@ class UserTest < ActiveSupport::TestCase
     user = @account.users.create!(email: "conv-owner@example.com", password: "password123")
     space = @account.spaces.create!(name: "Test Space")
     council = @account.councils.create!(name: "Test Council", user: user, space: space)
-    user.conversations.create!(council: council, account: @account, title: "Test Conversation")
+    user.conversations.create!(council: council, account: @account, title: "Test Conversation", space: space)
     assert_difference("Conversation.count", -1) do
       user.destroy
     end

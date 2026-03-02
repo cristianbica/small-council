@@ -32,7 +32,8 @@ module AI
       @conversation = @account.conversations.create!(
         council: @council,
         user: @user,
-        title: "Test Conversation"
+        title: "Test Conversation",
+        space: @space
       )
 
       @advisor = @space.advisors.create!(

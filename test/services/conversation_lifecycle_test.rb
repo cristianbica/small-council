@@ -49,7 +49,8 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
       title: "Test Conversation",
       user: @user,
       conversation_type: type,
-      roe_type: roe_type
+      roe_type: roe_type,
+      space: @space
     }
 
     if type == :council_meeting

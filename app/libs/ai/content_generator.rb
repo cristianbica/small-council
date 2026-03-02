@@ -348,7 +348,17 @@ module AI
         read_only + [
           AI::Tools::Internal::CreateMemoryTool.new,
           AI::Tools::Internal::UpdateMemoryTool.new,
-          AI::Tools::Conversations::FinishConversationTool.new
+          AI::Tools::Conversations::FinishConversationTool.new,
+          AI::Tools::Internal::CreateAdvisorTool.new,
+          AI::Tools::Internal::ListAdvisorsTool.new,
+          AI::Tools::Internal::GetAdvisorTool.new,
+          AI::Tools::Internal::UpdateAdvisorTool.new,
+          AI::Tools::Internal::CreateCouncilTool.new,
+          AI::Tools::Internal::ListCouncilsTool.new,
+          AI::Tools::Internal::GetCouncilTool.new,
+          AI::Tools::Internal::UpdateCouncilTool.new,
+          AI::Tools::Internal::AssignAdvisorToCouncilTool.new,
+          AI::Tools::Internal::UnassignAdvisorFromCouncilTool.new
         ]
       else
         read_only

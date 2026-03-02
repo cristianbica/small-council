@@ -58,7 +58,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     adhoc_conv = @account.conversations.create!(
       title: "Adhoc Conv",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     adhoc_conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -75,7 +76,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
       title: "Council Conv",
       user: @user,
       council: @council,
-      conversation_type: :council_meeting
+      conversation_type: :council_meeting,
+      space: @space
     )
     council_conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -91,7 +93,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     adhoc_conv = @account.conversations.create!(
       title: "Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     adhoc_conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -110,7 +113,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     conversation = @account.conversations.create!(
       title: "Test Show",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     conversation.conversation_participants.create!(advisor: @advisor2, role: :advisor, position: 1)
@@ -130,7 +134,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     conversation = @account.conversations.create!(
       title: "Threading Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -162,7 +167,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     conversation = @account.conversations.create!(
       title: "Available Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -186,7 +192,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
       title: "Other Conv",
       user: @user,
       council: other_council,
-      conversation_type: :council_meeting
+      conversation_type: :council_meeting,
+      space: other_space
     )
     other_conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -348,7 +355,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
       title: "Update Test",
       user: @user,
       conversation_type: :adhoc,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -369,7 +377,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
       title: "Update Test",
       user: @user,
       conversation_type: :adhoc,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -389,7 +398,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
       title: "Update Test",
       user: @user,
       conversation_type: :adhoc,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -412,7 +422,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
       title: "Invite Test",
       user: @user,
       conversation_type: :adhoc,
-      status: :active
+      status: :active,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -437,7 +448,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
       title: "Invite Test",
       user: @user,
       conversation_type: :adhoc,
-      status: :active
+      status: :active,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -459,7 +471,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
       title: "Invite Test",
       user: @user,
       conversation_type: :adhoc,
-      status: :active
+      status: :active,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -481,7 +494,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
       title: "Invite Test",
       user: @user,
       conversation_type: :adhoc,
-      status: :concluding
+      status: :concluding,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -500,7 +514,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
       title: "Invite Test",
       user: @user,
       conversation_type: :adhoc,
-      status: :active
+      status: :active,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -522,7 +537,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     conversation = @account.conversations.create!(
       title: "Delete Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -543,7 +559,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
       title: "Delete Test",
       user: @user,
       council: @council,
-      conversation_type: :council_meeting
+      conversation_type: :council_meeting,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -562,7 +579,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     conversation = @account.conversations.create!(
       title: "Delete Test",
       user: other_user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -581,7 +599,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     conversation = @account.conversations.create!(
       title: "Delete Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -599,7 +618,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     conversation = @account.conversations.create!(
       title: "Delete Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -618,7 +638,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     conversation = @account.conversations.create!(
       title: "Delete Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
@@ -683,7 +704,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
       title: "Adhoc Layout Test",
       user: @user,
       conversation_type: :adhoc,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
     conversation.ensure_scribe_present!
 
@@ -706,7 +728,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
       title: "Meeting Layout Test",
       user: @user,
       council: council,
-      conversation_type: :council_meeting
+      conversation_type: :council_meeting,
+      space: @space
     )
 
     get conversation_path(conversation)
@@ -724,7 +747,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
       conv = @account.conversations.create!(
         title: "Adhoc #{i + 1}",
         user: @user,
-        conversation_type: :adhoc
+        conversation_type: :adhoc,
+        space: @space
       )
       conv.ensure_scribe_present!
     end
@@ -745,14 +769,16 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     conv1 = @account.conversations.create!(
       title: "First",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv1.ensure_scribe_present!
 
     conv2 = @account.conversations.create!(
       title: "Second",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conv2.ensure_scribe_present!
 
@@ -776,7 +802,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     conversation = @account.conversations.create!(
       title: "Scribe Display Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conversation.ensure_scribe_present!
     conversation.add_advisor(@advisor1)
@@ -796,7 +823,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     conversation = @account.conversations.create!(
       title: "All Participants Test",
       user: @user,
-      conversation_type: :adhoc
+      conversation_type: :adhoc,
+      space: @space
     )
     conversation.ensure_scribe_present!
     conversation.add_advisor(@advisor1)

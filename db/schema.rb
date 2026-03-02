@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_01_080438) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_01_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -114,6 +114,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_01_080438) do
     t.string "roe_type", default: "open", null: false
     t.string "rules_of_engagement", default: "round_robin"
     t.integer "scribe_initiated_count", default: 0
+    t.bigint "space_id", null: false
     t.string "status", default: "active"
     t.string "title"
     t.datetime "updated_at", null: false
@@ -125,6 +126,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_01_080438) do
     t.index ["council_id"], name: "index_conversations_on_council_id"
     t.index ["roe_type"], name: "index_conversations_on_roe_type"
     t.index ["rules_of_engagement"], name: "index_conversations_on_rules_of_engagement"
+    t.index ["space_id"], name: "index_conversations_on_space_id"
     t.index ["user_id"], name: "index_conversations_on_user_id"
   end
 
@@ -364,6 +366,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_01_080438) do
   add_foreign_key "conversation_participants", "conversations"
   add_foreign_key "conversations", "accounts"
   add_foreign_key "conversations", "councils"
+  add_foreign_key "conversations", "spaces"
   add_foreign_key "conversations", "users"
   add_foreign_key "council_advisors", "advisors"
   add_foreign_key "council_advisors", "councils"

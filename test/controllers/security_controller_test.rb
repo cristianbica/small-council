@@ -148,7 +148,7 @@ class SecurityControllerTest < ActionDispatch::IntegrationTest
       other_account.councils.create!(name: "Other Council", user: other_user, space: other_space)
     end
     other_conversation = ActsAsTenant.without_tenant do
-      other_account.conversations.create!(council: other_council, user: other_user, title: "Other Conv")
+      other_account.conversations.create!(council: other_council, user: other_user, title: "Other Conv", space: other_space)
     end
     ActsAsTenant.without_tenant do
       other_account.messages.create!(
@@ -255,7 +255,8 @@ class SecurityControllerTest < ActionDispatch::IntegrationTest
     other_conversation = @account.conversations.create!(
       council: other_council,
       user: @user,
-      title: "Other Space Conv"
+      title: "Other Space Conv",
+      space: other_space
     )
 
     # Try to post to conversation in other space while Current.space is @space

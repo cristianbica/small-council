@@ -7,7 +7,7 @@ class UsageRecordTest < ActiveSupport::TestCase
     @user = @account.users.create!(email: "user@example.com", password: "password123")
     @space = @account.spaces.create!(name: "Test Space")
     @council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    @conversation = @account.conversations.create!(council: @council, user: @user, title: "Test Conversation")
+    @conversation = @account.conversations.create!(council: @council, user: @user, title: "Test Conversation", space: @space)
   end
 
   # Validation tests

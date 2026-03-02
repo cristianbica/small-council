@@ -31,7 +31,8 @@ module AI
       @conversation = @account.conversations.create!(
         council: council,
         user: @user,
-        title: "Test Conversation"
+        title: "Test Conversation",
+        space: @space
       )
 
       # Create some test memories through the account (which sets both account_id and space_id)

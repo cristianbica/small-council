@@ -75,7 +75,7 @@ module AI
       # Get space from conversation (for adhoc) or council
       def effective_space
         return @space if @space
-        return @conversation.council.space if @conversation&.council_meeting?
+        return @conversation.space if @conversation
         nil
       end
 

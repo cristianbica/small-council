@@ -11,7 +11,7 @@ class ApplicationHelperTest < ActionView::TestCase
 
     @council = @account.councils.create!(name: "Helper Council", user: @user, space: @space)
     @conversation = @account.conversations.create!(
-      council: @council, user: @user, title: "Helper Conversation"
+      council: @council, user: @user, title: "Helper Conversation", space: @space
     )
 
     # Mock Current.user via a stub session
@@ -63,7 +63,7 @@ class ApplicationHelperTest < ActionView::TestCase
     other_user = @account.users.create!(email: "del_council@example.com", password: "password123")
     council = @account.councils.create!(name: "Del Council", user: other_user, space: @space)
     conversation = @account.conversations.create!(
-      council: council, user: @user, title: "Del Conv"
+      council: council, user: @user, title: "Del Conv", space: @space
     )
     set_current_user(other_user)
     assert can_delete_conversation?(conversation)

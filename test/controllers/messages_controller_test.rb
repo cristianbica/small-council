@@ -22,7 +22,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
   test "should redirect to sign in when not authenticated" do
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Test", space: @space)
 
     post conversation_messages_url(conversation), params: { message: { content: "Test" } }
     assert_redirected_to sign_in_url
@@ -32,7 +32,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Test", space: @space)
 
     assert_difference("Message.count", 1) do
       post conversation_messages_url(conversation), params: {
@@ -58,7 +58,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
       space: @space
     )
     council.advisors << advisor
-    conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Test", space: @space)
 
     # Add advisor as participant to satisfy conversation validation
     conversation.conversation_participants.create!(
@@ -77,7 +77,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Test", space: @space)
 
     assert_no_difference("Message.count") do
       post conversation_messages_url(conversation), params: {
@@ -99,7 +99,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
       space: @space
     )
     council.advisors << advisor
-    conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Test", space: @space)
 
     # Add advisor as participant (simulating what happens in real flow)
     conversation.conversation_participants.create!(
@@ -129,7 +129,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
       space: @space
     )
     council.advisors << advisor
-    conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Test", space: @space)
 
     # Add advisor as participant
     conversation.conversation_participants.create!(
@@ -176,7 +176,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
       other_account.councils.create!(name: "Other Council", user: other_user, space: other_space)
     end
     other_conversation = ActsAsTenant.without_tenant do
-      other_account.conversations.create!(council: other_council, user: other_user, title: "Other Conv")
+      other_account.conversations.create!(council: other_council, user: other_user, title: "Other Conv", space: other_space)
     end
 
     # The MessagesController uses Current.account.conversations.find
@@ -192,7 +192,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     other_user = @account.users.create!(email: "other-sender@example.com", password: "password123")
 
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Test", space: @space)
 
     assert_difference("Message.count", 1) do
       post conversation_messages_url(conversation), params: {
@@ -215,7 +215,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     set_tenant(@account)
 
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    conversation = @account.conversations.create!(council: council, user: @user, title: "Test")
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Test", space: @space)
 
     assert_difference("Message.count", 1) do
       post conversation_messages_url(conversation), params: {
@@ -240,7 +240,8 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
       council: council,
       user: @user,
       title: "Test",
-      status: :archived
+      status: :archived,
+      space: @space
     )
 
     # Should still allow messages (archived doesn't block messages currently)

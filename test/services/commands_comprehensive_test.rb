@@ -45,7 +45,8 @@ class CommandsComprehensiveTest < ActiveSupport::TestCase
       title: "Test Commands",
       user: @user,
       conversation_type: :adhoc,
-      roe_type: :open
+      roe_type: :open,
+      space: @space
     )
 
     # Add initial advisor

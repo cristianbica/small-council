@@ -21,7 +21,8 @@ module AI
         @conversation = @account.conversations.create!(
           council: @council,
           user: @user,
-          title: "Test Conversation"
+          title: "Test Conversation",
+          space: @space
         )
 
         # Create some memories
@@ -109,7 +110,8 @@ module AI
           @account.conversations.create!(
             council: @council,
             user: @user,
-            title: "Conversation #{i}"
+            title: "Conversation #{i}",
+            space: @space
           )
         end
 
@@ -125,7 +127,8 @@ module AI
         @account.conversations.create!(
           council: @council,
           user: @user,
-          title: "Another Conversation"
+          title: "Another Conversation",
+          space: @space
         )
 
         builder = TestBuilder.new(@space)
@@ -212,12 +215,12 @@ module AI
         assert_equal @space, builder.send(:effective_space)
       end
 
-      test "effective_space returns nil when both space and conversation council are nil" do
+      test "effective_space returns conversation space when space is nil" do
         adhoc_conv = @account.conversations.create!(
-          user: @user, title: "Adhoc No Space", conversation_type: "adhoc"
+          user: @user, title: "Adhoc No Space", conversation_type: "adhoc", space: @space
         )
         builder = TestBuilder.new(nil, adhoc_conv)
-        assert_nil builder.send(:effective_space)
+        assert_equal @space, builder.send(:effective_space)
       end
 
       test "roe_description returns open description for open roe_type" do

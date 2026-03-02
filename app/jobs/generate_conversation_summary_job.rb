@@ -138,7 +138,7 @@ class GenerateConversationSummaryJob < ApplicationJob
   # Create a memory entry for this conversation
   # This is saved as conversation_summary type (NOT auto-fed to agents)
   def create_conversation_memory(summary)
-    space = @conversation.council&.space
+    space = @conversation.space
     return unless space
 
     # Build memory content from structured summary

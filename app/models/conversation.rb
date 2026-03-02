@@ -2,6 +2,7 @@ class Conversation < ApplicationRecord
   acts_as_tenant :account
   belongs_to :account
   belongs_to :council, optional: true
+  belongs_to :space
   belongs_to :user
 
   has_many :messages, dependent: :destroy
@@ -32,9 +33,12 @@ class Conversation < ApplicationRecord
   }, default: "open"
 
   validates :account, presence: true
+  validates :space, presence: true
   validates :user, presence: true
   validates :title, presence: true
   validate :must_have_at_least_one_advisor, on: :update
+
+  before_validation :assign_space_from_council
 
   # Custom validation to check for advisors (skip on create to allow building participants)
   # The validation on :update ensures conversations eventually have advisors
@@ -74,7 +78,7 @@ class Conversation < ApplicationRecord
     return if has_scribe?
 
     # Find scribe from account
-    scribe = account.advisors.find_by(is_scribe: true)
+    scribe = space&.scribe_advisor
     return unless scribe
 
     conversation_participants.create!(
@@ -121,6 +125,13 @@ class Conversation < ApplicationRecord
     else
       1
     end
+  end
+
+  def assign_space_from_council
+    return if space_id.present?
+    return unless council
+
+    self.space = council.space
   end
 
   def clear_responded_advisors

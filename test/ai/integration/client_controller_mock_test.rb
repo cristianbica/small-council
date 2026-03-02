@@ -33,7 +33,8 @@ class AIClientControllerMockExampleTest < ActionDispatch::IntegrationTest
     @conversation = @account.conversations.create!(
       council: @council,
       user: @user,
-      title: "Test Conversation"
+      title: "Test Conversation",
+      space: @space
     )
     sign_in_as(@user)
   end

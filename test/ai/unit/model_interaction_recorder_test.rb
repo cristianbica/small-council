@@ -27,7 +27,7 @@ module AI
 
       # Create conversation infrastructure
       @council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-      @conversation = @account.conversations.create!(council: @council, user: @user, title: "Test")
+      @conversation = @account.conversations.create!(council: @council, user: @user, title: "Test", space: @space)
       @message = @account.messages.create!(
         conversation: @conversation, sender: @user, role: "user", content: "Hello"
       )

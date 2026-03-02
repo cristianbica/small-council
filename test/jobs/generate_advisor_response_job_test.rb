@@ -18,7 +18,8 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
     @conversation = @account.conversations.create!(
       council: @council,
       user: @user,
-      title: "Test"
+      title: "Test",
+      space: @space
     )
     @message = @conversation.messages.create!(
       account: @account,
@@ -326,7 +327,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
   test "resolves space from advisor for adhoc conversation" do
     # Create adhoc conversation (no council)
     adhoc_conv = @account.conversations.create!(
-      user: @user, title: "Adhoc", conversation_type: "adhoc"
+      user: @user, title: "Adhoc", conversation_type: "adhoc", space: @space
     )
     adhoc_msg = adhoc_conv.messages.create!(
       account: @account, sender: @advisor, role: "system",
@@ -396,7 +397,7 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
       space: nil
     )
     adhoc_conv = @account.conversations.create!(
-      user: @user, title: "Adhoc Spaceless", conversation_type: "adhoc"
+      user: @user, title: "Adhoc Spaceless", conversation_type: "adhoc", space: @space
     )
     adhoc_msg = adhoc_conv.messages.create!(
       account: @account, sender: spaceless_advisor, role: "system",
