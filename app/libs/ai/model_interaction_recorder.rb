@@ -125,7 +125,8 @@ module AI
       payload = {
         model: chat.model&.id,
         provider: chat.model&.provider,
-        temperature: chat.instance_variable_get(:@temperature)
+        temperature: chat.instance_variable_get(:@temperature),
+        tools: chat.tools.as_json
       }
 
       unless system_messages.empty?

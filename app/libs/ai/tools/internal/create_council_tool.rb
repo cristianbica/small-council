@@ -59,8 +59,8 @@ module AI
             description: description,
             visibility: normalized_visibility(visibility)
           )
-
-          advisor_ids = Array(advisor_ids).uniq
+          advisor_ids = JSON.parse(advisor_ids) if advisor_ids.is_a?(String)
+          advisor_ids = Array(advisor_ids).uniq.map(&:to_i)
           if advisor_ids.any?
             missing_ids = advisor_ids - space.advisors.where(id: advisor_ids).pluck(:id)
             if missing_ids.any?
