@@ -71,6 +71,103 @@ module AI
         assert context[:memories].count >= 3
       end
 
+      test "build includes memory_index with primary summary and knowledge entry fields" do
+        summary = @space.memories.create!(
+          account: @account,
+          title: "Space Summary",
+          content: "This is the primary context summary.",
+          memory_type: "summary",
+          status: "active"
+        )
+
+        knowledge = @space.memories.create!(
+          account: @account,
+          title: "Knowledge Alpha",
+          content: "Alpha details for advisor context.",
+          memory_type: "knowledge",
+          status: "active"
+        )
+
+        builder = ConversationContextBuilder.new(@space, @conversation)
+        context = builder.build
+
+        assert context[:memory_index].present?
+        assert_equal summary.id, context[:memory_index][:primary_summary][:id]
+        assert_equal "Space Summary", context[:memory_index][:primary_summary][:title]
+
+        knowledge_entry = context[:memory_index][:knowledge_entries].find { |entry| entry[:id] == knowledge.id }
+        assert_not_nil knowledge_entry
+        assert_equal "Knowledge Alpha", knowledge_entry[:title]
+        assert knowledge_entry[:summary_excerpt_50_words].present?
+      end
+
+      test "build memory_index caps knowledge entries at 8 and excludes archived" do
+        isolated_space = @account.spaces.create!(name: "Memory Cap Space")
+        isolated_council = @account.councils.create!(name: "Memory Cap Council", user: @user, space: isolated_space)
+        isolated_advisor = @account.advisors.create!(
+          name: "Isolated Advisor",
+          system_prompt: "You are isolated",
+          space: isolated_space
+        )
+        isolated_conversation = @account.conversations.create!(
+          council: isolated_council,
+          user: @user,
+          title: "Memory Cap Conversation",
+          space: isolated_space
+        )
+        isolated_conversation.conversation_participants.create!(
+          advisor: isolated_advisor,
+          role: :advisor,
+          position: 0
+        )
+
+        10.times do |i|
+          isolated_space.memories.create!(
+            account: @account,
+            title: "Knowledge #{i}",
+            content: "Knowledge content #{i}",
+            memory_type: "knowledge",
+            status: "active"
+          )
+        end
+
+        archived = isolated_space.memories.create!(
+          account: @account,
+          title: "Archived Knowledge",
+          content: "Should not appear",
+          memory_type: "knowledge",
+          status: "archived"
+        )
+
+        builder = ConversationContextBuilder.new(isolated_space, isolated_conversation)
+        context = builder.build
+
+        entries = context[:memory_index][:knowledge_entries]
+        assert_equal 8, entries.size
+        refute_includes entries.map { |entry| entry[:id] }, archived.id
+      end
+
+      test "build memory_index uses first 50 words with normalized whitespace" do
+        words = (1..60).map { |n| "word#{n}" }
+        long_content = "  #{words.join("  \n\t")}  "
+
+        memory = @space.memories.create!(
+          account: @account,
+          title: "Long Knowledge",
+          content: long_content,
+          memory_type: "knowledge",
+          status: "active"
+        )
+
+        builder = ConversationContextBuilder.new(@space, @conversation)
+        context = builder.build
+
+        entry = context[:memory_index][:knowledge_entries].find { |item| item[:id] == memory.id }
+        excerpt_words = entry[:summary_excerpt_50_words].split(" ")
+        assert_equal 50, excerpt_words.length
+        assert_equal words.first(50), excerpt_words
+      end
+
       test "build includes related conversations" do
         # Create additional conversations
         other_conversation = @account.conversations.create!(

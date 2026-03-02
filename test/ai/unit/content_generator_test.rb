@@ -132,6 +132,47 @@ module AI
       end
     end
 
+    test "generate_advisor_response passes memory_index through client context" do
+      @space.memories.create!(
+        account: @account,
+        title: "Primary Summary",
+        content: "Summary context",
+        memory_type: "summary",
+        status: "active"
+      )
+      @space.memories.create!(
+        account: @account,
+        title: "Knowledge One",
+        content: "Knowledge context",
+        memory_type: "knowledge",
+        status: "active"
+      )
+
+      mock_response = AI::Model::Response.new(content: "Context-aware response")
+      mock_client = stub("client")
+      captured_context = nil
+      mock_client.stubs(:chat).with do |payload|
+        captured_context = payload[:context]
+        true
+      end.returns(mock_response)
+
+      generator = ContentGenerator.new(client: mock_client)
+
+      response = generator.generate_advisor_response(
+        advisor: @advisor,
+        conversation: @conversation
+      )
+
+      memory_index = captured_context[:memory_index] || captured_context["memory_index"]
+
+      assert_equal "Context-aware response", response.content
+      assert memory_index.present?
+      assert (memory_index[:primary_summary] || memory_index["primary_summary"]).present?
+
+      knowledge_entries = memory_index[:knowledge_entries] || memory_index["knowledge_entries"] || []
+      assert knowledge_entries.any?
+    end
+
     # generate_conversation_summary Tests
 
     test "generate_conversation_summary returns summary text" do

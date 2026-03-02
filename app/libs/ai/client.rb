@@ -59,6 +59,11 @@ module AI
         # Set context on all tool adapters so they can pass it to tools
         @tool_adapters.each { |adapter| adapter.context = context }
 
+        memory_index_message = build_memory_index_context_message(context)
+        if memory_index_message.present?
+          ruby_llm_chat.add_message(role: "system", content: memory_index_message)
+        end
+
         # Add messages to chat
         messages.each do |msg|
           role = msg[:role] || msg["role"]
@@ -326,6 +331,39 @@ module AI
         usage: nil,
         raw: nil
       )
+    end
+
+    def build_memory_index_context_message(context)
+      memory_index = context[:memory_index]
+      return nil unless memory_index.is_a?(Hash)
+
+      primary_summary = memory_index[:primary_summary]
+      knowledge_entries = memory_index[:knowledge_entries]
+
+      has_primary_summary = primary_summary.is_a?(Hash)
+      has_knowledge_entries = knowledge_entries.respond_to?(:any?) && knowledge_entries.any?
+      return nil unless has_primary_summary || has_knowledge_entries
+
+      lines = [ "Memory index (curated):" ]
+
+      if has_primary_summary
+        lines << "Primary summary:"
+        lines << "- id: #{primary_summary[:id] || primary_summary['id']}"
+        lines << "- title: #{primary_summary[:title] || primary_summary['title']}"
+        lines << "- summary_excerpt_50_words: #{primary_summary[:summary_excerpt_50_words] || primary_summary['summary_excerpt_50_words']}"
+      end
+
+      if has_knowledge_entries
+        lines << "Knowledge entries:"
+        knowledge_entries.each_with_index do |entry, idx|
+          lines << "#{idx + 1}. id: #{entry[:id] || entry['id']}"
+          lines << "   title: #{entry[:title] || entry['title']}"
+          lines << "   summary_excerpt_50_words: #{entry[:summary_excerpt_50_words] || entry['summary_excerpt_50_words']}"
+        end
+      end
+
+      lines << "If more detail is needed, fetch by memory id using memory tools."
+      lines.join("\n")
     end
   end
 end

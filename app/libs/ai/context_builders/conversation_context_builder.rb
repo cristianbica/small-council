@@ -21,6 +21,9 @@ module AI
     #   context = builder.build
     #
     class ConversationContextBuilder < BaseContextBuilder
+      MEMORY_INDEX_KNOWLEDGE_LIMIT = 8
+      MEMORY_INDEX_EXCERPT_WORD_LIMIT = 50
+
       def build
         validate_conversation!
         validate_space!
@@ -32,6 +35,7 @@ module AI
           participants: conversation_participants_list,
           scribe: scribe_info,
           memories: recent_memories,
+          memory_index: memory_index,
           primary_summary: primary_summary,
           related_conversations: recent_conversations,
           advisors: conversation_advisors,
@@ -80,6 +84,48 @@ module AI
         return if @space
         return if @conversation&.council_meeting? && @conversation.council&.space
         raise ArgumentError, "Space is required"
+      end
+
+      def memory_index
+        index = {
+          primary_summary: memory_index_primary_summary,
+          knowledge_entries: memory_index_knowledge_entries
+        }
+
+        index.compact
+      end
+
+      def memory_index_primary_summary
+        summary = effective_space&.memories&.active&.summary_type&.recent&.first
+        return nil unless summary&.active?
+
+        {
+          id: summary.id,
+          title: summary.title,
+          summary_excerpt_50_words: summary_excerpt_50_words(summary.content)
+        }
+      end
+
+      def memory_index_knowledge_entries
+        effective_space&.memories
+          &.active
+          &.knowledge
+          &.recent
+          &.limit(MEMORY_INDEX_KNOWLEDGE_LIMIT)
+          &.map do |memory|
+            {
+              id: memory.id,
+              title: memory.title,
+              summary_excerpt_50_words: summary_excerpt_50_words(memory.content)
+            }
+          end || []
+      end
+
+      def summary_excerpt_50_words(content)
+        normalized = content.to_s.gsub(/\s+/, " ").strip
+        return "" if normalized.empty?
+
+        normalized.split(" ").first(MEMORY_INDEX_EXCERPT_WORD_LIMIT).join(" ")
       end
     end
   end

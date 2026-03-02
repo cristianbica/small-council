@@ -51,3 +51,13 @@ See conversation 22
 ## View model interactions as they happen
 
 Current model interactions are visible after the advisor has responded. I should be able to see them as they happen, especially for long responses. This would allow me to understand better what the model is doing and if it's going in the right direction. It would also allow me to stop it if I see it's going in the wrong direction.
+
+
+## Remove initial message from concil meeting
+
+Just ask for the topic and the user can ask for the questions in chat.
+
+## Allow to manage better conversations (adhoc)
+
+- allow to change title (and generate a title after first message?)
+- allow to delete conversations

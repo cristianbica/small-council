@@ -82,6 +82,61 @@ module AI
       assert_equal 150, response.usage.total_tokens
     end
 
+    test "chat adds serialized memory_index as system message before conversation messages" do
+      client = Client.new(model: @llm_model)
+
+      mock_response = Struct.new(:content, :input_tokens, :output_tokens, :model_id, :tool_calls).new(
+        "Response", 10, 5, "gpt-4", nil
+      )
+
+      added_messages = []
+      mock_chat = Object.new
+      mock_chat.define_singleton_method(:with_instructions) { |*| self }
+      mock_chat.define_singleton_method(:with_temperature) { |*| self }
+      mock_chat.define_singleton_method(:with_tools) { |*| self }
+      mock_chat.define_singleton_method(:on_end_message) { |&block| self }
+      mock_chat.define_singleton_method(:on_tool_call) { |&block| self }
+      mock_chat.define_singleton_method(:on_tool_result) { |&block| self }
+      mock_chat.define_singleton_method(:add_message) do |role:, content:|
+        added_messages << { role: role, content: content }
+        self
+      end
+      mock_chat.define_singleton_method(:complete) { mock_response }
+
+      mock_context = Struct.new(:chat_result) do
+        def chat(**args); chat_result; end
+      end.new(mock_chat)
+
+      RubyLLM.stubs(:context).yields(stub(:openai_api_key= => nil, :openai_organization_id= => nil)).returns(mock_context)
+
+      client.chat(
+        messages: [ { role: "user", content: "Hello" } ],
+        context: {
+          memory_index: {
+            primary_summary: {
+              id: 10,
+              title: "Team Summary",
+              summary_excerpt_50_words: "Key points"
+            },
+            knowledge_entries: [
+              {
+                id: 22,
+                title: "Decision Log",
+                summary_excerpt_50_words: "Use approach A"
+              }
+            ]
+          }
+        }
+      )
+
+      assert_equal "system", added_messages.first[:role]
+      assert_includes added_messages.first[:content], "Memory index (curated):"
+      assert_includes added_messages.first[:content], "Primary summary:"
+      assert_includes added_messages.first[:content], "Knowledge entries:"
+      assert_equal "user", added_messages.second[:role]
+      assert_equal "Hello", added_messages.second[:content]
+    end
+
     test "complete is convenience method for single-turn" do
       client = Client.new(model: @llm_model)
 
