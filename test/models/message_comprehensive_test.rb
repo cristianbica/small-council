@@ -696,7 +696,7 @@ class MessageComprehensiveTest < ActiveSupport::TestCase
 
   test "mentions handles mentions with underscores" do
     msg = @account.messages.new(content: "@advisor_name help")
-    assert_equal [ "advisor_name" ], msg.mentions
+    assert_equal [], msg.mentions
   end
 
   test "mentions handles mentions with numbers" do

@@ -534,6 +534,16 @@ class MessageTest < ActiveSupport::TestCase
     assert_equal [ "advisor1", "advisor-2" ], msg.mentions
   end
 
+  test "mentions does not parse underscore handles" do
+    msg = @account.messages.new(content: "@advisor_name and @advisor-name")
+    assert_equal [ "advisor-name" ], msg.mentions
+  end
+
+  test "mentions does not partially parse invalid handle tokens" do
+    msg = @account.messages.new(content: "@data_science and @data-science")
+    assert_equal [ "data-science" ], msg.mentions
+  end
+
   test "mentions returns empty array for content without mentions" do
     msg = @account.messages.new(content: "Hello everyone")
     assert_equal [], msg.mentions

@@ -1,4 +1,6 @@
 class Advisor < ApplicationRecord
+  NAME_FORMAT = /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/
+
   acts_as_tenant :account
   belongs_to :account
   belongs_to :space, optional: true
@@ -14,7 +16,14 @@ class Advisor < ApplicationRecord
   encrypts :system_prompt
   encrypts :short_description
 
+  before_validation :normalize_name
+
   validates :name, presence: true
+  validates :name, format: {
+    with: NAME_FORMAT,
+    message: "must contain only lowercase letters, numbers, and single dashes"
+  }
+  validates :name, uniqueness: { scope: :space_id, case_sensitive: false }
   validates :account, presence: true
 
   # Advisors need system_prompt but llm_model is optional (defaults to account default)
@@ -46,6 +55,16 @@ class Advisor < ApplicationRecord
   delegate :provider, :provider_type, to: :effective_llm_model, allow_nil: true
 
   private
+
+  def normalize_name
+    return if name.nil?
+
+    self.name = name.to_s
+      .downcase
+      .gsub(/[^a-z0-9-]+/, "-")
+      .gsub(/-+/, "-")
+      .gsub(/\A-+|-+\z/, "")
+  end
 
   # Validate that if llm_model_id is provided, it belongs to the account
   def llm_model_belongs_to_account

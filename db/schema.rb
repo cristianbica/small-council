@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_02_110000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_02_123100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -78,14 +78,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_02_110000) do
     t.bigint "space_id"
     t.text "system_prompt", null: false
     t.datetime "updated_at", null: false
+    t.index "space_id, lower((name)::text)", name: "index_advisors_on_space_id_and_lower_name_unique", unique: true
     t.index ["account_id", "space_id"], name: "index_advisors_on_account_id_and_space_id"
     t.index ["account_id"], name: "index_advisors_on_account_id"
     t.index ["is_scribe"], name: "index_advisors_on_is_scribe"
     t.index ["llm_model_id"], name: "index_advisors_on_llm_model_id"
     t.index ["metadata"], name: "index_advisors_on_metadata", using: :gin
     t.index ["model_config"], name: "index_advisors_on_model_config", using: :gin
-    t.index ["space_id", "name"], name: "index_advisors_on_space_id_and_name"
     t.index ["space_id"], name: "index_advisors_on_space_id"
+    t.check_constraint "name::text ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'::text", name: "advisors_name_canonical_format"
   end
 
   create_table "conversation_participants", force: :cascade do |t|

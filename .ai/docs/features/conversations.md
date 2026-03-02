@@ -104,10 +104,10 @@ Users can change RoE at any time during a conversation using the dropdown in the
 
 ### @Mentions
 
-Use `@Advisor_Name` in messages to trigger specific advisors:
+Use `@advisor-name` in messages to trigger specific advisors:
 - Works in all modes (overrides normal RoE behavior)
-- Names are case-insensitive and use underscores for spaces
-- Example: `@Helper_Bot` mentions advisor named "Helper Bot"
+- Names are canonicalized to lowercase letters, numbers, and dashes
+- Example: `@helper-bot` mentions advisor named `helper-bot`
 
 ### AI Response Flow
 

@@ -11,7 +11,7 @@ export default class extends Controller {
     console.log('Advisors data:', this.advisorsValue)
     
     const values = this.advisorsValue.map(advisor => ({
-      value: this.parameterize(advisor.name)
+      value: advisor.name
     }))
     
     console.log('Tribute values:', values)
@@ -38,14 +38,5 @@ export default class extends Controller {
     if (this.tribute) {
       this.tribute.detach(this.inputTarget)
     }
-  }
-
-  parameterize(string) {
-    return string
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '')
   }
 }

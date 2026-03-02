@@ -45,7 +45,7 @@ class Space < ApplicationRecord
         3. You can initiate follow-up questions to advisors (maximum 3 consecutive interactions)
         4. When users mention @all or @everyone, coordinate responses from all relevant advisors
         5. Help maintain conversation focus and depth limits based on Rules of Engagement
-        6. Users can invite new advisors with /invite @advisor_name
+        6. Users can invite new advisors with /invite @advisor-name
 
         For Open RoE:
         - Advisors respond only when mentioned by name or with @all

@@ -139,7 +139,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?"
+      content: "@strategic-advisor what do you think?"
     )
 
     lifecycle = ConversationLifecycle.new(conv)
@@ -158,7 +158,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor and @technical_expert please help"
+      content: "@strategic-advisor and @technical-expert please help"
     )
 
     lifecycle = ConversationLifecycle.new(conv)
@@ -243,7 +243,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
     assert_includes msg.pending_advisor_ids, @advisor2.id
   end
 
-  test "user_posted_message mention with underscores matches advisor name with spaces" do
+  test "user_posted_message mention with underscores does not match canonical name" do
     advisor_with_spaces = @account.advisors.create!(
       name: "Data Science Expert",
       system_prompt: "You are a data scientist.",
@@ -263,7 +263,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
     lifecycle = ConversationLifecycle.new(conv)
     lifecycle.user_posted_message(msg)
 
-    assert_includes msg.reload.pending_advisor_ids, advisor_with_spaces.id
+    assert_not_includes msg.reload.pending_advisor_ids, advisor_with_spaces.id
   end
 
   test "user_posted_message mention with dashes matches advisor name" do
@@ -296,7 +296,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@STRATEGIC_ADVISOR what do you think?"
+      content: "@STRATEGIC-ADVISOR what do you think?"
     )
 
     lifecycle = ConversationLifecycle.new(conv)
@@ -318,7 +318,30 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
     lifecycle = ConversationLifecycle.new(conv)
     lifecycle.user_posted_message(msg)
 
-    assert_includes msg.reload.pending_advisor_ids, @advisor1.id
+    assert_not_includes msg.reload.pending_advisor_ids, @advisor1.id
+  end
+
+  test "user_posted_message does not partially resolve invalid underscore mention to canonical prefix" do
+    data_advisor = @account.advisors.create!(
+      name: "Data",
+      system_prompt: "You are data focused.",
+      space: @space,
+      llm_model: @llm_model
+    )
+    conv = create_conversation(roe_type: :open)
+    conv.conversation_participants.create!(advisor: data_advisor, role: :advisor, position: 2)
+
+    msg = conv.messages.create!(
+      account: @account,
+      sender: @user,
+      role: "user",
+      content: "@data_science what do you think?"
+    )
+
+    lifecycle = ConversationLifecycle.new(conv)
+    lifecycle.user_posted_message(msg)
+
+    assert_not_includes msg.reload.pending_advisor_ids, data_advisor.id
   end
 
   test "user_posted_message with non-existent mention does not trigger advisors" do
@@ -328,7 +351,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@nonexistent_advisor what do you think?"
+      content: "@nonexistent-advisor what do you think?"
     )
 
     lifecycle = ConversationLifecycle.new(conv)
@@ -549,7 +572,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?",
+      content: "@strategic-advisor what do you think?",
       pending_advisor_ids: [ @advisor1.id ]
     )
 
@@ -579,7 +602,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?",
+      content: "@strategic-advisor what do you think?",
       pending_advisor_ids: [ @advisor1.id ]
     )
 
@@ -609,7 +632,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?",
+      content: "@strategic-advisor what do you think?",
       pending_advisor_ids: [ @advisor1.id ]
     )
 
@@ -639,7 +662,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?",
+      content: "@strategic-advisor what do you think?",
       pending_advisor_ids: [ @advisor1.id ]
     )
 
@@ -705,7 +728,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?"
+      content: "@strategic-advisor what do you think?"
     )
 
     lifecycle = ConversationLifecycle.new(conv)
@@ -722,7 +745,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?"
+      content: "@strategic-advisor what do you think?"
     )
 
     lifecycle = ConversationLifecycle.new(conv)
@@ -739,7 +762,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?"
+      content: "@strategic-advisor what do you think?"
     )
 
     lifecycle = ConversationLifecycle.new(conv)
@@ -756,7 +779,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?"
+      content: "@strategic-advisor what do you think?"
     )
 
     lifecycle = ConversationLifecycle.new(conv)
@@ -776,7 +799,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor @technical_expert what do you think?",
+      content: "@strategic-advisor @technical-expert what do you think?",
       pending_advisor_ids: [ @advisor1.id, @advisor2.id ]
     )
 

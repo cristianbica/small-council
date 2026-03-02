@@ -102,18 +102,19 @@ class CommandsComprehensiveTest < ActiveSupport::TestCase
   test "InviteCommand invalid without arguments" do
     cmd = Commands::InviteCommand.new([])
     assert_not cmd.valid?
-    assert_includes cmd.errors, "Usage: /invite @advisor_name"
+    assert_includes cmd.errors, "Usage: /invite @advisor-name"
   end
 
   test "InviteCommand invalid without @ prefix" do
     cmd = Commands::InviteCommand.new([ "advisor" ])
     assert_not cmd.valid?
-    assert_includes cmd.errors, "Please mention an advisor with @advisor_name"
+    assert_includes cmd.errors, "Please mention an advisor with @advisor-name"
   end
 
   test "InviteCommand invalid with just @" do
     cmd = Commands::InviteCommand.new([ "@" ])
-    assert cmd.valid? # Just @ is technically valid (will fail during execution)
+    assert_not cmd.valid?
+    assert_includes cmd.errors, "Please mention an advisor with @advisor-name"
   end
 
   test "InviteCommand valid with @mention" do
@@ -127,18 +128,18 @@ class CommandsComprehensiveTest < ActiveSupport::TestCase
   # ============================================================================
 
   test "InviteCommand.execute adds new advisor to conversation" do
-    cmd = Commands::InviteCommand.new([ "@technical_expert" ])
+    cmd = Commands::InviteCommand.new([ "@technical-expert" ])
     result = cmd.execute(conversation: @conversation, user: @user)
 
     assert result[:success]
-    assert_includes result[:message], "Technical Expert has been invited"
+    assert_includes result[:message], "technical-expert has been invited"
 
     @conversation.reload
     assert_includes @conversation.advisors, @advisor2
   end
 
   test "InviteCommand.execute fails for non-existent advisor" do
-    cmd = Commands::InviteCommand.new([ "@nonexistent_advisor" ])
+    cmd = Commands::InviteCommand.new([ "@nonexistent-advisor" ])
     result = cmd.execute(conversation: @conversation, user: @user)
 
     assert_not result[:success]
@@ -146,7 +147,7 @@ class CommandsComprehensiveTest < ActiveSupport::TestCase
   end
 
   test "InviteCommand.execute fails when advisor already in conversation" do
-    cmd = Commands::InviteCommand.new([ "@strategic_advisor" ])
+    cmd = Commands::InviteCommand.new([ "@strategic-advisor" ])
     result = cmd.execute(conversation: @conversation, user: @user)
 
     assert_not result[:success]
@@ -162,14 +163,14 @@ class CommandsComprehensiveTest < ActiveSupport::TestCase
   end
 
   test "InviteCommand.execute is case-insensitive" do
-    cmd = Commands::InviteCommand.new([ "@TECHNICAL_EXPERT" ])
+    cmd = Commands::InviteCommand.new([ "@TECHNICAL-EXPERT" ])
     result = cmd.execute(conversation: @conversation, user: @user)
 
     assert result[:success]
     assert_includes @conversation.reload.advisors, @advisor2
   end
 
-  test "InviteCommand.execute handles names with spaces (underscore format)" do
+  test "InviteCommand.execute handles canonicalized names" do
     special_advisor = @account.advisors.create!(
       name: "Data Science Expert",
       system_prompt: "You are a data scientist",
@@ -177,7 +178,7 @@ class CommandsComprehensiveTest < ActiveSupport::TestCase
       llm_model: @llm_model
     )
 
-    cmd = Commands::InviteCommand.new([ "@data_science_expert" ])
+    cmd = Commands::InviteCommand.new([ "@data-science-expert" ])
     result = cmd.execute(conversation: @conversation, user: @user)
 
     assert result[:success]
@@ -192,20 +193,11 @@ class CommandsComprehensiveTest < ActiveSupport::TestCase
       llm_model: @llm_model
     )
 
-    # Try both formats - underscore replaces both space and dash
-    cmd = Commands::InviteCommand.new([ "@ai_expert_advisor" ])
+    cmd = Commands::InviteCommand.new([ "@ai-expert-advisor" ])
     result = cmd.execute(conversation: @conversation, user: @user)
 
-    # The underscore format should match after gsub replaces _ with space
-    # "ai expert advisor" should match "ai-expert-advisor" after normalization
-    # If that doesn't work, we just verify the command runs (may fail with "not found")
-    if result[:success]
-      assert_includes @conversation.reload.advisors, dash_advisor
-    else
-      # The name lookup is case-insensitive but doesn't handle dash->space conversion
-      # This is acceptable behavior - just verify we got a clean error
-      assert_includes result[:message], "not found"
-    end
+    assert result[:success]
+    assert_includes @conversation.reload.advisors, dash_advisor
   end
 
   # ============================================================================
@@ -228,7 +220,7 @@ class CommandsComprehensiveTest < ActiveSupport::TestCase
     )
 
     # Note: The command only uses the first argument currently
-    cmd = Commands::InviteCommand.new([ "@first_new_advisor", "@second_new_advisor" ])
+    cmd = Commands::InviteCommand.new([ "@first-new-advisor", "@second-new-advisor" ])
     result = cmd.execute(conversation: @conversation, user: @user)
 
     assert result[:success]
@@ -267,7 +259,7 @@ class CommandsComprehensiveTest < ActiveSupport::TestCase
   test "InviteCommand handles database errors gracefully" do
     # Create situation where save might fail
     # This is hard to test without mocking, but we verify error handling exists
-    cmd = Commands::InviteCommand.new([ "@technical_expert" ])
+    cmd = Commands::InviteCommand.new([ "@technical-expert" ])
 
     # First add the advisor
     result1 = cmd.execute(conversation: @conversation, user: @user)

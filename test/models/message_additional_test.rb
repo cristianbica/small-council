@@ -222,7 +222,7 @@ class MessageAdditionalTest < ActiveSupport::TestCase
 
   test "mentions handles special characters in names" do
     msg = @conversation.messages.new(content: "@user_name @user-name @UserName")
-    assert_equal [ "user_name", "user-name", "UserName" ], msg.mentions
+    assert_equal [ "user-name", "UserName" ], msg.mentions
   end
 
   # ============================================================================

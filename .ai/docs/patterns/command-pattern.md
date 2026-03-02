@@ -20,7 +20,7 @@ app/services/
 
 ```ruby
 # In a controller or service
-command = CommandParser.parse("/invite @advisor_name")
+command = CommandParser.parse("/invite @advisor-name")
 
 if command
   if command.valid?

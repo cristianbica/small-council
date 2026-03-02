@@ -36,14 +36,6 @@ They should take turns so I can actually see their answers
 
 Current model interactions are visible after the advisor has responded. I should be able to see them as they happen, especially for long responses. This would allow me to understand better what the model is doing and if it's going in the right direction. It would also allow me to stop it if I see it's going in the wrong direction.
 
-## model interactions record tools
-
-When recording request information record also the tools section sent to the model (ideally we would snapshot the exact payload)
-
-## Convert advisors names to handles
-
-To avoid confusion in mentions let's use the name as a mention and validate it contains only letters, numbers and dashes and convert it to lowercase.
-
 ## Address possible bias in responses
 
 On discussions I get the impression that advisors are getting biased by previous messages in the conversation from other advisorsx.

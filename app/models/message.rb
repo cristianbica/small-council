@@ -1,4 +1,13 @@
 class Message < ApplicationRecord
+  HANDLE_MENTION_REGEX = /(?:^|[^a-z0-9_])@([a-z0-9]+(?:-[a-z0-9]+)*)(?![a-z0-9_])/i
+  ALL_MENTION_REGEX = /(?:^|[^a-z0-9_])@(all|everyone)(?![a-z0-9_])/i
+
+  def self.extract_mentions(text)
+    return [] if text.blank?
+
+    text.scan(HANDLE_MENTION_REGEX).flatten
+  end
+
   acts_as_tenant :account
   belongs_to :account
   belongs_to :conversation
@@ -87,13 +96,11 @@ class Message < ApplicationRecord
 
   # Parse @mentions from content
   def mentions
-    return [] if content.blank?
-
-    content.scan(/@([a-zA-Z0-9_\-]+)/i).flatten
+    self.class.extract_mentions(content)
   end
 
   # Check if content mentions @all or @everyone
   def mentions_all?
-    content&.match?(/@all|@everyone/i)
+    content&.match?(ALL_MENTION_REGEX)
   end
 end

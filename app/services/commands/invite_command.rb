@@ -1,23 +1,26 @@
 # app/services/commands/invite_command.rb
 module Commands
   class InviteCommand < BaseCommand
+    ADVISOR_HANDLE_FORMAT = /\A@[a-z0-9]+(?:-[a-z0-9]+)*\z/i
+
     def validate
       if args.empty?
-        @errors << "Usage: /invite @advisor_name"
+        @errors << "Usage: /invite @advisor-name"
         return
       end
 
       mention = args.first
-      unless mention.start_with?("@")
-        @errors << "Please mention an advisor with @advisor_name"
+      unless mention.match?(ADVISOR_HANDLE_FORMAT)
+        @errors << "Please mention an advisor with @advisor-name"
       end
     end
 
     def execute(conversation:, user:)
-      advisor_name = args.first.sub("@", "").gsub(/_/, " ")
+      advisor_name = args.first.delete_prefix("@").downcase
 
-      # Find advisor by name (case-insensitive, with underscores as spaces)
-      advisor = conversation.account.advisors.find_by("LOWER(name) = ?", advisor_name.downcase)
+      return { success: false, message: "Conversation space is required" } if conversation.space_id.blank?
+
+      advisor = conversation.account.advisors.find_by(space_id: conversation.space_id, name: advisor_name)
 
       if advisor.nil?
         return { success: false, message: "Advisor '@#{advisor_name}' not found" }

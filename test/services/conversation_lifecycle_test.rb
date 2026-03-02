@@ -115,7 +115,7 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?",
+      content: "@strategic-advisor what do you think?",
       pending_advisor_ids: [ @advisor1.id ]
     )
 
@@ -173,7 +173,7 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "/invite @new_advisor"
+      content: "/invite @new-advisor"
     )
 
     lifecycle = ConversationLifecycle.new(conv)
@@ -192,7 +192,7 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?"
+      content: "@strategic-advisor what do you think?"
     )
 
     lifecycle = ConversationLifecycle.new(conv)
@@ -287,7 +287,7 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?",
+      content: "@strategic-advisor what do you think?",
       pending_advisor_ids: [ @advisor1.id ]
     )
 
@@ -314,7 +314,7 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?",
+      content: "@strategic-advisor what do you think?",
       pending_advisor_ids: [ @advisor1.id ]
     )
 
@@ -343,7 +343,7 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?",
+      content: "@strategic-advisor what do you think?",
       pending_advisor_ids: [ @advisor1.id ]
     )
 
@@ -370,7 +370,7 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?"
+      content: "@strategic-advisor what do you think?"
     )
 
     lifecycle = ConversationLifecycle.new(conv)
@@ -405,7 +405,7 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?",
+      content: "@strategic-advisor what do you think?",
       pending_advisor_ids: [ @advisor1.id ]
     )
 
@@ -434,7 +434,7 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
       account: @account,
       sender: @user,
       role: "user",
-      content: "@strategic_advisor what do you think?",
+      content: "@strategic-advisor what do you think?",
       pending_advisor_ids: [ @advisor1.id ]
     )
 

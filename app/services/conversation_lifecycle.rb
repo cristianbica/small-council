@@ -192,22 +192,16 @@ class ConversationLifecycle
   def parse_mentions(content)
     return [] if content.blank?
 
-    mentioned_names = content.scan(/@([a-zA-Z0-9_\-]+)/i).flatten.map(&:downcase)
+    mentioned_names = Message.extract_mentions(content).map(&:downcase).uniq
 
     # Filter out 'all' and 'everyone' as they're handled separately
     mentioned_names.reject! { |name| name == "all" || name == "everyone" }
 
-    @conversation.all_participant_advisors.select do |advisor|
-      mentioned_names.any? { |name| name_matches?(advisor, name) }
-    end
-  end
+    return [] if mentioned_names.empty?
 
-  def name_matches?(advisor, mention)
-    advisor_name_normalized = advisor.name.downcase.gsub(/[\s\-]+/, "_")
-    mention_normalized = mention.downcase.gsub(/[\s\-]+/, "_")
+    advisors_by_name = @conversation.all_participant_advisors.index_by(&:name)
 
-    advisor_name_normalized == mention_normalized ||
-      advisor.name.downcase.include?(mention.downcase)
+    mentioned_names.filter_map { |name| advisors_by_name[name] }
   end
 
   def create_system_message(content)

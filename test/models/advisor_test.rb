@@ -22,7 +22,7 @@ class AdvisorTest < ActiveSupport::TestCase
   test "valid with all required attributes" do
     space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.new(
-      name: "Test Advisor",
+      name: "test-advisor",
       system_prompt: "You are a helpful test advisor",
       llm_model: @llm_model,
       space: space
@@ -44,7 +44,7 @@ class AdvisorTest < ActiveSupport::TestCase
   test "invalid without system_prompt for non-simple advisor" do
     space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.new(
-      name: "Test Advisor",
+      name: "test-advisor",
       llm_model: @llm_model,
       space: space
     )
@@ -55,7 +55,7 @@ class AdvisorTest < ActiveSupport::TestCase
   test "valid without llm_model - falls back to account default" do
     space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.new(
-      name: "Test Advisor",
+      name: "test-advisor",
       system_prompt: "You are a test advisor",
       space: space
     )
@@ -127,7 +127,7 @@ class AdvisorTest < ActiveSupport::TestCase
 
   test "valid without space (space is optional)" do
     advisor = @account.advisors.new(
-      name: "Test Advisor",
+      name: "test-advisor",
       system_prompt: "You are a test advisor",
       llm_model: @llm_model
     )
@@ -137,7 +137,7 @@ class AdvisorTest < ActiveSupport::TestCase
   test "valid with space, name, system_prompt, and llm_model" do
     space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.new(
-      name: "Test Advisor",
+      name: "test-advisor",
       space: space,
       llm_model: @llm_model,
       system_prompt: "You are a helpful advisor"
@@ -160,7 +160,7 @@ class AdvisorTest < ActiveSupport::TestCase
   test "delegates provider to llm_model" do
     space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.create!(
-      name: "Test Advisor",
+      name: "test-advisor",
       system_prompt: "You are a test advisor",
       llm_model: @llm_model,
       space: space
@@ -171,7 +171,7 @@ class AdvisorTest < ActiveSupport::TestCase
   test "delegates provider_type to llm_model" do
     space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.create!(
-      name: "Test Advisor",
+      name: "test-advisor",
       system_prompt: "You are a test advisor",
       llm_model: @llm_model,
       space: space
@@ -194,7 +194,7 @@ class AdvisorTest < ActiveSupport::TestCase
   test "scribe? returns false when is_scribe is false" do
     space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.create!(
-      name: "Regular Advisor",
+      name: "regular-advisor",
       system_prompt: "You are a regular advisor.",
       space: space,
       is_scribe: false
@@ -205,7 +205,7 @@ class AdvisorTest < ActiveSupport::TestCase
   test "scribe? returns false when is_scribe is nil" do
     space = @account.spaces.create!(name: "Test Space")
     advisor = @account.advisors.create!(
-      name: "Another Advisor",
+      name: "another-advisor",
       system_prompt: "You are an advisor.",
       space: space
     )
@@ -215,11 +215,79 @@ class AdvisorTest < ActiveSupport::TestCase
   test "scribe does not require system_prompt" do
     space = @account.spaces.create!(name: "Test Space")
     scribe = @account.advisors.new(
-      name: "Scribe Without Prompt",
+      name: "scribe-without-prompt",
       space: space,
       is_scribe: true
     )
     assert scribe.valid?
+  end
+
+  test "normalizes advisor name to canonical lowercase dash format" do
+    space = @account.spaces.create!(name: "Canonical Space")
+
+    advisor = @account.advisors.create!(
+      name: "  Data Science_Expert!!  ",
+      system_prompt: "You are canonical.",
+      llm_model: @llm_model,
+      space: space
+    )
+
+    assert_equal "data-science-expert", advisor.name
+  end
+
+  test "rejects names that canonicalize to blank" do
+    space = @account.spaces.create!(name: "Invalid Name Space")
+
+    advisor = @account.advisors.new(
+      name: "___",
+      system_prompt: "You are invalid.",
+      llm_model: @llm_model,
+      space: space
+    )
+
+    assert_not advisor.valid?
+    assert_includes advisor.errors[:name], "can't be blank"
+  end
+
+  test "enforces case-insensitive uniqueness per space" do
+    space = @account.spaces.create!(name: "Uniq Space")
+    @account.advisors.create!(
+      name: "product-lead",
+      system_prompt: "You are first.",
+      llm_model: @llm_model,
+      space: space
+    )
+
+    duplicate = @account.advisors.new(
+      name: "PRODUCT-LEAD",
+      system_prompt: "You are second.",
+      llm_model: @llm_model,
+      space: space
+    )
+
+    assert_not duplicate.valid?
+    assert_includes duplicate.errors[:name], "has already been taken"
+  end
+
+  test "allows same canonical name in different spaces" do
+    space_one = @account.spaces.create!(name: "Space One")
+    space_two = @account.spaces.create!(name: "Space Two")
+
+    @account.advisors.create!(
+      name: "ops-lead",
+      system_prompt: "You are in one.",
+      llm_model: @llm_model,
+      space: space_one
+    )
+
+    advisor = @account.advisors.new(
+      name: "OPS-LEAD",
+      system_prompt: "You are in two.",
+      llm_model: @llm_model,
+      space: space_two
+    )
+
+    assert advisor.valid?
   end
 
   test "has many conversation_participants" do

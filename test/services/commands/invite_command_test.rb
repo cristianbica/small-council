@@ -69,7 +69,7 @@ class Commands::InviteCommandTest < ActiveSupport::TestCase
   end
 
   test "valid with @mention argument" do
-    cmd = Commands::InviteCommand.new([ "@strategic_advisor" ])
+    cmd = Commands::InviteCommand.new([ "@strategic-advisor" ])
     assert cmd.valid?
     assert_empty cmd.errors
   end
@@ -77,13 +77,19 @@ class Commands::InviteCommandTest < ActiveSupport::TestCase
   test "invalid without arguments" do
     cmd = Commands::InviteCommand.new([])
     assert_not cmd.valid?
-    assert_includes cmd.errors, "Usage: /invite @advisor_name"
+    assert_includes cmd.errors, "Usage: /invite @advisor-name"
   end
 
   test "invalid without @ prefix" do
     cmd = Commands::InviteCommand.new([ "advisor" ])
     assert_not cmd.valid?
-    assert_includes cmd.errors, "Please mention an advisor with @advisor_name"
+    assert_includes cmd.errors, "Please mention an advisor with @advisor-name"
+  end
+
+  test "invalid with underscore handle" do
+    cmd = Commands::InviteCommand.new([ "@strategic_advisor" ])
+    assert_not cmd.valid?
+    assert_includes cmd.errors, "Please mention an advisor with @advisor-name"
   end
 
   test "execute adds advisor to conversation" do
@@ -94,11 +100,11 @@ class Commands::InviteCommandTest < ActiveSupport::TestCase
       llm_model: @llm_model
     )
 
-    cmd = Commands::InviteCommand.new([ "@new_advisor" ])
+    cmd = Commands::InviteCommand.new([ "@new-advisor" ])
     result = cmd.execute(conversation: @conversation, user: @user)
 
     assert result[:success], "Expected success but got: #{result[:message]}"
-    assert_includes result[:message], "New Advisor has been invited"
+    assert_includes result[:message], "new-advisor has been invited"
     assert_includes @conversation.advisors.reload, advisor3
   end
 
@@ -111,7 +117,7 @@ class Commands::InviteCommandTest < ActiveSupport::TestCase
   end
 
   test "execute returns error when advisor already in conversation" do
-    cmd = Commands::InviteCommand.new([ "@Strategic_Advisor" ])
+    cmd = Commands::InviteCommand.new([ "@Strategic-Advisor" ])
     result = cmd.execute(conversation: @conversation, user: @user)
 
     assert_not result[:success], "Expected failure but got: #{result[:message]}"
@@ -134,14 +140,14 @@ class Commands::InviteCommandTest < ActiveSupport::TestCase
       llm_model: @llm_model
     )
 
-    cmd = Commands::InviteCommand.new([ "@NEW_ADVISOR" ])
+    cmd = Commands::InviteCommand.new([ "@NEW-ADVISOR" ])
     result = cmd.execute(conversation: @conversation, user: @user)
 
     assert result[:success], "Expected success but got: #{result[:message]}"
-    assert_includes result[:message], "New Advisor"
+    assert_includes result[:message], "new-advisor"
   end
 
-  test "execute handles names with spaces and dashes" do
+  test "execute resolves canonical dash names" do
     advisor3 = @account.advisors.create!(
       name: "Data Science Expert",
       system_prompt: "You are a data scientist.",
@@ -149,10 +155,26 @@ class Commands::InviteCommandTest < ActiveSupport::TestCase
       llm_model: @llm_model
     )
 
-    cmd = Commands::InviteCommand.new([ "@data_science_expert" ])
+    cmd = Commands::InviteCommand.new([ "@data-science-expert" ])
     result = cmd.execute(conversation: @conversation, user: @user)
 
     assert result[:success], "Expected success but got: #{result[:message]}"
     assert_includes @conversation.advisors.reload, advisor3
+  end
+
+  test "execute does not resolve advisor from different space" do
+    other_space = @account.spaces.create!(name: "Other Space")
+    @account.advisors.create!(
+      name: "Cross Space Advisor",
+      system_prompt: "You are elsewhere.",
+      space: other_space,
+      llm_model: @llm_model
+    )
+
+    cmd = Commands::InviteCommand.new([ "@cross-space-advisor" ])
+    result = cmd.execute(conversation: @conversation, user: @user)
+
+    assert_not result[:success]
+    assert_includes result[:message], "not found"
   end
 end

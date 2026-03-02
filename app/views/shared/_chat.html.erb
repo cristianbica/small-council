@@ -169,7 +169,7 @@
         <div class="form-control flex-1 relative">
             <%= form.text_area :content,
                 class: "textarea textarea-bordered w-full resize-none min-h-[80px]",
-                placeholder: "Type your message... (Ctrl+Enter to send, @ to mention, /invite @advisor to add)",
+                placeholder: "Type your message... (Ctrl+Enter to send, @ to mention, /invite @advisor-name to add)",
                 rows: 3,
                 required: true,
                 maxlength: 4000,
@@ -190,7 +190,7 @@
         <div class="flex items-center justify-between mt-2 text-xs text-base-content/50">
           <div class="flex items-center gap-4">
             <span>Use <kbd class="kbd kbd-sm">@all</kbd> for everyone</span>
-            <span><kbd class="kbd kbd-sm">/invite @advisor</kbd> to add</span>
+            <span><kbd class="kbd kbd-sm">/invite @advisor-name</kbd> to add</span>
             <span>Ctrl+Enter to send</span>
           </div>
           <div data-conversation-target="charCount">0 / 4000</div>

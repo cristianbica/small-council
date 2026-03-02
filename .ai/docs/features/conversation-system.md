@@ -34,7 +34,7 @@ Depth controls how many levels of replies are allowed:
 
 | Command | Usage | Description |
 |---------|-------|-------------|
-| `/invite` | `/invite @advisor_name` | Add advisor to conversation |
+| `/invite` | `/invite @advisor-name` | Add advisor to conversation |
 
 Commands are parsed by `CommandParser` and executed by command classes in `app/services/commands/`.
 
@@ -104,7 +104,7 @@ Main orchestrator for conversation flow:
 Parses `/` commands from messages. Extensible system for adding new commands.
 
 ### Commands::InviteCommand
-Validates and executes `/invite @advisor`:
+Validates and executes `/invite @advisor-name`:
 - Checks advisor exists
 - Checks not already in conversation
 - Cannot invite scribe (auto-present)
@@ -142,7 +142,7 @@ conversation.ensure_scribe_present!
 - Generation failures keep the existing title unchanged
 
 ### Inviting Advisor via Command
-User types: `/invite @technical_expert`
+User types: `/invite @technical-expert`
 
 Or via UI:
 ```ruby
