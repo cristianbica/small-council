@@ -187,3 +187,59 @@ html {
     border-bottom: 1px solid #e5e7eb;
   }
 }
+
+/* Messages area scrollbar - Stage 1: Layout Foundation */
+.messages-area {
+  scroll-behavior: smooth;
+  position: relative;
+}
+
+.messages-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.messages-area::-webkit-scrollbar-thumb {
+  background: var(--color-base-300);
+  border-radius: 999px;
+}
+
+/* Scroll-to-latest button - Stage 3: Polish & Interactions */
+.scroll-to-latest {
+  position: sticky;
+  bottom: 24px;
+  left: 100%;
+  transform: translateX(-100%);
+  margin-left: auto;
+  margin-right: 24px;
+  z-index: 50;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-100%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-100%) translateY(0);
+  }
+}
+
+/* Chat component hover effects - Stage 2: DaisyUI Chat Components */
+.chat {
+  position: relative;
+}
+
+.chat:hover .chat-footer {
+  opacity: 1;
+}
+
+.chat-footer {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}

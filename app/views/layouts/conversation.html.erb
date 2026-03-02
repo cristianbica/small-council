@@ -20,11 +20,15 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="min-h-screen bg-base-100">
-    <%= render "layouts/navigation" %>
+  <body class="h-screen flex flex-col bg-base-100 overflow-hidden">
+    <%# Navigation - fixed height %>
+    <div class="flex-none">
+      <%= render "layouts/navigation" %>
+    </div>
 
+    <%# Flash Messages %>
     <% if flash.any? %>
-      <div class="container mx-auto px-4 py-2">
+      <div class="flex-none container mx-auto px-4 py-2">
         <% flash.each do |type, message| %>
           <% alert_class = case type.to_sym
              when :notice, :success then "alert-success"
@@ -48,7 +52,8 @@
       </div>
     <% end %>
 
-    <main class="h-[calc(100vh-4rem)] flex">
+    <%# Main Content Area - flex-1 to fill remaining space %>
+    <main class="flex-col flex overflow-hidden">
       <%= yield %>
     </main>
   </body>

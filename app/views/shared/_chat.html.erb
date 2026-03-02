@@ -1,0 +1,168 @@
+<%# Shared chat container partial - Stage 1: Layout Foundation %>
+<%# Expects: conversation, messages, new_message, available_advisors (optional) %>
+<%# Usage: render "shared/chat", conversation: @conversation, messages: @messages, new_message: @new_message, available_advisors: @available_advisors %>
+
+<%= turbo_stream_from "conversation_#{conversation.id}" %>
+
+<div class="chat-main flex flex-col h-full" data-controller="conversation mentions"
+      data-mentions-advisors-value='<%= mentionable_advisors.to_json %>'>
+  
+  <%# Fixed Header %>
+  <header class="flex-none px-6 py-4 border-b border-base-200 bg-base-100">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <h2 class="text-lg font-semibold"><%= conversation.title %></h2>
+        <span id="conversation_status" class="badge <%= status_badge_class(conversation) %> badge-sm">
+          <%= conversation.status %>
+        </span>
+        <span class="badge badge-outline badge-sm">
+          <%= conversation.roe_type.humanize %>
+        </span>
+      </div>
+      
+      <% if conversation.active? && available_advisors&.any? %>
+        <div class="dropdown dropdown-end">
+          <div tabindex="0" role="button" class="btn btn-outline btn-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+            Invite
+          </div>
+          <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-10">
+            <% available_advisors.each do |advisor| %>
+              <li>
+                <%= button_to invite_advisor_conversation_path(conversation, advisor_id: advisor.id), method: :post, class: "w-full text-left" do %>
+                  <div class="flex items-center gap-2">
+                    <div class="avatar placeholder">
+                      <div class="bg-neutral text-neutral-content rounded-full w-6 flex items-center justify-center">
+                        <span class="text-xs"><%= advisor.name.first.upcase %></span>
+                      </div>
+                    </div>
+                    <span><%= advisor.name %></span>
+                  </div>
+                <% end %>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+    </div>
+    
+    <%# Participants row %>
+    <div class="flex items-center gap-2 mt-3 flex-wrap">
+      <% if conversation.scribe_advisor %>
+        <% scribe = conversation.scribe_advisor %>
+        <div class="badge badge-primary badge-sm gap-1">
+          <div class="avatar placeholder">
+            <div class="bg-primary text-primary-content rounded-full w-4 h-4 flex items-center justify-center text-[8px]">
+              <%= scribe.name.first.upcase %>
+            </div>
+          </div>
+          <%= scribe.name %>
+        </div>
+      <% end %>
+      
+      <% conversation.participant_advisors.each do |advisor| %>
+        <div class="badge badge-ghost badge-sm gap-1">
+          <div class="avatar placeholder">
+            <div class="bg-neutral text-neutral-content rounded-full w-4 h-4 flex items-center justify-center text-[8px]">
+              <%= advisor.name.first.upcase %>
+            </div>
+          </div>
+          <%= advisor.name %>
+        </div>
+      <% end %>
+    </div>
+    
+    <%# Status Alerts %>
+    <% if conversation.concluding? %>
+      <div class="alert alert-info mt-3 py-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span class="text-sm">Generating summary... Please wait.</span>
+      </div>
+    <% elsif conversation.resolved? %>
+      <div class="alert alert-success mt-3 py-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        <span class="text-sm">Conversation resolved. Memory saved.</span>
+      </div>
+    <% end %>
+  </header>
+  
+  <%# Scrollable Messages Area with Scroll-to-Latest Button %>
+  <div class="messages-area flex-1 overflow-y-auto py-8 px-6 relative" data-conversation-target="messagesContainer">
+    <%# Scroll-to-Latest Button (fixed position within scroll area) %>
+    <button data-conversation-target="scrollButton"
+            data-action="click->conversation#scrollToBottom"
+            class="scroll-to-latest hidden btn btn-circle btn-primary shadow-lg"
+            title="Scroll to latest messages">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+      </svg>
+    </button>
+
+    <div class="max-w-3xl mx-auto space-y-6">
+      <% if messages.any? %>
+        <% messages.root_messages.each do |message| %>
+          <%= render "messages/message_thread", message: message, current_user: Current.user %>
+        <% end %>
+      <% else %>
+        <%= render "shared/empty_state",
+            title: "No messages yet",
+            description: "Start the conversation by typing your first message below. Use @all to include all participants, or @advisor-name to mention specific advisors." %>
+      <% end %>
+    </div>
+  </div>
+  
+  <%# Fixed Input Area %>
+  <% if conversation.active? %>
+    <div class="input-area flex-none px-6 py-4 border-t border-base-200 bg-base-100">
+      <div class="max-w-3xl mx-auto">
+        <%= form_with model: [conversation, new_message],
+            class: "flex items-end gap-2" do |form| %>
+          <% if new_message.errors.any? %>
+            <div class="alert alert-error mb-2">
+              <ul class="list-disc list-inside">
+                <% new_message.errors.full_messages.each do |msg| %>
+                  <li><%= msg %></li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+
+        <div class="form-control flex-1 relative">
+            <%= form.text_area :content,
+                class: "textarea textarea-bordered w-full resize-none min-h-[80px]",
+                placeholder: "Type your message... (Ctrl+Enter to send, @ to mention, /invite @advisor to add)",
+                rows: 3,
+                required: true,
+                maxlength: 4000,
+                data: {
+                  conversation_target: "textarea",
+                  mentions_target: "input",
+                  action: "keydown->conversation#submitOnCtrlEnter input->conversation#autoExpand"
+                } %>
+          </div>
+
+          <%= form.button type: :submit, class: "btn btn-primary btn-circle shrink-0" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          <% end %>
+        <% end %>
+
+        <div class="flex items-center justify-between mt-2 text-xs text-base-content/50">
+          <div class="flex items-center gap-4">
+            <span>Use <kbd class="kbd kbd-sm">@all</kbd> for everyone</span>
+            <span><kbd class="kbd kbd-sm">/invite @advisor</kbd> to add</span>
+            <span>Ctrl+Enter to send</span>
+          </div>
+          <div data-conversation-target="charCount">0 / 4000</div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>

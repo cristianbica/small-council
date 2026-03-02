@@ -65,9 +65,11 @@ Conversations are chat sessions tied to a specific space (and optionally a counc
 ### Styling
 - DaisyUI card, btn, badge classes
 - Chat bubbles: user messages (primary color, right), others (neutral, left)
-- Pending messages show pulse animation and "thinking..." badge
-- Error messages show red background with error badge
-- Scrollable message area with max-height
+- Pending messages show pulse animation and "Thinking" indicator
+- Error messages show error bubble styling
+- Inline actions (copy/debug/interactions) appear on hover/focus in the message footer
+- Conversation and council meeting chat views share the same chat UI; only adhoc conversations show the sidebar
+- Only the inner message list scrolls; chat pages avoid page-level scrolling
 
 ## Rules of Engagement
 

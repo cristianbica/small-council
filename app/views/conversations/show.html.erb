@@ -1,283 +1,142 @@
-<%= turbo_stream_from "conversation_#{@conversation.id}" %>
+<%# Conversations show page - Stage 1: Layout Foundation %>
+<%# Two-column layout: sidebar (w-80) + chat area %>
 
-<% if @sidebar_conversations.present? %>
-<!-- Left Sidebar: Conversation List -->
-<aside id="conversation-sidebar" class="w-1/4 border-r bg-base-200 overflow-y-auto hidden lg:block" data-controller="conversation-sidebar">
-  <div class="p-4 border-b bg-base-100">
-    <div class="flex items-center justify-between mb-3">
-      <h2 class="font-semibold text-lg">Conversations</h2>
-      <%= button_to quick_create_conversations_path,
-          method: :post,
-          class: "btn btn-primary btn-sm btn-circle",
-          title: "New conversation" do %>
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-      <% end %>
-    </div>
-    <p class="text-xs text-base-content/60">
-      <%= Current.account.conversations.adhoc_conversations.count %> total conversations
-    </p>
-  </div>
-
-  <div id="conversation-list" class="divide-y">
-    <% @sidebar_conversations.each do |conv| %>
-      <%= link_to conversation_path(conv),
-          class: "block p-4 hover:bg-base-300 transition-colors #{conv.id == @conversation.id ? 'bg-base-300 border-l-4 border-primary' : ''}" do %>
-        <div class="flex items-start gap-3">
-          <div class="avatar placeholder flex-shrink-0">
-            <div class="bg-neutral text-neutral-content rounded-full w-8 h-8 flex items-center justify-center">
-              <span class="text-xs"><%= conv.user.email.first.upcase %></span>
-            </div>
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-1">
-              <h3 class="font-medium text-sm truncate"><%= conv.title %></h3>
-              <% if conv.active? %>
-                <span class="w-2 h-2 rounded-full bg-success flex-shrink-0"></span>
-              <% end %>
-            </div>
-            <% last_msg = conv.messages.chronological.last %>
-            <% if last_msg %>
-              <p class="text-xs text-base-content/60 truncate mb-1">
-                <% if last_msg.sender.is_a?(User) %>
-                  You: <%= truncate(last_msg.content, length: 40) %>
-                <% elsif last_msg.sender.is_a?(Advisor) %>
-                  <%= last_msg.sender.name %>: <%= truncate(last_msg.content, length: 35) %>
-                <% end %>
-              </p>
-              <p class="text-xs text-base-content/40">
-                <%= time_ago_in_words(last_msg.created_at) %> ago
-              </p>
-            <% else %>
-              <p class="text-xs text-base-content/40">No messages yet</p>
-            <% end %>
-          </div>
+<%# Wrapper for full-height chat in application layout context %>
+<div class="h-[calc(100vh-8rem)] flex overflow-hidden">
+  <% if @sidebar_conversations.present? %>
+    <%# Left Sidebar: Conversation List %>
+    <aside id="conversation-sidebar" class="w-80 flex-none border-r bg-base-200 overflow-y-auto hidden lg:block" data-controller="conversation-sidebar">
+      <div class="p-4 border-b bg-base-100">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold text-lg">Conversations</h2>
+          <%= button_to quick_create_conversations_path,
+              method: :post,
+              class: "btn btn-primary btn-sm btn-circle",
+              title: "New conversation" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+          <% end %>
         </div>
-      <% end %>
-    <% end %>
-  </div>
-
-  <% if Current.account.conversations.adhoc_conversations.count > @sidebar_conversations.count %>
-    <div class="p-4 border-t">
-      <button class="btn btn-ghost btn-sm w-full" data-action="click->conversation-sidebar#loadMore">
-        Load more
-      </button>
-    </div>
-  <% end %>
-</aside>
-
-<!-- Mobile Toggle Button (visible on small screens) -->
-<div class="lg:hidden absolute top-16 left-4 z-20">
-  <label for="conversation-drawer" class="btn btn-ghost btn-sm drawer-button">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-    </svg>
-  </label>
-</div>
-<% end %>
-
-<!-- Main Content Area -->
-<% 
-  # Build mentionable list: @all + all participants including scribe
-  mentionable_advisors = @conversation.all_participant_advisors.map { |a| { name: a.name } }
-  mentionable_advisors.unshift({ name: "all" })
-%>
-<div class="flex-1" data-controller="conversation mentions"
-      data-mentions-advisors-value='<%= mentionable_advisors.to_json %>'>
-  <div class="max-w-5xl mx-auto p-4 lg:p-6 space-y-6">
-
-    <!-- Breadcrumbs -->
-    <div class="breadcrumbs text-sm">
-      <ul>
-        <li><%= link_to "Conversations", conversations_path %></li>
-        <li><%= @conversation.title %></li>
-      </ul>
-    </div>
-
-    <!-- Header -->
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-      <div>
-        <div class="flex items-center gap-2 mb-1">
-          <h1 class="text-2xl lg:text-3xl font-bold"><%= @conversation.title %></h1>
-          <span id="conversation_status" class="badge <%= status_badge_class(@conversation) %> badge-sm">
-            <%= @conversation.status %>
-          </span>
-          <span class="badge badge-outline badge-sm">
-            <%= @conversation.roe_type.humanize %>
-          </span>
-          <span class="badge badge-ghost badge-sm">
-            <%= @conversation.council_meeting? ? "Meeting" : "Conversation" %>
-          </span>
-        </div>
-        <p class="text-sm text-base-content/60 mt-1">
-          Started by <%= @conversation.user.email %> ·
-          <%= time_ago_in_words(@conversation.created_at) %> ago
+        <p class="text-xs text-base-content/60">
+          <%= Current.account.conversations.adhoc_conversations.count %> total conversations
         </p>
       </div>
-      <div class="flex items-center gap-2 flex-wrap">
-        <% if @conversation.active? && @available_advisors.any? %>
-          <div class="dropdown dropdown-end">
-            <div tabindex="0" role="button" class="btn btn-outline btn-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-              </svg>
-              Invite
-            </div>
-            <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-10">
-              <% @available_advisors.each do |advisor| %>
-                <li>
-                  <%= button_to invite_advisor_conversation_path(@conversation, advisor_id: advisor.id), method: :post, class: "w-full text-left" do %>
-                    <div class="flex items-center gap-2">
-                      <div class="avatar placeholder">
-                        <div class="bg-neutral text-neutral-content rounded-full w-6 flex items-center justify-center">
-                          <span class="text-xs"><%= advisor.name.first.upcase %></span>
-                        </div>
-                      </div>
-                      <span><%= advisor.name %></span>
-                    </div>
+
+      <%# DaisyUI Menu for conversation list %>
+      <ul id="conversation-list" class="menu menu-sm bg-base-200">
+        <% @sidebar_conversations.each do |conv| %>
+          <li>
+            <%= link_to conversation_path(conv),
+                class: "#{conv.id == @conversation.id ? 'active' : ''}" do %>
+              <div class="flex items-start gap-3 w-full">
+                <div class="avatar placeholder flex-shrink-0">
+                  <div class="bg-neutral text-neutral-content rounded-full w-8 h-8 flex items-center justify-center">
+                    <span class="text-xs"><%= conv.user.email.first.upcase %></span>
+                  </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="font-medium text-sm truncate"><%= conv.title %></span>
+                    <% if conv.active? %>
+                      <span class="w-2 h-2 rounded-full bg-success flex-shrink-0"></span>
+                    <% end %>
+                  </div>
+                  <% last_msg = conv.messages.chronological.last %>
+                  <% if last_msg %>
+                    <p class="text-xs text-base-content/60 truncate mb-1">
+                      <% if last_msg.sender.is_a?(User) %>
+                        You: <%= truncate(last_msg.content, length: 40) %>
+                      <% elsif last_msg.sender.is_a?(Advisor) %>
+                        <%= last_msg.sender.name %>: <%= truncate(last_msg.content, length: 35) %>
+                      <% end %>
+                    </p>
+                    <p class="text-xs text-base-content/40">
+                      <%= time_ago_in_words(last_msg.created_at) %> ago
+                    </p>
+                  <% else %>
+                    <p class="text-xs text-base-content/40">No messages yet</p>
                   <% end %>
-                </li>
+                </div>
+              </div>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+
+      <% if Current.account.conversations.adhoc_conversations.count > @sidebar_conversations.count %>
+        <div class="p-4 border-t">
+          <button class="btn btn-ghost btn-sm w-full" data-action="click->conversation-sidebar#loadMore">
+            Load more
+          </button>
+        </div>
+      <% end %>
+    </aside>
+
+    <%# Mobile Toggle Button (visible on small screens) %>
+    <div class="lg:hidden fixed top-20 left-4 z-30">
+      <label for="conversation-drawer" class="btn btn-ghost btn-sm drawer-button">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </label>
+    </div>
+
+    <%# Mobile Drawer %>
+    <div class="drawer lg:hidden">
+      <input id="conversation-drawer" type="checkbox" class="drawer-toggle" />
+      <div class="drawer-content">
+        <%# Main content goes here - rendered below %>
+      </div>
+      <div class="drawer-side z-40">
+        <label for="conversation-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+        <div class="menu bg-base-200 text-base-content min-h-full w-80 p-4">
+          <div class="p-4 border-b bg-base-100 -mx-4 -mt-4 mb-4">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="font-semibold text-lg">Conversations</h2>
+              <%= button_to quick_create_conversations_path,
+                  method: :post,
+                  class: "btn btn-primary btn-sm btn-circle",
+                  title: "New conversation" do %>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
               <% end %>
-            </ul>
+            </div>
           </div>
-        <% end %>
-        <% if can_delete_conversation?(@conversation) %>
-          <%= button_to "Delete", conversation_path(@conversation),
-              method: :delete,
-              class: "btn btn-error btn-outline btn-sm",
-              data: { turbo_confirm: "Are you sure you want to delete this conversation?" } %>
-        <% end %>
+          <ul class="menu menu-sm">
+            <% @sidebar_conversations.each do |conv| %>
+              <li>
+                <%= link_to conversation_path(conv),
+                    class: "#{conv.id == @conversation.id ? 'active' : ''}" do %>
+                  <div class="flex items-center gap-2">
+                    <span class="truncate"><%= conv.title %></span>
+                    <% if conv.active? %>
+                      <span class="w-2 h-2 rounded-full bg-success flex-shrink-0"></span>
+                    <% end %>
+                  </div>
+                <% end %>
+              </li>
+            <% end %>
+          </ul>
+        </div>
       </div>
     </div>
+  <% end %>
 
-    <!-- Status Alerts -->
-    <% if @conversation.concluding? %>
-      <div class="alert alert-info">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-        <span>Generating summary... Please wait.</span>
-      </div>
-    <% elsif @conversation.resolved? %>
-      <div class="alert alert-success">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-        </svg>
-        <span>Conversation resolved. Memory saved.</span>
-      </div>
-    <% end %>
+  <%# Main Content: Chat Area %>
+  <%
+    # Build mentionable list: @all + all participants including scribe
+    mentionable_advisors = @conversation.all_participant_advisors.map { |a| { name: a.name } }
+    mentionable_advisors.unshift({ name: "all" })
+  %>
 
-    <!-- Participants Panel -->
-    <div class="card bg-base-100 shadow">
-      <div class="card-body py-4">
-        <h3 class="card-title text-sm mb-3 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          Participants
-        </h3>
-
-        <div class="flex flex-wrap gap-2">
-          <%# Scribe first %>
-          <% if @conversation.scribe_advisor %>
-            <% scribe = @conversation.scribe_advisor %>
-            <div class="badge badge-primary badge-lg gap-2 p-3">
-              <div class="avatar placeholder">
-                <div class="bg-primary text-primary-content rounded-full w-6 flex items-center justify-center">
-                  <span class="text-xs"><%= scribe.name.first.upcase %></span>
-                </div>
-              </div>
-              <div class="flex flex-col items-start">
-                <span class="font-medium"><%= scribe.name %></span>
-                <span class="text-xs opacity-80">Moderator</span>
-              </div>
-            </div>
-          <% end %>
-
-          <%# Other advisors %>
-          <% @conversation.participant_advisors.each do |advisor| %>
-            <div class="badge badge-ghost badge-lg gap-2 p-3">
-              <div class="avatar placeholder">
-                <div class="bg-neutral text-neutral-content rounded-full w-6 flex items-center justify-center">
-                  <span class="text-xs"><%= advisor.name.first.upcase %></span>
-                </div>
-              </div>
-              <span><%= advisor.name %></span>
-            </div>
-          <% end %>
-        </div>
-
-        <% if @conversation.participant_advisors.empty? %>
-          <p class="text-sm text-base-content/60">
-            No advisors yet. Use <code class="bg-base-200 px-1 rounded text-xs">/invite @advisor</code> to add participants.
-          </p>
-        <% end %>
-      </div>
-    </div>
-
-    <!-- Messages Area -->
-    <section class="card bg-base-100 shadow">
-      <div class="card-body">
-        <% if @messages.any? %>
-           <div id="messages"
-                class="space-y-4 p-2"
-                data-conversation-target="messagesContainer"
-                data-action="scroll->conversation#updateScrollPosition">
-            <% @messages.root_messages.each do |message| %>
-              <%= render "messages/message_thread", message: message, current_user: Current.user %>
-            <% end %>
-          </div>
-        <% else %>
-          <%= render "shared/empty_state",
-              title: "No messages yet",
-              description: "Start the conversation by typing your first message below. Use @all to include all participants, or @advisor-name to mention specific advisors." %>
-        <% end %>
-      </div>
-    </section>
-
-    <!-- Message Form (only when active) -->
-    <% if @conversation.active? %>
-      <section class="card bg-base-100 shadow sticky bottom-4 z-10">
-        <div class="card-body py-3">
-          <%= form_with model: [@conversation, @new_message],
-              class: "flex items-end gap-2" do |form| %>
-            <% if @new_message.errors.any? %>
-              <div class="alert alert-error mb-2">
-                <ul class="list-disc list-inside">
-                  <% @new_message.errors.full_messages.each do |msg| %>
-                    <li><%= msg %></li>
-                  <% end %>
-                </ul>
-              </div>
-            <% end %>
-
-            <div class="form-control flex-1 relative">
-              <%= form.text_area :content,
-                  class: "textarea textarea-bordered w-full resize-none",
-                  placeholder: "Type your message... (Ctrl+Enter to send, @ to mention, /invite @advisor to add)",
-                  rows: 2,
-                  required: true,
-                  data: {
-                    conversation_target: "textarea",
-                    mentions_target: "input",
-                    action: "keydown->conversation#submitOnCtrlEnter input->conversation#autoExpand"
-                  } %>
-            </div>
-
-            <%= form.button type: :submit, class: "btn btn-primary btn-circle" do %>
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            <% end %>
-          <% end %>
-
-          <div class="flex items-center gap-4 mt-2 text-xs text-base-content/50">
-            <span>Use <code class="bg-base-200 px-1 rounded">@all</code> for everyone</span>
-            <span><code class="bg-base-200 px-1 rounded">/invite @advisor</code> to add</span>
-          </div>
-        </div>
-      </section>
-    <% end %>
+  <div class="flex-1 flex flex-col min-w-0 h-full">
+    <%= render "shared/chat",
+        conversation: @conversation,
+        messages: @messages,
+        new_message: @new_message,
+        available_advisors: @available_advisors,
+        mentionable_advisors: mentionable_advisors %>
   </div>
 </div>
