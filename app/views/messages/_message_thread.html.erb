@@ -49,27 +49,12 @@
         <% end %>
       </div>
 
-      <%# Chat Bubble %>
-      <div class="chat-bubble <%= bubble_class %> max-w-[85%] sm:max-w-[75%] whitespace-pre-wrap">
-        <% if is_error %>
-          <div class="flex items-center gap-2 text-error-content">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <%= message.content %>
-          </div>
-        <% elsif is_advisor && message.content.present? && message.content.length > 500 %>
-          <%# Expandable content for long advisor messages %>
-          <div data-controller="message-expand" data-message-expand-max-length-value="500">
-            <div data-message-expand-target="content" class="<%= is_pending ? 'animate-pulse' : '' %>"><%= message.content %></div>
-            <button data-message-expand-target="toggle" data-action="click->message-expand#toggle" class="btn btn-ghost btn-xs mt-2 hidden">
-              Read more
-            </button>
-          </div>
-        <% else %>
-          <div class="<%= is_pending ? 'animate-pulse opacity-70 italic' : '' %>"><%= message.content %></div>
-        <% end %>
-      </div>
+      <%# Chat Bubble - using <%- to suppress whitespace %>
+      <div class="chat-bubble <%= bubble_class %> max-w-[85%] sm:max-w-[75%] whitespace-pre-wrap"><%-
+        if is_error -%><div class="flex items-center gap-2 text-error-content"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><%= message.content %></div><%-
+        elsif is_advisor && message.content.present? && message.content.length > 500 -%><div data-controller="message-expand" data-message-expand-max-length-value="500"><div data-message-expand-target="content" class="<%= is_pending ? 'animate-pulse' : '' %>"><%= message.content %></div><button data-message-expand-target="toggle" data-action="click->message-expand#toggle" class="btn btn-ghost btn-xs mt-2 hidden">Read more</button></div><%-
+        else -%><div class="<%= is_pending ? 'animate-pulse opacity-70 italic' : '' %>"><%= message.content %></div><%-
+        end -%></div>
 
       <%# Chat Footer with Actions (visible on hover) %>
       <div class="chat-footer opacity-0 group-hover:opacity-100 transition-opacity duration-200">
