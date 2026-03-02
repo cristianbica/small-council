@@ -64,6 +64,7 @@ Rails.application.routes.draw do
   resources :conversations do
     resources :messages, only: [ :create ]
     member do
+      post :finish
       post :archive
       post :invite_advisor
     end

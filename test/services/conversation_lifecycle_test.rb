@@ -379,19 +379,6 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
     assert_equal 0, conv.reload.scribe_initiated_count
   end
 
-  # Conclusion Tests
-  test "begin_conclusion_process changes status to concluding" do
-    conv = create_conversation
-
-    lifecycle = ConversationLifecycle.new(conv)
-
-    assert_enqueued_with(job: GenerateConversationSummaryJob) do
-      lifecycle.begin_conclusion_process
-    end
-
-    assert conv.reload.concluding?
-  end
-
   test "handles command validation errors" do
     conv = create_conversation
 
@@ -413,35 +400,6 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
   # Scribe Follow-up Guard Clause Tests
   test "handle_message_solved is a no-op for adhoc conversations" do
     conv = create_conversation(roe_type: :open, type: :adhoc)
-
-    parent_msg = conv.messages.create!(
-      account: @account,
-      sender: @user,
-      role: "user",
-      content: "@strategic_advisor what do you think?",
-      pending_advisor_ids: [ @advisor1.id ]
-    )
-
-    reply = conv.messages.create!(
-      account: @account,
-      sender: @advisor1,
-      role: "advisor",
-      content: "Here's my response",
-      parent_message: parent_msg
-    )
-
-    lifecycle = ConversationLifecycle.new(conv)
-
-    assert_no_enqueued_jobs do
-      lifecycle.advisor_responded(reply)
-    end
-
-    assert_equal 0, conv.reload.scribe_initiated_count
-  end
-
-  test "handle_message_solved is a no-op when conversation is concluding" do
-    conv = create_conversation(roe_type: :open, type: :council_meeting)
-    conv.update!(status: :concluding)
 
     parent_msg = conv.messages.create!(
       account: @account,

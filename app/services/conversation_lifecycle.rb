@@ -97,13 +97,6 @@ class ConversationLifecycle
     broadcast_message(message)
   end
 
-  # Begin the conclusion process
-  def begin_conclusion_process
-    Rails.logger.info "[ConversationLifecycle] Starting conclusion for conversation #{@conversation.id}"
-    @conversation.update!(status: :concluding)
-    GenerateConversationSummaryJob.perform_later(@conversation.id)
-  end
-
   private
 
   def handle_message_solved(message)

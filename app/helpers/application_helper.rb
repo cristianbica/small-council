@@ -4,8 +4,6 @@ module ApplicationHelper
     case conversation.status
     when "active"
       "badge-success"
-    when "concluding"
-      "badge-warning"
     when "resolved"
       "badge-primary"
     when "archived"

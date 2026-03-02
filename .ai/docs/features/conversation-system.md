@@ -15,7 +15,7 @@ Both types share the same underlying mechanics but differ in how they're created
 - The Scribe (using `is_scribe` flag) is automatically present in ALL conversations
 - Scribe role handled through `conversation_participants` join table
 - Scribe can initiate follow-ups when messages are "solved" (all pending advisors responded)
-- **Scribe follow-ups only fire for `council_meeting` conversations that are `active`** — adhoc, concluding, and resolved conversations are skipped
+- **Scribe follow-ups only fire for `council_meeting` conversations that are `active`** — adhoc, resolved, and archived conversations are skipped
 - Maximum 3 consecutive scribe-initiated interactions without user input
 
 ### Rules of Engagement (RoE)
@@ -94,7 +94,11 @@ Remove from pending_advisor_ids
 Main orchestrator for conversation flow:
 - `user_posted_message`: Processes user input, creates pending responses
 - `advisor_responded`: Handles completed advisor responses
-- `begin_conclusion_process`: Starts conversation wrap-up
+
+### Explicit finish flow
+- Council meetings are finished by explicit user action (`POST /conversations/:id/finish`)
+- `ConversationsController#finish` transitions `active` council meetings directly to `resolved`
+- No auto-summary/background summary generation is triggered by finish
 
 ### CommandParser
 Parses `/` commands from messages. Extensible system for adding new commands.

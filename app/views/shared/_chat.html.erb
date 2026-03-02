@@ -49,32 +49,43 @@
         </span>
       </div>
 
-      <% if conversation.active? && available_advisors&.any? %>
-        <div class="dropdown dropdown-end">
-          <div tabindex="0" role="button" class="btn btn-outline btn-sm">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-            </svg>
-            Invite
-          </div>
-          <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-10">
-            <% available_advisors.each do |advisor| %>
-              <li>
-                <%= button_to invite_advisor_conversation_path(conversation, advisor_id: advisor.id), method: :post, class: "w-full text-left" do %>
-                  <div class="flex items-center gap-2">
-                    <div class="avatar placeholder">
-                      <div class="bg-neutral text-neutral-content rounded-full w-6 flex items-center justify-center">
-                        <span class="text-xs"><%= advisor.name.first.upcase %></span>
+      <div class="flex items-center gap-2">
+        <% if conversation.active? && available_advisors&.any? %>
+          <div class="dropdown dropdown-end">
+            <div tabindex="0" role="button" class="btn btn-outline btn-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+              Invite
+            </div>
+            <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-10">
+              <% available_advisors.each do |advisor| %>
+                <li>
+                  <%= button_to invite_advisor_conversation_path(conversation, advisor_id: advisor.id), method: :post, class: "w-full text-left" do %>
+                    <div class="flex items-center gap-2">
+                      <div class="avatar placeholder">
+                        <div class="bg-neutral text-neutral-content rounded-full w-6 flex items-center justify-center">
+                          <span class="text-xs"><%= advisor.name.first.upcase %></span>
+                        </div>
                       </div>
+                      <span><%= advisor.name %></span>
                     </div>
-                    <span><%= advisor.name %></span>
-                  </div>
-                <% end %>
-              </li>
-            <% end %>
-          </ul>
-        </div>
-      <% end %>
+                  <% end %>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <% if conversation.council_meeting? && conversation.active? && can_delete_conversation?(conversation) %>
+          <%= button_to finish_conversation_path(conversation),
+              method: :post,
+              class: "btn btn-primary btn-sm",
+              data: { turbo_confirm: "Finish this meeting and mark it as resolved?" } do %>
+            Finish
+          <% end %>
+        <% end %>
+      </div>
     </div>
 
     <%# Participants row %>
@@ -104,19 +115,12 @@
     </div>
 
     <%# Status Alerts %>
-    <% if conversation.concluding? %>
-      <div class="alert alert-info mt-3 py-2">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-        <span class="text-sm">Generating summary... Please wait.</span>
-      </div>
-    <% elsif conversation.resolved? %>
+    <% if conversation.resolved? %>
       <div class="alert alert-success mt-3 py-2">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
         </svg>
-        <span class="text-sm">Conversation resolved. Memory saved.</span>
+        <span class="text-sm">Conversation resolved.</span>
       </div>
     <% end %>
   </header>

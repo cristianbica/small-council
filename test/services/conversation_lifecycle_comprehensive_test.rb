@@ -928,37 +928,6 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
   end
 
   # ============================================================================
-  # CONCLUSION PROCESS
-  # ============================================================================
-
-  test "begin_conclusion_process changes status and enqueues job" do
-    conv = create_conversation(roe_type: :open)
-
-    lifecycle = ConversationLifecycle.new(conv)
-
-    assert_enqueued_with(job: GenerateConversationSummaryJob) do
-      lifecycle.begin_conclusion_process
-    end
-
-    assert conv.reload.concluding?
-  end
-
-  test "begin_conclusion_process is idempotent" do
-    conv = create_conversation(roe_type: :open)
-
-    lifecycle = ConversationLifecycle.new(conv)
-
-    assert_enqueued_with(job: GenerateConversationSummaryJob) do
-      lifecycle.begin_conclusion_process
-    end
-
-    # Calling again should still work
-    assert_enqueued_with(job: GenerateConversationSummaryJob) do
-      lifecycle.begin_conclusion_process
-    end
-  end
-
-  # ============================================================================
   # ADVISOR RESPONSE SCENARIOS
   # ============================================================================
 

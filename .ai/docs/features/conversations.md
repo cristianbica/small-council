@@ -45,6 +45,7 @@ Conversations are chat sessions tied to a specific space (and optionally a counc
 ```
 /councils/:council_id/conversations     # index, new, create
 /conversations/:id                        # show, update (PATCH for title/RoE), destroy
+/conversations/:id/finish                 # POST - finish active council meeting (sets resolved)
 /conversations/:id/archive                # POST - archive conversation
 /conversations/:conversation_id/messages  # create
 /conversations/:id/invite_advisor         # POST - add advisor to conversation
@@ -52,18 +53,18 @@ Conversations are chat sessions tied to a specific space (and optionally a counc
 ```
 
 ### Models
-- `Conversation`: title, status (active/concluding/resolved/archived), roe_type (open/consensus/brainstorming), conversation_type (council_meeting/adhoc), context (jsonb), space_id, council_id (nullable), user_id, scribe_initiated_count
+- `Conversation`: title, status (active/resolved/archived), roe_type (open/consensus/brainstorming), conversation_type (council_meeting/adhoc), context (jsonb), space_id, council_id (nullable), user_id, scribe_initiated_count
 - `Message`: content, role (user/advisor/system), status (pending/complete/error/cancelled), sender (polymorphic User/Advisor), in_reply_to_id
 - `Provider`: AI provider credentials (OpenAI, OpenRouter)
 - `LlmModel`: Available models per provider
 
 ### Controllers
-- `ConversationsController`: index, show, new, create, update, destroy, invite_advisor, quick_create
+- `ConversationsController`: index, show, new, create, update, destroy, finish, archive, invite_advisor, quick_create
 - `MessagesController`: create (enqueues AI response jobs + adhoc first-message auto-title job)
 - `ProvidersController`: manage AI provider credentials
 
 ### Services
-- `ConversationLifecycle`: Orchestrates message flow, advisor responses, and conversation conclusion
+- `ConversationLifecycle`: Orchestrates message flow and advisor responses
 - `AI::ContentGenerator`: Calls LLM APIs via `AI::Client` instance with conversation context, including adhoc title generation
 
 ### Jobs

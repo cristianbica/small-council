@@ -24,7 +24,7 @@ app/libs/ai/
 ├── concerns/             # Shared model concerns
 └── tools/
     ├── base_tool.rb
-    ├── conversations/    # finish_conversation, ask_advisor, summarize_conversation
+    ├── conversations/    # ask_advisor
     ├── external/         # browse_web
     └── internal/         # list_conversations, query_conversations, read_conversation,
                           # list_memories, query_memories, read_memory, update_memory,

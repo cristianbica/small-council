@@ -45,7 +45,7 @@ app/
 ├── services/       # ConversationLifecycle, ProviderConnectionTester, InlineDiff, CommandParser
 ├── libs/ai/        # AI::Client (instance), AI::ContentGenerator, AI::ModelManager,
 │                   #   AI::ContextBuilders, AI::Tools (13 tools), AI::Model (Response/TokenUsage)
-├── jobs/           # GenerateAdvisorResponseJob, GenerateConversationSummaryJob (Solid Queue)
+├── jobs/           # GenerateAdvisorResponseJob, GenerateConversationTitleJob (Solid Queue)
 └── assets/         # Tailwind CSS v4 + DaisyUI
 
 test/               # ~1396 runs: models, controllers, integration, jobs, ai/unit, ai/integration

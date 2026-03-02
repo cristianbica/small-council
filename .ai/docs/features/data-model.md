@@ -97,7 +97,7 @@ Join table linking councils to advisors with ordering.
 ### conversations
 Chat sessions within a council.
 - Belongs to account, council, and user
-- `title`, `status` (active/concluding/resolved/archived)
+- `title`, `status` (active/resolved/archived)
 - `conversation_type` — Enum: `council_meeting`, `adhoc`
 - `roe_type` — Rules of Engagement: `open`, `consensus`, `brainstorming`
 - `scribe_initiated_count` — Tracks consecutive scribe-initiated interactions

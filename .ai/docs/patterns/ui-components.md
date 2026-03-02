@@ -171,8 +171,8 @@ Helper method example:
 def status_badge_class(conversation)
   case conversation.status
   when "active" then "badge-success"
-  when "concluding" then "badge-warning"
-  when "resolved" then "badge-ghost"
+  when "resolved" then "badge-primary"
+  when "archived" then "badge-ghost"
   else "badge-ghost"
   end
 end

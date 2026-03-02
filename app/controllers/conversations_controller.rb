@@ -1,6 +1,6 @@
 class ConversationsController < ApplicationController
   before_action :set_council, only: [ :index, :new, :create ], if: -> { params[:council_id].present? }
-  before_action :set_conversation, only: [ :show, :update, :destroy, :archive, :invite_advisor ]
+  before_action :set_conversation, only: [ :show, :update, :destroy, :finish, :archive, :invite_advisor ]
   before_action :set_sidebar_conversations, only: [ :show ]
 
   layout :choose_layout
@@ -159,6 +159,33 @@ class ConversationsController < ApplicationController
   rescue => e
     Rails.logger.error "[ConversationsController#archive] Error archiving conversation #{@conversation.id}: #{e.message}"
     redirect_to @conversation, alert: "Failed to archive conversation: #{e.message}"
+  end
+
+  def finish
+    unless can_manage_conversation?
+      redirect_to @conversation, alert: "You are not authorized to finish this conversation."
+      return
+    end
+
+    unless @conversation.council_meeting?
+      redirect_to @conversation, alert: "Only council meetings can be finished."
+      return
+    end
+
+    unless @conversation.active?
+      redirect_to @conversation, alert: "Can only finish active conversations."
+      return
+    end
+
+    @conversation.update_columns(status: "resolved", updated_at: Time.current)
+
+    respond_to do |format|
+      format.html { redirect_back fallback_location: @conversation, notice: "Conversation marked as resolved." }
+      format.turbo_stream { redirect_back fallback_location: @conversation, notice: "Conversation marked as resolved." }
+    end
+  rescue => e
+    Rails.logger.error "[ConversationsController#finish] Error finishing conversation #{@conversation.id}: #{e.message}"
+    redirect_to @conversation, alert: "Failed to finish conversation: #{e.message}"
   end
 
   private

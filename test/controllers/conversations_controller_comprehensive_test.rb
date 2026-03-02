@@ -536,7 +536,7 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
       title: "Invite Test",
       user: @user,
       conversation_type: :adhoc,
-      status: :concluding,
+      status: :resolved,
       space: @space
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
@@ -566,6 +566,97 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     }
 
     assert_redirected_to sign_in_url
+  end
+
+  # ============================================================================
+  # FINISH ACTION - ALL SCENARIOS
+  # ============================================================================
+
+  test "finish by conversation owner resolves active council meeting" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    conversation = @account.conversations.create!(
+      title: "Finish Test",
+      user: @user,
+      council: @council,
+      conversation_type: :council_meeting,
+      status: :active,
+      space: @space
+    )
+    conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
+
+    assert_no_enqueued_jobs do
+      post finish_conversation_path(conversation)
+    end
+
+    assert_redirected_to conversation_path(conversation)
+    assert_equal "resolved", conversation.reload.status
+    assert_equal "Conversation marked as resolved.", flash[:notice]
+  end
+
+  test "finish fails for non-owner" do
+    unauthorized_user = @account.users.create!(email: "finish-unauthorized@example.com", password: "password123")
+    sign_in_as(unauthorized_user)
+    set_tenant(@account)
+
+    other_user = @account.users.create!(email: "finish-non-owner@example.com", password: "password123")
+    conversation = @account.conversations.create!(
+      title: "Finish Test",
+      user: other_user,
+      council: @council,
+      conversation_type: :council_meeting,
+      status: :active,
+      space: @space
+    )
+    conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
+
+    post finish_conversation_path(conversation)
+
+    assert_redirected_to conversation_path(conversation)
+    assert_equal "active", conversation.reload.status
+    assert_equal "You are not authorized to finish this conversation.", flash[:alert]
+  end
+
+  test "finish fails when conversation not active" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    conversation = @account.conversations.create!(
+      title: "Finish Test",
+      user: @user,
+      council: @council,
+      conversation_type: :council_meeting,
+      status: :resolved,
+      space: @space
+    )
+    conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
+
+    post finish_conversation_path(conversation)
+
+    assert_redirected_to conversation_path(conversation)
+    assert_equal "resolved", conversation.reload.status
+    assert_equal "Can only finish active conversations.", flash[:alert]
+  end
+
+  test "finish fails for adhoc conversation" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    conversation = @account.conversations.create!(
+      title: "Finish Test",
+      user: @user,
+      conversation_type: :adhoc,
+      status: :active,
+      space: @space
+    )
+    conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
+
+    post finish_conversation_path(conversation)
+
+    assert_redirected_to conversation_path(conversation)
+    assert_equal "active", conversation.reload.status
+    assert_equal "Only council meetings can be finished.", flash[:alert]
   end
 
   # ============================================================================

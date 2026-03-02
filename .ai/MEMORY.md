@@ -182,6 +182,7 @@ The Scribe/Advisors have access to tools via `app/libs/ai/tools/` (`AI::Tools::B
 - Test coverage (2026-03-01, verified): 1420 runs, 96.83% line, 85.79% branch.
 - 2026-03-01: **Conversation finishing is Scribe-only** — no UI routes for finish/cancel_pending/approve_summary/reject_summary/regenerate_summary. Scribe follow-ups gated to `council_meeting` + `active` only.
 - 2026-03-01: Conversations now belong to a space (`space_id` non-null); controllers/jobs scope access via `Current.space`.
+- 2026-03-02: Conversation statuses are `active/resolved/archived`; `concluding`, `finish_conversation`, `summarize_conversation`, and `GenerateConversationSummaryJob` were removed; finishing is explicit via `POST /conversations/:id/finish`.
 
 ## Additional Services (2026-02-28)
 - `AI::ContentGenerator` — instance-based, intent-driven: `AI::ContentGenerator.new.generate_advisor_response(advisor:, conversation:, ...)`.

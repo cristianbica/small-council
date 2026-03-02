@@ -15,7 +15,6 @@ class Conversation < ApplicationRecord
 
   enum :status, {
     active: "active",
-    concluding: "concluding",
     resolved: "resolved",
     archived: "archived"
   }, default: "active"

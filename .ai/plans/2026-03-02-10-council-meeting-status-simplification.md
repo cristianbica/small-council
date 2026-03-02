@@ -42,7 +42,7 @@ Remove the `concluding` state and all end-of-conversation summary tooling/automa
 - Job: `test/jobs/generate_conversation_summary_job_test.rb`, `test/jobs/generate_conversation_summary_job_comprehensive_test.rb`.
 - Tool: `test/ai/unit/tools/conversations/finish_conversation_tool_test.rb`.
 - Tool wiring: `test/ai/unit/content_generator_test.rb` expects finish tool for scribe.
-- Model/helper/controller tests reference `concluding`: 
+- Model/helper/controller tests reference `concluding`:
   - `test/models/conversation_test.rb`
   - `test/models/conversation_comprehensive_test.rb`
   - `test/helpers/application_helper_test.rb`

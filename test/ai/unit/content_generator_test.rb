@@ -515,7 +515,7 @@ module AI
       client = generator.send(:build_client, @advisor)
 
       tool_classes = client.tools.map(&:class)
-      # All 9 read-only tools
+      # All 8 read-only tools
       assert_includes tool_classes, AI::Tools::Internal::QueryMemoriesTool
       assert_includes tool_classes, AI::Tools::Internal::ListMemoriesTool
       assert_includes tool_classes, AI::Tools::Internal::ReadMemoryTool
@@ -523,13 +523,11 @@ module AI
       assert_includes tool_classes, AI::Tools::Internal::ListConversationsTool
       assert_includes tool_classes, AI::Tools::Internal::ReadConversationTool
       assert_includes tool_classes, AI::Tools::Internal::GetConversationSummaryTool
-      assert_includes tool_classes, AI::Tools::Conversations::SummarizeConversationTool
       refute_includes tool_classes, AI::Tools::Conversations::AskAdvisorTool
       assert_includes tool_classes, AI::Tools::External::BrowseWebTool
       # Write tools excluded for regular advisors
       refute_includes tool_classes, AI::Tools::Internal::CreateMemoryTool
       refute_includes tool_classes, AI::Tools::Internal::UpdateMemoryTool
-      refute_includes tool_classes, AI::Tools::Conversations::FinishConversationTool
     end
 
     test "build_client gives scribe all tools including write tools" do
@@ -545,7 +543,7 @@ module AI
       client = generator.send(:build_client, scribe)
 
       tool_classes = client.tools.map(&:class)
-      # All 9 read-only tools
+      # All 8 read-only tools
       assert_includes tool_classes, AI::Tools::Internal::QueryMemoriesTool
       assert_includes tool_classes, AI::Tools::Internal::ListMemoriesTool
       assert_includes tool_classes, AI::Tools::Internal::ReadMemoryTool
@@ -553,13 +551,11 @@ module AI
       assert_includes tool_classes, AI::Tools::Internal::ListConversationsTool
       assert_includes tool_classes, AI::Tools::Internal::ReadConversationTool
       assert_includes tool_classes, AI::Tools::Internal::GetConversationSummaryTool
-      assert_includes tool_classes, AI::Tools::Conversations::SummarizeConversationTool
       refute_includes tool_classes, AI::Tools::Conversations::AskAdvisorTool
       assert_includes tool_classes, AI::Tools::External::BrowseWebTool
-      # All 3 write tools
+      # All write tools except conversation finishing
       assert_includes tool_classes, AI::Tools::Internal::CreateMemoryTool
       assert_includes tool_classes, AI::Tools::Internal::UpdateMemoryTool
-      assert_includes tool_classes, AI::Tools::Conversations::FinishConversationTool
     end
 
     test "build_client_with_system_model has no tools" do
@@ -569,14 +565,14 @@ module AI
       assert_empty client.tools
     end
 
-    test "advisor_tools returns 9 tools for regular advisor" do
+    test "advisor_tools returns 8 tools for regular advisor" do
       generator = ContentGenerator.new
       tools = generator.send(:advisor_tools, @advisor)
 
-      assert_equal 9, tools.size
+      assert_equal 8, tools.size
     end
 
-    test "advisor_tools returns 22 tools for scribe" do
+    test "advisor_tools returns 20 tools for scribe" do
       scribe = @space.advisors.create!(
         account: @account,
         name: "Scribe",
@@ -588,7 +584,7 @@ module AI
       generator = ContentGenerator.new
       tools = generator.send(:advisor_tools, scribe)
 
-      assert_equal 22, tools.size
+      assert_equal 20, tools.size
     end
   end
 end

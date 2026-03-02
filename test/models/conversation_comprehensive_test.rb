@@ -474,18 +474,6 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     assert conv.active?
   end
 
-  test "concluding? returns true for concluding status" do
-    conv = @account.conversations.create!(
-      title: "Test",
-      user: @user,
-      council: @council,
-      status: :concluding,
-      space: @space
-    )
-    conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
-    assert conv.concluding?
-  end
-
   test "resolved? returns true for resolved status" do
     conv = @account.conversations.create!(
       title: "Test",
@@ -519,9 +507,6 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       space: @space
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
-
-    conv.concluding!
-    assert conv.concluding?
 
     conv.resolved!
     assert conv.resolved?

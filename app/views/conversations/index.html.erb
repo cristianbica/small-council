@@ -54,7 +54,7 @@
                     </div>
                   </div>
                   <h3 class="font-semibold truncate"><%= conversation.title %></h3>
-                  <span class="badge <%= conversation.active? ? 'badge-success' : (conversation.concluding? ? 'badge-warning' : 'badge-ghost') %> badge-sm">
+                  <span class="badge <%= status_badge_class(conversation) %> badge-sm">
                     <%= conversation.status %>
                   </span>
                   <% if conversation.adhoc? %>

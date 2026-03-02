@@ -58,7 +58,6 @@ t.references :updated_by, polymorphic: true
    - `AI::Tools::Internal::ListMemoriesTool` - List memories in space
 
 4. **Available Tools**
-   - `finish_conversation` - Conclude and summarize
    - `create_memory` - Add new memory entry
    - `query_memories` - Search memories (all advisors)
 

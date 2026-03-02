@@ -33,11 +33,6 @@ class ApplicationHelperTest < ActionView::TestCase
     assert_equal "badge-success", status_badge_class(@conversation)
   end
 
-  test "status_badge_class returns badge-warning for concluding" do
-    @conversation.update_column(:status, "concluding")
-    assert_equal "badge-warning", status_badge_class(@conversation)
-  end
-
   test "status_badge_class returns badge-primary for resolved" do
     @conversation.update_column(:status, "resolved")
     assert_equal "badge-primary", status_badge_class(@conversation)

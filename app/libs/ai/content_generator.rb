@@ -359,7 +359,7 @@ module AI
     end
 
     # Returns the tool instances appropriate for this advisor.
-    # All advisors get 9 read-only tools (memory, conversation, and web browsing).
+    # All advisors get 8 read-only tools (memory, conversation, and web browsing).
     def advisor_tools(advisor)
       read_only = [
         AI::Tools::Internal::QueryMemoriesTool.new,
@@ -369,7 +369,6 @@ module AI
         AI::Tools::Internal::ListConversationsTool.new,
         AI::Tools::Internal::ReadConversationTool.new,
         AI::Tools::Internal::GetConversationSummaryTool.new,
-        AI::Tools::Conversations::SummarizeConversationTool.new,
         AI::Tools::External::BrowseWebTool.new
       ]
 
@@ -377,7 +376,6 @@ module AI
         read_only + [
           AI::Tools::Internal::CreateMemoryTool.new,
           AI::Tools::Internal::UpdateMemoryTool.new,
-          AI::Tools::Conversations::FinishConversationTool.new,
           AI::Tools::Internal::CreateAdvisorTool.new,
           AI::Tools::Internal::ListAdvisorsTool.new,
           AI::Tools::Internal::GetAdvisorTool.new,

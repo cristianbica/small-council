@@ -13,9 +13,7 @@ app/libs/ai/
 ├── tools/
 │   ├── base_tool.rb                    # Base class for all tools
 │   ├── conversations/
-│   │   ├── ask_advisor_tool.rb
-│   │   ├── finish_conversation_tool.rb
-│   │   └── summarize_conversation_tool.rb
+│   │   └── ask_advisor_tool.rb
 │   ├── external/
 │   │   └── browse_web_tool.rb
 │   └── internal/
@@ -37,9 +35,7 @@ app/libs/ai/
 ### Conversation tools
 | Tool | Purpose | Write Access |
 |------|---------|--------------|
-| `finish_conversation` | Conclude and summarize conversation | Yes |
 | `ask_advisor` | Ask another advisor (posts in same conversation) | Yes |
-| `summarize_conversation` | Generate a summary of the current conversation | Read-only |
 
 ### External tools
 | Tool | Purpose | Write Access |
