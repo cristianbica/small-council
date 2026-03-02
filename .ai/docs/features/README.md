@@ -33,4 +33,4 @@ Rules:
 ## Data Layer
 
 - [Data Model](data-model.md) - Database schema and model relationships
-- [Memory Management](memory-management.md) - Structured memory system with AI-generated summaries
+- [Memory Management](memory-management.md) - Structured memory system and memory tooling

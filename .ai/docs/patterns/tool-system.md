@@ -13,10 +13,20 @@ app/libs/ai/
 ├── tools/
 │   ├── base_tool.rb                    # Base class for all tools
 │   ├── conversations/
-│   │   └── ask_advisor_tool.rb
+│   │   └── ask_advisor_tool.rb         # Present but not currently wired
 │   ├── external/
 │   │   └── browse_web_tool.rb
 │   └── internal/
+│       ├── create_advisor_tool.rb
+│       ├── list_advisors_tool.rb
+│       ├── get_advisor_tool.rb
+│       ├── update_advisor_tool.rb
+│       ├── create_council_tool.rb
+│       ├── list_councils_tool.rb
+│       ├── get_council_tool.rb
+│       ├── update_council_tool.rb
+│       ├── assign_advisor_to_council_tool.rb
+│       ├── unassign_advisor_from_council_tool.rb
 │       ├── create_memory_tool.rb
 │       ├── get_conversation_summary_tool.rb
 │       ├── list_conversations_tool.rb
@@ -35,7 +45,7 @@ app/libs/ai/
 ### Conversation tools
 | Tool | Purpose | Write Access |
 |------|---------|--------------|
-| `ask_advisor` | Ask another advisor (posts in same conversation) | Yes |
+| `ask_advisor` | Ask another advisor (posts in same conversation) | Yes (class exists, not currently wired) |
 
 ### External tools
 | Tool | Purpose | Write Access |
@@ -45,6 +55,16 @@ app/libs/ai/
 ### Internal tools
 | Tool | Purpose |
 |------|---------|
+| `create_advisor` | Create advisor in current space/account |
+| `list_advisors` | List advisors in current space |
+| `get_advisor` | Get advisor details |
+| `update_advisor` | Update advisor settings |
+| `create_council` | Create council in current space |
+| `list_councils` | List councils in current space |
+| `get_council` | Get council details |
+| `update_council` | Update council settings |
+| `assign_advisor_to_council` | Attach advisor to council |
+| `unassign_advisor_from_council` | Remove advisor from council |
 | `list_conversations` | List conversations in space |
 | `query_conversations` | Find past conversations |
 | `read_conversation` | Read conversation messages |
@@ -75,14 +95,12 @@ adapter = AI::Adapters::RubyLLMToolAdapter.new(tool: my_tool, context: tool_cont
 chat.with_tools(adapter)
 ```
 
-## ask_advisor Tool
+## Tool Wiring
 
-Special tool for inter-advisor communication:
-- Creates a mention message in the current conversation
-- Creates a pending placeholder for the target advisor
-- Enqueues `GenerateAdvisorResponseJob` for async response
-- Prevents self-asking (advisors cannot ask themselves)
-- Posts in the same conversation (does NOT create a new conversation)
+`AI::ContentGenerator#advisor_tools` currently wires:
+- 8 read-only tools for all advisors
+- 12 additional write/admin tools for Scribe
+- `ask_advisor` is not currently included in the wired list
 
 ## Tool Execution Context
 

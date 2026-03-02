@@ -9,8 +9,8 @@ The memory management system transforms raw conversation text into a structured,
 | Type | Description | Source | Auto-Fed to AI |
 |------|-------------|--------|----------------|
 | `summary` | Primary space overview - cumulative knowledge | Manual or Scribe | ✅ Yes |
-| `conversation_summary` | Key takeaways from a specific conversation | Auto (conclusion) | ❌ No |
-| `conversation_notes` | Detailed discussion notes | Auto (conclusion) | ❌ No |
+| `conversation_summary` | Key takeaways from a specific conversation | Manual or tool-created | ❌ No |
+| `conversation_notes` | Detailed discussion notes | Manual or tool-created | ❌ No |
 | `knowledge` | Standalone knowledge entries | Manual or Scribe | ❌ No |
 
 ### Key Rule
@@ -58,8 +58,11 @@ t.references :updated_by, polymorphic: true
    - `AI::Tools::Internal::ListMemoriesTool` - List memories in space
 
 4. **Available Tools**
-   - `create_memory` - Add new memory entry
-   - `query_memories` - Search memories (all advisors)
+  - `create_memory` - Add new memory entry (Scribe)
+  - `update_memory` - Edit existing memory (Scribe)
+  - `list_memories` - List memories in current space
+  - `read_memory` - Read specific memory
+  - `query_memories` - Search memories (all advisors)
 
 ## Usage
 
@@ -129,12 +132,10 @@ This ensures:
 - Only relevant cumulative knowledge is included
 - Advisors can query specific memories when needed
 
-## Migration from Old System
+## Notes
 
-The migration (`db/migrate/xxx_migrate_space_memory_to_memories.rb`):
-- Creates summary-type memories from existing `space.memory` text
-- Marks migrated memories in metadata
-- Preserves all existing data
+- The dedicated auto-conclusion summary pipeline was removed from conversation finishing flow.
+- `conversation_summary` entries are still supported as memory types and can be created manually or via tools/services.
 
 ## Testing
 

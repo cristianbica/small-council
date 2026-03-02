@@ -47,3 +47,8 @@ To avoid confusion in mentions let's use the name as a mention and validate it c
 ## Address possible bias in responses
 
 On discussions I get the impression that advisors are getting biased by previous messages in the conversation from other advisorsx.
+
+
+## Control for long answers / thinking from advisors
+
+When an advisor is taking too long to respond I should be able to see that and decide if I want to wait or stop it. This would allow me to have more control over the conversation and avoid waiting for a response that might never come. Additionally there should be a limit on how many interactions should be allowed between the system and the model.

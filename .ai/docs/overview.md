@@ -17,7 +17,7 @@ The platform tracks AI usage per account with encrypted provider credentials, su
 | Jobs | Solid Queue |
 | Cache | Solid Cache |
 | Cable | Solid Cable |
-| Tests | Minitest (~1396 runs, 96.79% line / 85.38% branch coverage) |
+| Tests | Minitest (currently 1420 runs; latest local run has 11 failures, 95.29% line / 80.65% branch coverage) |
 | Auth | authentication-zero |
 | Multi-tenancy | acts_as_tenant (active) |
 | AI APIs | ruby_llm |
@@ -37,14 +37,14 @@ The platform tracks AI usage per account with encrypted provider credentials, su
 ```
 app/
 ├── controllers/    # Request handling
-├── models/         # 17 models: Account, User, Space, Council, Advisor,
+├── models/         # 18 models: Account, User, Space, Council, Advisor,
 │                   #   CouncilAdvisor, Conversation, ConversationParticipant,
 │                   #   Message, Memory, MemoryVersion, Provider, LlmModel,
-│                   #   UsageRecord, Session, Current, ApplicationRecord
+│                   #   UsageRecord, ModelInteraction, Session, Current, ApplicationRecord
 ├── views/          # ERB templates with DaisyUI components
 ├── services/       # ConversationLifecycle, ProviderConnectionTester, InlineDiff, CommandParser
 ├── libs/ai/        # AI::Client (instance), AI::ContentGenerator, AI::ModelManager,
-│                   #   AI::ContextBuilders, AI::Tools (13 tools), AI::Model (Response/TokenUsage)
+│                   #   AI::ContextBuilders, AI::Tools (22 classes; 20 wired), AI::Model (Response/TokenUsage)
 ├── jobs/           # GenerateAdvisorResponseJob, GenerateConversationTitleJob (Solid Queue)
 └── assets/         # Tailwind CSS v4 + DaisyUI
 
@@ -59,14 +59,17 @@ config/
 
 ```bash
 # Development
-bin/dev                    # Start web + CSS watch
+bin/dev                    # Starts web + CSS watch (fails if stale tmp/pids/server.pid exists)
 bin/rails server          # Rails only
 
 # Testing
-bin/rails test            # Full suite
+bin/rails test            # Full suite (currently 11 failures on latest local run)
+
+# Lint
+bin/rubocop               # 3 offenses currently
 
 # Build
-bin/rails assets:precompile  # CSS compilation
+bin/rails assets:precompile  # Succeeds; emits Tailwind @property warning
 
 # Database
 bin/rails db:migrate

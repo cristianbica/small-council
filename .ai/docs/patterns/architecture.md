@@ -20,7 +20,7 @@ Multi-tenant Rails architecture with clear separation of concerns.
 │  - AI::Client (LLM wrapper, usage tracking)             │
 │  - AI::ContentGenerator (intent-based generation)       │
 │  - AI::ModelManager (model sync/lifecycle)              │
-│  - AI::Tools (BaseTool + 13 tool implementations)       │
+│  - AI::Tools (BaseTool + current tool inventory in app/libs/ai/tools/) │
 │  - AI::ContextBuilders (conversation context assembly)  │
 ├─────────────────────────────────────────────────────────┤
 │  Models (app/models/)                                   │

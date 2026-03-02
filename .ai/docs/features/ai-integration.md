@@ -12,7 +12,7 @@ Advisors generate responses using real LLM APIs. The system supports multiple pr
 
 ```
 app/libs/ai/
-├── client.rb             # Unified wrapper: class methods for provider/model ops
+├── client.rb             # Unified wrapper: instance chat + class methods for provider/model ops
 ├── content_generator.rb  # High-level intent-based generation (wraps AI::Client)
 ├── model_manager.rb      # Model lifecycle management (enable/disable/sync)
 ├── adapters/
@@ -24,11 +24,9 @@ app/libs/ai/
 ├── concerns/             # Shared model concerns
 └── tools/
     ├── base_tool.rb
-    ├── conversations/    # ask_advisor
+  ├── conversations/    # ask_advisor exists but is not currently wired
     ├── external/         # browse_web
-    └── internal/         # list_conversations, query_conversations, read_conversation,
-                          # list_memories, query_memories, read_memory, update_memory,
-                          # get_conversation_summary, create_memory
+  └── internal/         # memory + conversation + advisor/council management tools
 
 app/services/
 ├── command_parser.rb     # Parse /commands and @mentions from user messages
@@ -58,7 +56,7 @@ AI::Client.list_models(provider: provider)
 ```
 
 Usage (tokens + cost) is automatically tracked inside `#chat` via `UsageRecord.create!`.
-Model interactions (full request/response payloads) are recorded via `#record_interaction`, called after `track_usage` when `context[:message]` is present. See [Model Interactions](model-interactions.md).
+Model interactions (full request/response payloads) are recorded via event handlers registered in `AI::Client#register_interaction_handler` when `context[:message]` and account context are present. See [Model Interactions](model-interactions.md).
 
 ### Provider#api / LlmModel#api DSL
 
@@ -74,7 +72,7 @@ provider.api.test_connection # => AI::Client.test_connection(provider: provider)
 
 ### Supported
 - **OpenAI** — GPT-4o, GPT-4o-mini, o1, o3-mini, etc.
-- **OpenRouter** — Multi-provider access (OpenAI, Anthropic, Google, etc.)
+- **OpenRouter** — OpenRouter-routed models (configured via a single provider key)
 
 ### Configuration
 Each account manages its own providers:
@@ -125,8 +123,9 @@ result = generator.generate_response
 3. Determine if scribe followup (`is_scribe_followup` param)
 4. Call `AI::ContentGenerator`
 5. Update message with response content
-6. Create usage record
-7. Broadcast via Turbo Streams
+6. Broadcast via Turbo Streams
+
+Usage records are created automatically by `AI::Client#track_usage`.
 
 ### Error Handling
 - API errors: Message marked as error with explanation
@@ -148,6 +147,15 @@ Every API call creates a UsageRecord:
 - Provider type and model identifier
 - Calculated cost (using per-model pricing from metadata)
 - Timestamp and associations (account, conversation, message)
+
+## Current Tool Wiring
+
+`AI::ContentGenerator#advisor_tools` currently wires:
+
+- **All advisors (8 read-only tools):** `query_memories`, `list_memories`, `read_memory`, `query_conversations`, `list_conversations`, `read_conversation`, `get_conversation_summary`, `browse_web`
+- **Scribe additional (12 tools):** `create_memory`, `update_memory`, `create_advisor`, `list_advisors`, `get_advisor`, `update_advisor`, `create_council`, `list_councils`, `get_council`, `update_council`, `assign_advisor_to_council`, `unassign_advisor_from_council`
+
+`ask_advisor_tool.rb` exists in `app/libs/ai/tools/conversations/` but is not currently included in `advisor_tools`.
 
 ## Routes
 

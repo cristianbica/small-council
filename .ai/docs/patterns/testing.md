@@ -87,4 +87,4 @@ model = provider.llm_models.create!(account: @account, name: "GPT-4", identifier
 | AI integration tests | `test/ai/integration/` (includes mock pattern examples) |
 | System tests | `test/system/` (require Chrome, skip in CI without browser) |
 
-Current suite: ~1396 runs, 96.79% line coverage, 85.38% branch coverage.
+Current verified run (`bin/rails test`): 1420 runs, 11 failures, 95.29% line coverage, 80.65% branch coverage.

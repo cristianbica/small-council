@@ -104,38 +104,28 @@ message.sender_id    # advisor.id
 
 ## Tool Access
 
-Advisors have access to 4 tools for interacting with the system:
+Regular advisors currently have access to 8 read-only tools:
 
 | Tool | Purpose | Access |
 |------|---------|--------|
 | `query_memories` | Search space memories by keyword | Read-only |
+| `list_memories` | List memories in current space | Read-only |
+| `read_memory` | Read a specific memory | Read-only |
 | `query_conversations` | Find past conversations by topic | Read-only |
+| `list_conversations` | List recent conversations in current space | Read-only |
 | `read_conversation` | Read messages from a specific conversation | Read-only |
-| `ask_advisor` | Send a question to another advisor in the council | Write (creates messages) |
+| `get_conversation_summary` | Retrieve stored summary for a conversation | Read-only |
+| `browse_web` | Fetch external web content | Read-only |
 
-### ask_advisor Tool
+Scribe receives additional write/admin tools for memories, advisors, and councils (see [Council Management Tools](council-management-tools.md)).
 
-The `ask_advisor` tool is the **only** way for advisors to communicate with each other:
+### ask_advisor status
 
-```ruby
-# Example tool usage
-{
-  advisor_name: "Systems Architect",
-  question: "What do you think about using Docker for deployment?"
-}
-```
-
-**Key behaviors:**
-- Creates a message mentioning the target advisor
-- Creates a pending placeholder for the advisor's response
-- Enqueues `GenerateAdvisorResponseJob` for async response
-- Prevents advisors from asking themselves
-- Posts responses in the **same conversation** (changed from creating new conversations)
+`AI::Tools::Conversations::AskAdvisorTool` still exists in code but is not currently wired into `AI::ContentGenerator#advisor_tools`.
 
 ### Tool Implementation
 
 Tools are implemented in `app/libs/ai/tools/internal/` and `app/libs/ai/tools/conversations/`:
-- `AI::Tools::Conversations::AskAdvisorTool` - Inter-advisor communication
 - `AI::Tools::Internal::QueryMemoriesTool` - Memory search
 - `AI::Tools::Internal::QueryConversationsTool` - Conversation search
 - `AI::Tools::Internal::ReadConversationTool` - Read conversation messages
