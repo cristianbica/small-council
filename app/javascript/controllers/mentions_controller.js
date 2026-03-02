@@ -9,11 +9,11 @@ export default class extends Controller {
 
   connect() {
     console.log('Advisors data:', this.advisorsValue)
-    
+
     const values = this.advisorsValue.map(advisor => ({
       value: advisor.name
     }))
-    
+
     console.log('Tribute values:', values)
 
     this.tribute = new Tribute({
