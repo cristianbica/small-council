@@ -39,3 +39,11 @@ Current model interactions are visible after the advisor has responded. I should
 ## model interactions record tools
 
 When recording request information record also the tools section sent to the model (ideally we would snapshot the exact payload)
+
+## Convert advisors names to handles
+
+To avoid confusion in mentions let's use the name as a mention and validate it contains only letters, numbers and dashes and convert it to lowercase.
+
+## Address possible bias in responses
+
+On discussions I get the impression that advisors are getting biased by previous messages in the conversation from other advisorsx.
