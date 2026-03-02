@@ -227,6 +227,36 @@ module AI
       end
     end
 
+    test "generate_conversation_title returns normalized title" do
+      mock_response = AI::Model::Response.new(content: "\"Launch Planning Session\"\n")
+      mock_client = stub("client")
+      mock_client.stubs(:complete).returns(mock_response)
+
+      generator = ContentGenerator.new(client: mock_client)
+
+      title = generator.generate_conversation_title(
+        conversation: @conversation,
+        first_message_content: "Can we plan our launch timeline and risks?"
+      )
+
+      assert_equal "Launch Planning Session", title
+    end
+
+    test "generate_conversation_title returns nil when title is blank" do
+      mock_response = AI::Model::Response.new(content: "   ")
+      mock_client = stub("client")
+      mock_client.stubs(:complete).returns(mock_response)
+
+      generator = ContentGenerator.new(client: mock_client)
+
+      title = generator.generate_conversation_title(
+        conversation: @conversation,
+        first_message_content: "Help me with this"
+      )
+
+      assert_nil title
+    end
+
     # generate_memory_content Tests
 
     test "generate_memory_content returns generated content" do

@@ -55,6 +55,7 @@ Commands are parsed by `CommandParser` and executed by command classes in `app/s
 - `roe_type` (open|consensus|brainstorming)
 - `council_id` nullable (only for council_meeting)
 - `scribe_initiated_count` (tracks consecutive scribe interactions)
+- `title_locked` (manual title override guard; blocks auto-title updates)
 
 **messages**:
 - `in_reply_to_id` (self-reference for threading)
@@ -111,8 +112,7 @@ Validates and executes `/invite @advisor`:
 @council.create_conversation!(
   user: current_user,
   title: "Strategic Planning",
-  roe_type: :consensus,
-  initial_message: "Let's discuss Q4 goals"
+        roe_type: :consensus
 )
 ```
 
@@ -130,6 +130,12 @@ conversation.conversation_participants.create!(
 )
 conversation.ensure_scribe_present!
 ```
+
+### Adhoc auto-title after first user message
+- Applies only to `adhoc` conversations
+- Triggered only for the first user message
+- Skipped when `title_locked` is true
+- Generation failures keep the existing title unchanged
 
 ### Inviting Advisor via Command
 User types: `/invite @technical_expert`

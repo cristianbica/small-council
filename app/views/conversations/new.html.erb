@@ -7,7 +7,7 @@
   </h1>
   <p class="text-base-content/70 mb-6">
     <% if @council %>
-      Start a meeting in <%= @council.name %> with <%= @council.advisors.count %> advisors.
+      Start a meeting in <%= @council.name %> with <%= @council.advisors.count %> advisors. You can post your first question after creation.
     <% else %>
       Start a direct conversation with any advisor. The Scribe will be automatically included.
     <% end %>
@@ -46,23 +46,6 @@
               autofocus: true %>
           <label class="label">
             <span class="label-text-alt text-base-content/60">A brief title for this conversation</span>
-          </label>
-        </div>
-
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">
-              Initial Message
-              <span class="text-error" aria-label="required">*</span>
-            </span>
-          </label>
-          <%= form.text_area :initial_message,
-              class: "textarea textarea-bordered w-full #{'textarea-error' if form.object.errors[:initial_message].any?}",
-              placeholder: "What would you like to discuss? Provide details, context, or questions for the advisors.",
-              rows: 5,
-              required: true %>
-          <label class="label">
-            <span class="label-text-alt text-base-content/60">This will be your first message</span>
           </label>
         </div>
 
@@ -109,45 +92,47 @@
           </div>
         <% end %>
 
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">
-              Engagement Mode
-              <span class="text-error" aria-label="required">*</span>
-            </span>
-          </label>
-          <p class="text-sm text-base-content/60 mb-3">
-            How advisors will participate (cannot be changed later)
-          </p>
+        <% unless @council %>
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">
+                Engagement Mode
+                <span class="text-error" aria-label="required">*</span>
+              </span>
+            </label>
+            <p class="text-sm text-base-content/60 mb-3">
+              How advisors will participate (cannot be changed later)
+            </p>
 
-          <div class="space-y-3">
-            <%
-              roe_descriptions = {
-                "open" => "Advisors respond when @mentioned. Use @all to invite everyone. Max depth: 1.",
-                "consensus" => "All advisors discuss until reaching agreement. Max depth: 2.",
-                "brainstorming" => "All advisors contribute ideas iteratively. Max depth: 2."
-              }
-            %>
+            <div class="space-y-3">
+              <%
+                roe_descriptions = {
+                  "open" => "Advisors respond when @mentioned. Use @all to invite everyone. Max depth: 1.",
+                  "consensus" => "All advisors discuss until reaching agreement. Max depth: 2.",
+                  "brainstorming" => "All advisors contribute ideas iteratively. Max depth: 2."
+                }
+              %>
 
-            <% Conversation.roe_types.keys.each do |mode| %>
-              <% mode_string = mode.to_s %>
-              <% is_checked = (@conversation.roe_type == mode_string) || (@conversation.roe_type.blank? && mode_string == "open") %>
-              <% label_class = is_checked ? "border-primary bg-primary/5" : "border-transparent bg-base-200 hover:bg-base-300" %>
-              <label class="cursor-pointer rounded-lg p-3 block border transition-colors <%= label_class %>">
-                <div class="flex items-start gap-3">
-                  <%= form.radio_button :roe_type, mode,
-                      class: "radio radio-primary mt-0.5",
-                      required: true,
-                      checked: is_checked %>
-                  <div class="flex-1">
-                    <span class="font-medium block"><%= mode_string.humanize %></span>
-                    <span class="text-sm text-base-content/70 block mt-0.5"><%= roe_descriptions[mode_string] %></span>
+              <% Conversation.roe_types.keys.each do |mode| %>
+                <% mode_string = mode.to_s %>
+                <% is_checked = (@conversation.roe_type == mode_string) || (@conversation.roe_type.blank? && mode_string == "open") %>
+                <% label_class = is_checked ? "border-primary bg-primary/5" : "border-transparent bg-base-200 hover:bg-base-300" %>
+                <label class="cursor-pointer rounded-lg p-3 block border transition-colors <%= label_class %>">
+                  <div class="flex items-start gap-3">
+                    <%= form.radio_button :roe_type, mode,
+                        class: "radio radio-primary mt-0.5",
+                        required: true,
+                        checked: is_checked %>
+                    <div class="flex-1">
+                      <span class="font-medium block"><%= mode_string.humanize %></span>
+                      <span class="text-sm text-base-content/70 block mt-0.5"><%= roe_descriptions[mode_string] %></span>
+                    </div>
                   </div>
-                </div>
-              </label>
-            <% end %>
+                </label>
+              <% end %>
+            </div>
           </div>
-        </div>
+        <% end %>
 
         <div class="card-actions justify-end mt-4">
           <%= link_to "Cancel", @council ? council_conversations_path(@council) : conversations_path, class: "btn btn-ghost" %>

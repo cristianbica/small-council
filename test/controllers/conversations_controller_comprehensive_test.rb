@@ -121,7 +121,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
 
     get conversation_path(conversation)
     assert_response :success
-    assert_select "h1", conversation.title
+    assert_select "h1", text: conversation.title
+    assert_select "label[title='Edit conversation title']", count: 1
     # Check that advisor names appear somewhere on the page
     assert_select "*", /Strategic Advisor/
     assert_select "*", /Technical Expert/
@@ -175,7 +176,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     get conversation_path(conversation)
     assert_response :success
     # Just check the page loads correctly
-    assert_select "h1", conversation.title
+    assert_select "h1", text: conversation.title
+    assert_select "label[title='Edit conversation title']", count: 1
   end
 
   test "show redirects for conversation in different space" do
@@ -218,7 +220,7 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     assert_select "h1", "Start Meeting"
     assert_select "form"
     assert_select "input[name='conversation[title]']"
-    assert_select "textarea[name='conversation[initial_message]']"
+    assert_select "textarea[name='conversation[initial_message]']", count: 0
     # RoE type selection may be implemented differently
   end
 
@@ -252,12 +254,11 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
 
     # Creating adhoc conversation adds advisors + scribe automatically
     assert_difference("Conversation.count", 1) do
-      assert_difference("Message.count", 1) do
+      assert_no_difference("Message.count") do
         assert_difference("ConversationParticipant.count", 3) do  # 2 advisors + scribe
           post conversations_path, params: {
             conversation: {
               title: "New Adhoc",
-              initial_message: "Let's talk",
               roe_type: "open",
               advisor_ids: [ @advisor1.id, @advisor2.id ]
             }
@@ -283,11 +284,10 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     @council.advisors << @advisor2
 
     assert_difference("Conversation.count", 1) do
-      assert_difference("Message.count", 1) do
+      assert_no_difference("Message.count") do
         post council_conversations_path(@council), params: {
           conversation: {
             title: "New Meeting",
-            initial_message: "Meeting starts now",
             roe_type: "consensus"
           }
         }
@@ -310,7 +310,6 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
       post conversations_path, params: {
         conversation: {
           title: "",  # Invalid - blank title
-          initial_message: "",
           roe_type: "",
           advisor_ids: [ @advisor1.id ]
         }
@@ -332,7 +331,6 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
       post council_conversations_path(@council), params: {
         conversation: {
           title: "With Council",
-          initial_message: "Test",
           roe_type: "open"
         }
       }
@@ -367,6 +365,50 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     assert_redirected_to conversation_path(conversation)
     assert_equal "consensus", conversation.reload.roe_type
     assert flash[:notice].present?
+  end
+
+  test "update title sets title lock" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    conversation = @account.conversations.create!(
+      title: "Initial Title",
+      user: @user,
+      conversation_type: :adhoc,
+      roe_type: :open,
+      space: @space
+    )
+    conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
+
+    patch conversation_path(conversation), params: {
+      conversation: { title: "Updated Title" }
+    }
+
+    assert_redirected_to conversation_path(conversation)
+    assert_equal "Updated Title", conversation.reload.title
+    assert conversation.title_locked?
+  end
+
+  test "update title succeeds with only scribe participant" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    conversation = @account.conversations.create!(
+      title: "Initial Title",
+      user: @user,
+      conversation_type: :adhoc,
+      roe_type: :open,
+      space: @space
+    )
+    conversation.conversation_participants.create!(advisor: @scribe, role: :scribe)
+
+    patch conversation_path(conversation), params: {
+      conversation: { title: "Updated Title" }
+    }
+
+    assert_redirected_to conversation_path(conversation)
+    assert_equal "Updated Title", conversation.reload.title
+    assert conversation.title_locked?
   end
 
   test "update redirects on failure" do
@@ -529,6 +571,45 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
   # ============================================================================
   # DESTROY ACTION - ALL SCENARIOS
   # ============================================================================
+
+  test "archive by conversation owner archives conversation" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    conversation = @account.conversations.create!(
+      title: "Archive Test",
+      user: @user,
+      conversation_type: :adhoc,
+      space: @space
+    )
+    conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
+
+    post archive_conversation_path(conversation)
+
+    assert_redirected_to conversation_path(conversation)
+    assert_equal "archived", conversation.reload.status
+    assert_equal "Conversation archived.", flash[:notice]
+  end
+
+  test "archive fails for non-owner" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    other_user = @account.users.create!(email: "archive-non-owner@example.com", password: "password123")
+    conversation = @account.conversations.create!(
+      title: "Archive Test",
+      user: other_user,
+      conversation_type: :adhoc,
+      space: @space
+    )
+    conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
+
+    post archive_conversation_path(conversation)
+
+    assert_redirected_to conversation_path(conversation)
+    assert_equal "active", conversation.reload.status
+    assert_equal "You are not authorized to archive this conversation.", flash[:alert]
+  end
 
   test "destroy by conversation owner deletes conversation" do
     sign_in_as(@user)

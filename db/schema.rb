@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_01_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_02_093000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -117,6 +117,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_01_090000) do
     t.bigint "space_id", null: false
     t.string "status", default: "active"
     t.string "title"
+    t.boolean "title_locked", default: false, null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["account_id", "last_message_at"], name: "index_conversations_on_account_id_and_last_message_at"

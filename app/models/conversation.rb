@@ -36,20 +36,8 @@ class Conversation < ApplicationRecord
   validates :space, presence: true
   validates :user, presence: true
   validates :title, presence: true
-  validate :must_have_at_least_one_advisor, on: :update
 
   before_validation :assign_space_from_council
-
-  # Custom validation to check for advisors (skip on create to allow building participants)
-  # The validation on :update ensures conversations eventually have advisors
-  def must_have_at_least_one_advisor
-    # Check both persisted participants and those in memory
-    total_advisors = conversation_participants.to_a.count { |p| p.advisor.present? && !p.advisor.scribe? }
-
-    if total_advisors < 1
-      errors.add(:advisors, "must have at least one advisor")
-    end
-  end
 
   # Council is required for council_meeting type
   validates :council, presence: true, if: -> { council_meeting? }
@@ -57,6 +45,12 @@ class Conversation < ApplicationRecord
   scope :recent, -> { order(last_message_at: :desc) }
   scope :active, -> { where(status: "active") }
   scope :adhoc_conversations, -> { where(conversation_type: "adhoc") }
+
+  def deletable_by?(user)
+    return false unless user
+
+    user_id == user.id || council&.user_id == user.id
+  end
 
   # Returns the scribe participant for this conversation
   def scribe_participant

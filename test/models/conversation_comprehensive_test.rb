@@ -655,20 +655,16 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
   # VALIDATIONS
   # ============================================================================
 
-  test "invalid without at least one advisor on update" do
+  test "valid on update without non-scribe advisors" do
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
       council: @council,
       space: @space
     )
-    # Skip validation on create
-    conv.save(validate: false)
 
-    # Should fail on update without advisors
     conv.title = "New Title"
-    assert_not conv.valid?
-    assert_includes conv.errors[:advisors], "must have at least one advisor"
+    assert conv.valid?
   end
 
   test "valid with at least one non-scribe advisor" do
@@ -683,7 +679,7 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     assert conv.valid?
   end
 
-  test "invalid with only scribe advisor" do
+  test "valid with only scribe advisor" do
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
@@ -692,8 +688,7 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     )
     conv.conversation_participants.create!(advisor: @scribe, role: :scribe)
 
-    assert_not conv.valid?
-    assert_includes conv.errors[:advisors], "must have at least one advisor"
+    assert conv.valid?
   end
 
   test "council is required for council_meeting type" do

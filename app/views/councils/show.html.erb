@@ -105,14 +105,30 @@
                 </span>
                 <div class="opacity-0 group-hover:opacity-100 transition-opacity">
                   <% if can_delete_conversation?(conversation) %>
-                    <%= button_to conversation_path(conversation),
-                        method: :delete,
-                        class: "btn btn-ghost btn-xs btn-circle text-error",
-                        data: { turbo_confirm: "Delete this meeting?" } do %>
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    <% end %>
+                    <div class="dropdown dropdown-end">
+                      <button tabindex="0" class="btn btn-ghost btn-xs btn-circle" title="Conversation actions" aria-label="Conversation actions">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6h.01M12 12h.01M12 18h.01" />
+                        </svg>
+                      </button>
+                      <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-36 z-20">
+                        <% if conversation.active? && can_delete_conversation?(conversation) %>
+                          <li>
+                            <%= button_to archive_conversation_path(conversation), method: :post, class: "w-full text-left" do %>
+                              Archive
+                            <% end %>
+                          </li>
+                        <% end %>
+                        <li>
+                          <%= button_to conversation_path(conversation),
+                              method: :delete,
+                              class: "w-full text-left text-error",
+                              data: { turbo_confirm: "Delete this meeting?" } do %>
+                            Delete
+                          <% end %>
+                        </li>
+                      </ul>
+                    </div>
                   <% end %>
                 </div>
               </div>

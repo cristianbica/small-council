@@ -98,6 +98,17 @@ module AI
         <%= conversation_text %>
       PROMPT
 
+      conversation_title: <<~PROMPT,
+        You create concise conversation titles.
+
+        Generate a short title (2-8 words) based on the first user message below.
+        Keep it clear and specific.
+        Return only the title text with no quotes, no punctuation at the end, and no extra text.
+
+        First user message:
+        <%= first_message_content %>
+      PROMPT
+
       memory_content: <<~PROMPT,
         Generate structured memory content based on the following information.
         Create a clear, well-organized record that captures the key information.
@@ -227,6 +238,26 @@ module AI
 
         response = client.complete(prompt: prompt)
         response.content.strip
+      end
+    end
+
+    # Generate a concise title for an adhoc conversation from its first user message
+    #
+    # @param conversation [Conversation] The conversation context
+    # @param first_message_content [String] First user message content
+    # @return [String, nil] The generated title or nil when blank
+    def generate_conversation_title(conversation:, first_message_content:)
+      cache_key = build_cache_key("conversation_title", conversation.id, first_message_content.to_s.hash)
+
+      fetch_from_cache(cache_key) do
+        client = build_client_with_system_model(conversation.account)
+
+        prompt = render_template(:conversation_title,
+          first_message_content: first_message_content.to_s
+        )
+
+        response = client.complete(prompt: prompt)
+        normalize_generated_title(response.content)
       end
     end
 
@@ -456,6 +487,14 @@ module AI
 
     def thinking_placeholder?(message)
       message.status == "pending" && message.content&.include?("is thinking...")
+    end
+
+    def normalize_generated_title(content)
+      title = content.to_s.lines.first.to_s.strip
+      title = title.gsub(/\A["'\s]+|["'\s]+\z/, "")
+      title = title.gsub(/\A[-*#\s]+/, "")
+      title = title.gsub(/[\.!?]+\z/, "")
+      title.presence
     end
   end
 end

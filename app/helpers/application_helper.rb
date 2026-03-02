@@ -17,6 +17,6 @@ module ApplicationHelper
 
   # Check if user can delete the conversation
   def can_delete_conversation?(conversation)
-    conversation.user_id == Current.user.id || conversation.council&.user_id == Current.user.id
+    conversation.deletable_by?(Current.user)
   end
 end

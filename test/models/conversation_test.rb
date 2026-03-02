@@ -186,6 +186,29 @@ class ConversationTest < ActiveSupport::TestCase
     assert conversation.open?
   end
 
+  test "title_locked defaults to false" do
+    conversation = create_conversation_with_advisor
+    assert_equal false, conversation.title_locked
+  end
+
+  test "deletable_by? allows conversation starter" do
+    conversation = create_conversation_with_advisor
+    assert conversation.deletable_by?(@user)
+  end
+
+  test "deletable_by? allows council creator" do
+    other_user = @account.users.create!(email: "other-delete@example.com", password: "password123")
+    conversation = @account.conversations.create!(
+      council: @council,
+      user: other_user,
+      title: "Delete Policy",
+      space: @space
+    )
+    conversation.conversation_participants.create!(advisor: @advisor, role: :advisor, position: 0)
+
+    assert conversation.deletable_by?(@user)
+  end
+
   test "can change roe_type" do
     conversation = create_conversation_with_advisor
     conversation.update!(roe_type: :consensus)

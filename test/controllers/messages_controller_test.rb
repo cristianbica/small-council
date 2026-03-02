@@ -47,6 +47,78 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "New message content", message.content
   end
 
+  test "create enqueues auto title job for first adhoc user message" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    conversation = @account.conversations.create!(
+      user: @user,
+      title: "New conversation",
+      conversation_type: :adhoc,
+      roe_type: :open,
+      space: @space
+    )
+    conversation.ensure_scribe_present!
+
+    assert_enqueued_jobs 1, only: GenerateConversationTitleJob do
+      post conversation_messages_url(conversation), params: {
+        message: { content: "Can you help me build a launch checklist for this week?" }
+      }
+    end
+
+    title_job = enqueued_jobs.find { |job| job[:job] == GenerateConversationTitleJob }
+    assert_not_nil title_job
+    assert_equal conversation.id, title_job[:args].first
+    assert title_job[:args].second.is_a?(Integer)
+  end
+
+  test "create does not enqueue auto title job for non-first user message" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    conversation = @account.conversations.create!(
+      user: @user,
+      title: "New conversation",
+      conversation_type: :adhoc,
+      roe_type: :open,
+      space: @space
+    )
+    conversation.ensure_scribe_present!
+    conversation.messages.create!(
+      account: @account,
+      sender: @user,
+      role: "user",
+      content: "First user message"
+    )
+
+    assert_no_enqueued_jobs only: GenerateConversationTitleJob do
+      post conversation_messages_url(conversation), params: {
+        message: { content: "Second user message" }
+      }
+    end
+  end
+
+  test "create does not enqueue auto title job when title is locked" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    conversation = @account.conversations.create!(
+      user: @user,
+      title: "Manual title",
+      title_locked: true,
+      conversation_type: :adhoc,
+      roe_type: :open,
+      space: @space
+    )
+    conversation.ensure_scribe_present!
+
+    assert_no_enqueued_jobs only: GenerateConversationTitleJob do
+      post conversation_messages_url(conversation), params: {
+        message: { content: "Please analyze this problem" }
+      }
+    end
+  end
+
   test "create redirects to conversation" do
     sign_in_as(@user)
     set_tenant(@account)

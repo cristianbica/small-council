@@ -12,7 +12,8 @@ Conversations are chat sessions tied to a specific space (and optionally a counc
 1. Navigate to a council page
 2. Click "New Conversation" button in the Conversations section
 3. Enter a topic/title
-4. Submit to create conversation and first message
+4. Submit to create the conversation (no seeded first message)
+5. Ask the first question in chat after creation
 
 ### Posting messages
 1. Open a conversation from the council page or conversation list
@@ -22,17 +23,29 @@ Conversations are chat sessions tied to a specific space (and optionally a counc
 5. AI advisors generate responses asynchronously; placeholders show "thinking..."
 
 ### Deleting a conversation
-1. Open the conversation or view it in the conversation list
-2. Click "Delete" button (only visible to conversation starter or council creator)
+1. Open the conversation list row actions (3-dots menu)
+2. Choose "Delete" (only available to conversation starter or council creator)
 3. Confirm deletion (cannot be undone)
 4. Conversation and all messages are permanently deleted
+
+### Archiving a conversation
+1. Open the conversation list row actions (3-dots menu)
+2. Choose "Archive"
+3. Conversation status changes to archived
+
+### Editing a title
+1. Open any conversation
+2. Click the pen icon in the chat header
+3. Edit the title and click "Save"
+4. Manual edit locks the title from future auto-title updates
 
 ## Technical
 
 ### Routes
 ```
 /councils/:council_id/conversations     # index, new, create
-/conversations/:id                        # show, update (PATCH for RoE), destroy
+/conversations/:id                        # show, update (PATCH for title/RoE), destroy
+/conversations/:id/archive                # POST - archive conversation
 /conversations/:conversation_id/messages  # create
 /conversations/:id/invite_advisor         # POST - add advisor to conversation
 /conversations/quick_create               # POST - quick start from dashboard
@@ -46,15 +59,16 @@ Conversations are chat sessions tied to a specific space (and optionally a counc
 
 ### Controllers
 - `ConversationsController`: index, show, new, create, update, destroy, invite_advisor, quick_create
-- `MessagesController`: create (enqueues AI response jobs)
+- `MessagesController`: create (enqueues AI response jobs + adhoc first-message auto-title job)
 - `ProvidersController`: manage AI provider credentials
 
 ### Services
 - `ConversationLifecycle`: Orchestrates message flow, advisor responses, and conversation conclusion
-- `AI::ContentGenerator`: Calls LLM APIs via `AI::Client` instance with conversation context
+- `AI::ContentGenerator`: Calls LLM APIs via `AI::Client` instance with conversation context, including adhoc title generation
 
 ### Jobs
 - `GenerateAdvisorResponseJob`: Async AI response generation, usage tracking, Turbo Stream broadcasts
+- `GenerateConversationTitleJob`: Async title generation for adhoc conversations after the first user message
 
 ### Access Control
 - All authenticated account users can view conversations in their current space
@@ -107,6 +121,14 @@ Use `@Advisor_Name` in messages to trigger specific advisors:
    - Calls `ConversationLifecycle#advisor_responded` for follow-up logic
    - Broadcasts via Turbo Streams to update UI in real-time
 6. User sees live message replacement without page refresh
+
+### Adhoc Auto-title Flow
+
+1. User posts first message in an `adhoc` conversation
+2. `MessagesController` enqueues `GenerateConversationTitleJob` only when title is not manually locked
+3. Job calls `AI::ContentGenerator#generate_conversation_title`
+4. On success, conversation title is updated
+5. On error/blank generation, title is left unchanged
 
 ### Error Handling
 

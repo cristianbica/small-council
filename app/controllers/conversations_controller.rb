@@ -1,6 +1,6 @@
 class ConversationsController < ApplicationController
   before_action :set_council, only: [ :index, :new, :create ], if: -> { params[:council_id].present? }
-  before_action :set_conversation, only: [ :show, :update, :destroy, :invite_advisor ]
+  before_action :set_conversation, only: [ :show, :update, :destroy, :archive, :invite_advisor ]
   before_action :set_sidebar_conversations, only: [ :show ]
 
   layout :choose_layout
@@ -66,10 +66,23 @@ class ConversationsController < ApplicationController
   end
 
   def update
-    # Only allow updating RoE type for now
-    if @conversation.update(conversation_params)
-      redirect_to @conversation, notice: "Conversation updated to #{@conversation.roe_type.humanize} mode."
+    @conversation.assign_attributes(conversation_params)
+    title_updated = @conversation.will_save_change_to_title?
+
+    @conversation.title_locked = true if title_updated
+
+    if @conversation.save
+      notice = if title_updated
+        "Conversation title updated."
+      elsif conversation_params[:roe_type].present?
+        "Conversation updated to #{@conversation.roe_type.humanize} mode."
+      else
+        "Conversation updated."
+      end
+
+      redirect_to @conversation, notice: notice
     else
+      Rails.logger.debug @conversation.errors.full_messages
       redirect_to @conversation, alert: "Failed to update conversation."
     end
   end
@@ -110,7 +123,7 @@ class ConversationsController < ApplicationController
 
   def destroy
     unless can_manage_conversation?
-      redirect_to @conversation, alert: "Only the conversation starter can delete this conversation."
+      redirect_to @conversation, alert: "You are not authorized to delete this conversation."
       return
     end
 
@@ -131,6 +144,23 @@ class ConversationsController < ApplicationController
     redirect_to @conversation, alert: "Failed to delete conversation: #{e.message}"
   end
 
+  def archive
+    unless can_manage_conversation?
+      redirect_to @conversation, alert: "You are not authorized to archive this conversation."
+      return
+    end
+
+    @conversation.update_columns(status: "archived", updated_at: Time.current)
+
+    respond_to do |format|
+      format.html { redirect_back fallback_location: @conversation, notice: "Conversation archived." }
+      format.turbo_stream { redirect_back fallback_location: @conversation, notice: "Conversation archived." }
+    end
+  rescue => e
+    Rails.logger.error "[ConversationsController#archive] Error archiving conversation #{@conversation.id}: #{e.message}"
+    redirect_to @conversation, alert: "Failed to archive conversation: #{e.message}"
+  end
+
   private
 
   def set_council
@@ -146,7 +176,7 @@ class ConversationsController < ApplicationController
   end
 
   def can_manage_conversation?
-    @conversation.user_id == Current.user.id
+    @conversation.deletable_by?(Current.user)
   end
 
   def create_council_meeting
@@ -162,15 +192,6 @@ class ConversationsController < ApplicationController
         add_council_participants(@conversation)
         @conversation.reload
       end
-
-      # Create initial message outside transaction
-      initial_content = conversation_params[:initial_message].presence || @conversation.title
-      @conversation.messages.create!(
-        account: Current.account,
-        sender: Current.user,
-        role: "user",
-        content: initial_content
-      )
 
       redirect_to @conversation
     else
@@ -202,15 +223,6 @@ class ConversationsController < ApplicationController
 
       # Ensure scribe is present
       @conversation.ensure_scribe_present!
-
-      # Create initial message
-      initial_content = conversation_params[:initial_message].presence || @conversation.title
-      @conversation.messages.create!(
-        account: Current.account,
-        sender: Current.user,
-        role: "user",
-        content: initial_content
-      )
 
       redirect_to @conversation
     else
@@ -275,7 +287,7 @@ class ConversationsController < ApplicationController
   end
 
   def conversation_params
-    params.require(:conversation).permit(:title, :roe_type, :initial_message, advisor_ids: [])
+    params.require(:conversation).permit(:title, :roe_type, advisor_ids: [])
   end
 
   def conversation_params_for_create

@@ -46,6 +46,22 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", "#{council.name} Conversations"
     assert_select "h3", conversation.title
+    assert_select "button[title='Conversation actions']", minimum: 1
+    assert_select "button", text: "Archive", minimum: 1
+  end
+
+  test "index hides archive action when user cannot delete conversation" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    council_creator = @account.users.create!(email: "list-council-creator@example.com", password: "password123")
+    conversation_owner = @account.users.create!(email: "list-conversation-owner@example.com", password: "password123")
+    council = @account.councils.create!(name: "Restricted Council", user: council_creator, space: @space)
+    @account.conversations.create!(council: council, user: conversation_owner, title: "Hidden Actions", space: @space)
+
+    get council_conversations_url(council)
+
+    assert_response :success
+    assert_select "button", text: "Archive", count: 0
   end
 
   test "show displays conversation with messages" do
@@ -62,8 +78,82 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
 
     get conversation_url(conversation)
     assert_response :success
-    assert_select "h1", conversation.title
+    assert_select "h1", text: conversation.title
+    assert_select "label[title='Edit conversation title']", count: 1
     assert_select ".whitespace-pre-wrap", message.content
+  end
+
+  test "show adhoc displays actions menu with archive and delete for conversation owner" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    conversation = @account.conversations.create!(
+      user: @user,
+      title: "Owner Adhoc Conversation",
+      conversation_type: :adhoc,
+      status: :active,
+      space: @space
+    )
+
+    get conversation_url(conversation)
+
+    assert_response :success
+    assert_select "button[title='Conversation actions']", minimum: 1
+    assert_select "button", text: "Archive", minimum: 1
+    assert_select "button", text: "Delete", minimum: 1
+  end
+
+  test "show adhoc hides actions when user cannot delete conversation" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    conversation_owner = @account.users.create!(email: "adhoc-owner@example.com", password: "password123")
+    conversation = @account.conversations.create!(
+      user: conversation_owner,
+      title: "Restricted Adhoc Conversation",
+      conversation_type: :adhoc,
+      status: :active,
+      space: @space
+    )
+
+    get conversation_url(conversation)
+
+    assert_response :success
+    assert_select "button", text: "Archive", count: 0
+    assert_select "button", text: "Delete", count: 0
+  end
+
+  test "archive sets conversation status to archived" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Archive Me", space: @space)
+
+    post archive_conversation_url(conversation)
+
+    assert_redirected_to conversation_url(conversation)
+    assert_equal "archived", conversation.reload.status
+    assert_equal "Conversation archived.", flash[:notice]
+  end
+
+  test "archive fails for unauthorized users" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    other_user = @account.users.create!(email: "archive-other@example.com", password: "password123")
+    other_council_creator = @account.users.create!(email: "archive-creator@example.com", password: "password123")
+    council = @account.councils.create!(name: "Restricted Council", user: other_council_creator, space: @space)
+    conversation = @account.conversations.create!(
+      council: council,
+      user: other_user,
+      title: "Cannot Archive",
+      space: @space
+    )
+
+    post archive_conversation_url(conversation)
+
+    assert_redirected_to conversation_url(conversation)
+    assert_equal "active", conversation.reload.status
+    assert_equal "You are not authorized to archive this conversation.", flash[:alert]
   end
 
   test "new renders form" do
@@ -77,17 +167,16 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name=?]", "conversation[title]"
   end
 
-  test "create makes conversation with first message" do
+  test "create makes conversation without seeded message" do
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
 
     assert_difference("Conversation.count", 1) do
-      assert_difference("Message.count", 1) do
+      assert_no_difference("Message.count") do
         post council_conversations_url(council), params: {
           conversation: {
             title: "New Conversation Topic",
-            initial_message: "This is the detailed initial message content",
             rules_of_engagement: "round_robin"
           }
         }
@@ -100,12 +189,6 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal @user, conversation.user
     assert_equal council, conversation.council
 
-    message = Message.last
-    assert_equal conversation, message.conversation
-    assert_equal @user, message.sender
-    assert_equal "user", message.role
-    assert_equal "This is the detailed initial message content", message.content
-
     assert_redirected_to conversation_url(conversation)
   end
 
@@ -117,7 +200,6 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     post council_conversations_url(council), params: {
       conversation: {
         title: "Test",
-        initial_message: "Test initial message content",
         rules_of_engagement: "round_robin"
       }
     }
@@ -132,7 +214,6 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     post council_conversations_url(council), params: {
       conversation: {
         title: "",
-        initial_message: "",
         rules_of_engagement: ""
       }
     }
@@ -144,16 +225,14 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    advisor = @account.advisors.create!(name: "Test Advisor", system_prompt: "Help", space: @space)
     conversation = @account.conversations.create!(council: council, user: @user, title: "Old Title", space: @space)
-    # Add advisor as participant to pass validation
-    conversation.conversation_participants.create!(advisor: advisor, role: :advisor, position: 0)
 
     patch conversation_url(conversation), params: {
       conversation: { title: "Updated Title" }
     }
     assert_redirected_to conversation_url(conversation)
     assert_equal "Updated Title", conversation.reload.title
+    assert conversation.title_locked?
   end
 
   test "update redirects on failure" do
@@ -205,10 +284,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    advisor = @account.advisors.create!(name: "Test Advisor", system_prompt: "Help", space: @space)
     conversation = @account.conversations.create!(council: council, user: @user, title: "Test", roe_type: :open, space: @space)
-    # Add advisor as participant to pass validation
-    conversation.conversation_participants.create!(advisor: advisor, role: :advisor, position: 0)
 
     patch conversation_url(conversation), params: {
       conversation: { roe_type: :consensus }
@@ -330,7 +406,6 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
       post council_conversations_url(council), params: {
         conversation: {
           title: "Test Conversation",
-          initial_message: "Test message",
           rules_of_engagement: "round_robin",
           account_id: other_account.id  # Attempting to set account
         }
@@ -354,7 +429,6 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
       post council_conversations_url(council), params: {
         conversation: {
           title: "Test Conversation",
-          initial_message: "Test message",
           rules_of_engagement: "round_robin",
           user_id: other_user.id  # Attempting to set different user
         }
@@ -432,7 +506,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Conversation deleted successfully.", flash[:notice]
   end
 
-  test "destroy fails for council creator who is not conversation starter" do
+  test "destroy allows council creator who is not conversation starter" do
     sign_in_as(@user)
     set_tenant(@account)
     other_user = @account.users.create!(email: "other@example.com", password: "password123")
@@ -444,13 +518,12 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
       space: @space
     )
 
-    # Council creator cannot delete if they didn't start the conversation
-    assert_no_difference("Conversation.count") do
+    assert_difference("Conversation.count", -1) do
       delete conversation_url(conversation)
     end
 
-    assert_redirected_to conversation_url(conversation)
-    assert_equal "Only the conversation starter can delete this conversation.", flash[:alert]
+    assert_redirected_to council_conversations_path(council)
+    assert_equal "Conversation deleted successfully.", flash[:notice]
   end
 
   test "destroy fails for unauthorized users" do
@@ -471,7 +544,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to conversation_url(conversation)
-    assert_equal "Only the conversation starter can delete this conversation.", flash[:alert]
+    assert_equal "You are not authorized to delete this conversation.", flash[:alert]
   end
 
   test "destroy requires authentication" do

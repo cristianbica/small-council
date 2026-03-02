@@ -18,12 +18,7 @@ It would also allow users to experiment with different models and see how they p
 For example https://github.com/samg/diffy
 
 
-## Chat UI is awful
-
-Let's find some UI pattern/lib to make the chat work like any other AI chat.
-generated with v0 https://vm-nogn5tykd7jhy2l67bzncp.vusercontent.net/index.html
-
-## Ability to show in chat resources
+## Ability to show resources in chat
 
 For example if I instruct the scribe to create a memory in the response I should see a memory card (short) but be able to click and see the whole memory in a popup (should this be the default?)
 
@@ -31,11 +26,6 @@ For example if I instruct the scribe to create a memory in the response I should
 ## Conversation tools usage
 
 When asking scribe to do an action similar with another one it previously did the scribe tells me it did the new action but in fact it didn't. Perhaps it believes so as we're passing the whole converstion. what strategies could we adopt here? how others are doing it?
-
-## Meeting context
-
-When starting a meeting the advisors have little context. We should provide them with some stuff from memories.
-
 
 ## Advisors answer all at once
 
@@ -53,11 +43,7 @@ See conversation 22
 Current model interactions are visible after the advisor has responded. I should be able to see them as they happen, especially for long responses. This would allow me to understand better what the model is doing and if it's going in the right direction. It would also allow me to stop it if I see it's going in the wrong direction.
 
 
-## Remove initial message from concil meeting
+## Council Meeting status simplification
 
-Just ask for the topic and the user can ask for the questions in chat.
-
-## Allow to manage better conversations (adhoc)
-
-- allow to change title (and generate a title after first message?)
-- allow to delete conversations
+No need for "concluding" state, alerters about generating summaries. User will ask for the scribe for summaries. Users will click the finish button to mark it as finished.
+Remove any current code doing this automaticall or via tools

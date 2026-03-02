@@ -5,7 +5,7 @@
 <div class="h-[calc(100vh-8rem)] flex overflow-hidden">
   <% if @sidebar_conversations.present? %>
     <%# Left Sidebar: Conversation List %>
-    <aside id="conversation-sidebar" class="w-80 flex-none border-r bg-base-200 overflow-y-auto hidden lg:block" data-controller="conversation-sidebar">
+    <aside id="conversation-sidebar" class="w-80 flex-none border-r bg-base-200 overflow-y-auto overflow-x-hidden hidden lg:block" data-controller="conversation-sidebar">
       <div class="p-4 border-b bg-base-100">
         <div class="flex items-center justify-between mb-3">
           <h2 class="font-semibold text-lg">Conversations</h2>
@@ -24,17 +24,12 @@
       </div>
 
       <%# DaisyUI Menu for conversation list %>
-      <ul id="conversation-list" class="menu menu-sm bg-base-200">
+      <ul id="conversation-list" class="menu menu-sm bg-base-200 ">
         <% @sidebar_conversations.each do |conv| %>
           <li>
-            <%= link_to conversation_path(conv),
-                class: "#{conv.id == @conversation.id ? 'active' : ''}" do %>
-              <div class="flex items-start gap-3 w-full">
-                <div class="avatar placeholder flex-shrink-0">
-                  <div class="bg-neutral text-neutral-content rounded-full w-8 h-8 flex items-center justify-center">
-                    <span class="text-xs"><%= conv.user.email.first.upcase %></span>
-                  </div>
-                </div>
+            <div class="flex items-start gap-2 min-w-0">
+              <%= link_to conversation_path(conv), class: "flex-1 min-w-0 #{conv.id == @conversation.id ? 'active border-l-4 border-primary pl-2' : ''}" do %>
+                <div class="flex items-start gap-3 w-full">
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 mb-1">
                     <span class="font-medium text-sm truncate"><%= conv.title %></span>
@@ -58,8 +53,35 @@
                     <p class="text-xs text-base-content/40">No messages yet</p>
                   <% end %>
                 </div>
+                </div>
+              <% end %>
+              <div class="dropdown dropdown-end self-center flex-none">
+                <button tabindex="0" class="btn btn-ghost btn-xs btn-circle" title="Conversation actions" aria-label="Conversation actions">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6h.01M12 12h.01M12 18h.01" />
+                  </svg>
+                </button>
+                <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-36 z-20 right-0">
+                  <% if conv.active? && can_delete_conversation?(conv) %>
+                    <li>
+                      <%= button_to archive_conversation_path(conv), method: :post, class: "w-full text-left" do %>
+                        Archive
+                      <% end %>
+                    </li>
+                  <% end %>
+                  <% if can_delete_conversation?(conv) %>
+                    <li>
+                      <%= button_to conversation_path(conv),
+                          method: :delete,
+                          class: "w-full text-left text-error",
+                          data: { turbo_confirm: "Delete this conversation?" } do %>
+                        Delete
+                      <% end %>
+                    </li>
+                  <% end %>
+                </ul>
               </div>
-            <% end %>
+            </div>
           </li>
         <% end %>
       </ul>
@@ -88,7 +110,7 @@
       <div class="drawer-content">
         <%# Main content goes here - rendered below %>
       </div>
-      <div class="drawer-side z-40">
+      <div class="drawer-side z-40 overflow-x-hidden">
         <label for="conversation-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
         <div class="menu bg-base-200 text-base-content min-h-full w-80 p-4">
           <div class="p-4 border-b bg-base-100 -mx-4 -mt-4 mb-4">
@@ -104,18 +126,45 @@
               <% end %>
             </div>
           </div>
-          <ul class="menu menu-sm">
+          <ul class="menu menu-sm overflow-x-hidden">
             <% @sidebar_conversations.each do |conv| %>
               <li>
-                <%= link_to conversation_path(conv),
-                    class: "#{conv.id == @conversation.id ? 'active' : ''}" do %>
-                  <div class="flex items-center gap-2">
-                    <span class="truncate"><%= conv.title %></span>
-                    <% if conv.active? %>
-                      <span class="w-2 h-2 rounded-full bg-success flex-shrink-0"></span>
-                    <% end %>
+                <div class="flex items-center gap-2 min-w-0">
+                  <%= link_to conversation_path(conv), class: "flex-1 min-w-0 #{conv.id == @conversation.id ? 'active border-l-4 border-primary pl-2' : ''}" do %>
+                    <div class="flex items-center gap-2">
+                      <span class="truncate"><%= conv.title %></span>
+                      <% if conv.active? %>
+                        <span class="w-2 h-2 rounded-full bg-success flex-shrink-0"></span>
+                      <% end %>
+                    </div>
+                  <% end %>
+                  <div class="dropdown dropdown-end flex-none">
+                    <button tabindex="0" class="btn btn-ghost btn-xs btn-circle" title="Conversation actions" aria-label="Conversation actions">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6h.01M12 12h.01M12 18h.01" />
+                      </svg>
+                    </button>
+                    <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-36 z-20 right-0">
+                      <% if conv.active? && can_delete_conversation?(conv) %>
+                        <li>
+                          <%= button_to archive_conversation_path(conv), method: :post, class: "w-full text-left" do %>
+                            Archive
+                          <% end %>
+                        </li>
+                      <% end %>
+                      <% if can_delete_conversation?(conv) %>
+                        <li>
+                          <%= button_to conversation_path(conv),
+                              method: :delete,
+                              class: "w-full text-left text-error",
+                              data: { turbo_confirm: "Delete this conversation?" } do %>
+                            Delete
+                          <% end %>
+                        </li>
+                      <% end %>
+                    </ul>
                   </div>
-                <% end %>
+                </div>
               </li>
             <% end %>
           </ul>

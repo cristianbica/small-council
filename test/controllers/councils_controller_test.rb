@@ -46,6 +46,26 @@ class CouncilsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "show renders meeting actions dropdown with archive and delete for authorized user" do
+    sign_in_as(@user)
+    set_tenant(@account)
+    council = @account.councils.create!(name: "Test", user: @user, space: @space)
+    @account.conversations.create!(
+      council: council,
+      user: @user,
+      title: "Meeting One",
+      status: :active,
+      space: @space
+    )
+
+    get council_url(council)
+
+    assert_response :success
+    assert_select "button[title='Conversation actions']", minimum: 1
+    assert_select "button", text: "Archive", minimum: 1
+    assert_select "button", text: "Delete", minimum: 1
+  end
+
   test "should get edit for creator" do
     sign_in_as(@user)
     set_tenant(@account)
