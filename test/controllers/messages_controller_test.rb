@@ -324,4 +324,68 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
       }
     end
   end
+
+  test "interactions returns modal content for message in conversation" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Test", space: @space)
+    advisor = @account.advisors.create!(
+      name: "Test Advisor",
+      system_prompt: "You are a test advisor",
+      llm_model: @llm_model,
+      space: @space
+    )
+
+    message = @account.messages.create!(
+      conversation: conversation,
+      sender: advisor,
+      role: "advisor",
+      content: "Answer"
+    )
+
+    ModelInteraction.create!(
+      account: @account,
+      message: message,
+      sequence: 0,
+      interaction_type: "chat",
+      request_payload: { model: "gpt-4", tools: [ { name: "query_memories" } ] },
+      response_payload: { messages: [ { role: "assistant", parts: [ { type: "text", content: "Answer" } ] } ] },
+      model_identifier: "gpt-4",
+      input_tokens: 10,
+      output_tokens: 20
+    )
+
+    get interactions_conversation_message_url(conversation, message)
+
+    assert_response :success
+    assert_includes response.body, "Model Interactions"
+    assert_includes response.body, "Request Tools"
+  end
+
+  test "interactions returns not found for message outside conversation" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    conversation_a = @account.conversations.create!(council: council, user: @user, title: "A", space: @space)
+    conversation_b = @account.conversations.create!(council: council, user: @user, title: "B", space: @space)
+    advisor = @account.advisors.create!(
+      name: "Test Advisor",
+      system_prompt: "You are a test advisor",
+      llm_model: @llm_model,
+      space: @space
+    )
+
+    message = @account.messages.create!(
+      conversation: conversation_b,
+      sender: advisor,
+      role: "advisor",
+      content: "Other conversation"
+    )
+
+    get interactions_conversation_message_url(conversation_a, message)
+    assert_response :not_found
+  end
 end

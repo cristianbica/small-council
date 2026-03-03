@@ -59,7 +59,11 @@ Rails.application.routes.draw do
   end
 
   resources :conversations do
-    resources :messages, only: [ :create ]
+    resources :messages, only: [ :create ] do
+      member do
+        get :interactions
+      end
+    end
     member do
       post :finish
       post :archive

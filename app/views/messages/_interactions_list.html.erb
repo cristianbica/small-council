@@ -1,0 +1,6 @@
+<% interactions = interactions || message.model_interactions.chronological %>
+<div id="interactions-list-<%= message.id %>" class="space-y-4">
+  <% interactions.each_with_index do |interaction, idx| %>
+    <%= render "messages/interaction_item", interaction: interaction, expanded: (idx == 0) %>
+  <% end %>
+</div>

@@ -43,7 +43,8 @@ class ConversationsController < ApplicationController
   end
 
   def show
-    @messages = @conversation.messages.chronological.includes(:sender, :model_interactions)
+    @messages = @conversation.messages.chronological.includes(:sender)
+    @messages_with_interactions = ModelInteraction.where(message_id: @messages.map(&:id)).distinct.pluck(:message_id).index_with(true)
     @new_message = Message.new
     @available_advisors = available_advisors_for_invite
   end

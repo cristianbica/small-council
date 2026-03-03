@@ -1,0 +1,16 @@
+<div class="h-full flex flex-col">
+  <h3 class="font-bold text-lg mb-4 flex items-center">
+    Model Interactions
+    <%= render "messages/interactions_count", message: message, interactions: interactions %>
+  </h3>
+
+  <div class="flex-1 overflow-y-auto">
+    <% if interactions.any? %>
+      <%= render "messages/interactions_list", message: message, interactions: interactions %>
+    <% else %>
+      <div id="interactions-list-<%= message.id %>" class="text-sm text-base-content/60 py-4">
+        Waiting for model interactions...
+      </div>
+    <% end %>
+  </div>
+</div>

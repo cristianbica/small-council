@@ -86,9 +86,13 @@ Key behaviors:
 
 ## UI
 
-- **Icon**: Terminal/code icon next to AI-generated messages (both `_message_thread.html.erb` and `_message.html.erb`)
-- **Modal**: DaisyUI `<dialog>` with collapse accordion showing request/response JSON per interaction
-- First interaction expanded by default; header shows model, token count, and duration
+- **Icon**: Terminal/code icon next to advisor-owned messages, including pending placeholders.
+- **Modal size**: approximately `80vw` width and `95vh` height.
+- **Async modal loading**: interaction content is fetched on-demand from `MessagesController#interactions` when modal opens.
+- **Live updates**: `ModelInteraction` broadcasts Turbo Stream updates for open modal content (`interactions-list-*` and `interactions-count-*`).
+- **Section layout**:
+  - Chat/system→model interactions: `Request`, `Request Tools`, `Response`
+  - Tool interactions: `Request`, `Response`
 
 ## Design Decisions
 
@@ -101,7 +105,8 @@ Key behaviors:
 | JSONB for request/response | Schemas vary by provider and evolve; GIN indexed for queryability |
 | No encryption on payloads | Content already encrypted at message level; JSONB encryption prevents GIN indexing |
 | Rescue-and-log | Same pattern as `track_usage`; recording must never break AI responses |
-| No new routes/controller | Interactions eager-loaded with messages; rendered inline via modal |
+| On-demand interactions endpoint | Avoids eager rendering of large JSON payloads during initial chat load |
+| Turbo Stream modal updates | Enables live interaction visibility while modal is open |
 
 ## Testing
 

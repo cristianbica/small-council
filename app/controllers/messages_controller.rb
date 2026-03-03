@@ -1,6 +1,7 @@
 class MessagesController < ApplicationController
   before_action :set_conversation
   before_action :verify_conversation_accessible
+  before_action :set_message, only: [ :interactions ]
 
   def create
     Rails.logger.info "[MessagesController#create] User #{Current.user.id} posting message to conversation #{@conversation.id}"
@@ -25,6 +26,16 @@ class MessagesController < ApplicationController
     end
   end
 
+  def interactions
+    @interactions = @message.model_interactions.chronological
+    frame_id = "interactions-frame-#{@message.id}"
+    render partial: "messages/interactions_frame", locals: {
+      frame_id: frame_id,
+      message: @message,
+      interactions: @interactions
+    }
+  end
+
   private
 
   def build_user_message
@@ -38,6 +49,10 @@ class MessagesController < ApplicationController
 
   def set_conversation
     @conversation = Current.space.conversations.find(params[:conversation_id])
+  end
+
+  def set_message
+    @message = @conversation.messages.find(params[:id])
   end
 
   def verify_conversation_accessible
