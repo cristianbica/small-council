@@ -80,7 +80,7 @@ module AI
           end
         rescue => e
           Rails.logger.error "[BrowseWebTool] Error: #{e.message}"
-          Rails.logger.error e.backtrace.first(5).join("\n")
+          Rails.logger.error e.backtrace.first(25).join("\n")
 
           {
             success: false,

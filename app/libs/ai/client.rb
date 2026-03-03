@@ -59,6 +59,11 @@ module AI
         # Set context on all tool adapters so they can pass it to tools
         @tool_adapters.each { |adapter| adapter.context = context }
 
+        council_context_message = build_council_context_message(context)
+        if council_context_message.present?
+          ruby_llm_chat.add_message(role: "system", content: council_context_message)
+        end
+
         memory_index_message = build_memory_index_context_message(context)
         if memory_index_message.present?
           ruby_llm_chat.add_message(role: "system", content: memory_index_message)
@@ -363,6 +368,55 @@ module AI
       end
 
       lines << "If more detail is needed, fetch by memory id using memory tools."
+      lines.join("\n")
+    end
+
+    def build_council_context_message(context)
+      council = context[:council]
+      participants = context[:participants]
+
+      has_council = council.respond_to?(:name) || council.respond_to?(:description)
+      has_participants = participants.respond_to?(:any?) && participants.any?
+      return nil unless has_council || has_participants
+
+      lines = [ "You are a member of a council of advisors." ]
+
+      if has_council
+        lines << "Council: #{council.name}" if council.respond_to?(:name) && council.name.present?
+
+        council_purpose = if council.respond_to?(:description)
+          council.description
+        end
+        lines << "Purpose: #{council_purpose.presence || "No council purpose provided."}"
+      else
+        lines << "Purpose: No council purpose provided."
+      end
+
+      if has_participants
+        lines << "Advisors and roles:"
+        participants.each_with_index do |participant, idx|
+          participant_name = participant[:name] || participant["name"] || "Unknown participant"
+          participant_role = participant[:role] || participant["role"] || "advisor"
+          lines << "#{idx + 1}. #{participant_name} (#{participant_role})"
+        end
+      end
+
+      # responder = context[:advisor]
+      # if responder.respond_to?(:name)
+      #   responder_role = if responder.respond_to?(:scribe?) && responder.scribe?
+      #     "scribe"
+      #   else
+      #     "advisor"
+      #   end
+      #   lines << "Current responder: #{responder.name} (#{responder_role})"
+      # end
+
+      # roe_type = context[:roe_type]
+      # roe_description = context[:roe_description]
+      # if roe_type.present? || roe_description.present?
+      #   lines << "Rules of engagement: #{[ roe_type, roe_description ].compact.join(" - ")}"
+      # end
+
       lines.join("\n")
     end
   end

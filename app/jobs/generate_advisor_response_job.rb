@@ -67,7 +67,7 @@ class GenerateAdvisorResponseJob < ApplicationJob
       handle_error(message, lifecycle, "API Error: #{e.message}")
     rescue => e
       Rails.logger.error "[GenerateAdvisorResponseJob] Unexpected error: #{e.message}"
-      Rails.logger.error e.backtrace.first(10).join("\n")
+      Rails.logger.error e.backtrace.first(25).join("\n")
       handle_error(message, lifecycle, "Unexpected error: #{e.message}")
     end
   ensure

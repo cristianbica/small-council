@@ -137,6 +137,79 @@ module AI
       assert_equal "Hello", added_messages.second[:content]
     end
 
+    test "chat orders advisor instructions then council context then memory index then conversation messages" do
+      client = Client.new(model: @llm_model, system_prompt: "Advisor instructions")
+
+      mock_response = Struct.new(:content, :input_tokens, :output_tokens, :model_id, :tool_calls).new(
+        "Response", 10, 5, "gpt-4", nil
+      )
+
+      call_order = []
+      added_messages = []
+      mock_chat = Object.new
+      mock_chat.define_singleton_method(:with_instructions) do |instructions|
+        call_order << [ :with_instructions, instructions ]
+        self
+      end
+      mock_chat.define_singleton_method(:with_temperature) { |*| self }
+      mock_chat.define_singleton_method(:with_tools) { |*| self }
+      mock_chat.define_singleton_method(:on_end_message) { |&block| self }
+      mock_chat.define_singleton_method(:on_tool_call) { |&block| self }
+      mock_chat.define_singleton_method(:on_tool_result) { |&block| self }
+      mock_chat.define_singleton_method(:add_message) do |role:, content:|
+        added_messages << { role: role, content: content }
+        call_order << [ :add_message, role ]
+        self
+      end
+      mock_chat.define_singleton_method(:complete) { mock_response }
+
+      mock_context = Struct.new(:chat_result) do
+        def chat(**args); chat_result; end
+      end.new(mock_chat)
+
+      RubyLLM.stubs(:context).yields(stub(:openai_api_key= => nil, :openai_organization_id= => nil)).returns(mock_context)
+
+      council = Struct.new(:name, :description).new("Product Council", "Help with product decisions")
+      responder = Struct.new(:name) do
+        def scribe?
+          false
+        end
+      end.new("Avery")
+
+      client.chat(
+        messages: [ { role: "user", content: "[speaker: user] Hello" } ],
+        context: {
+          council: council,
+          participants: [
+            { name: "Avery", role: "advisor" },
+            { name: "Sage", role: "scribe" }
+          ],
+          advisor: responder,
+          roe_type: "open",
+          roe_description: "Advisors respond when mentioned",
+          memory_index: {
+            primary_summary: {
+              id: 10,
+              title: "Team Summary",
+              summary_excerpt_50_words: "Key points"
+            }
+          }
+        }
+      )
+
+      assert_equal [ :with_instructions, "Advisor instructions" ], call_order.first
+      assert_equal "system", added_messages.first[:role]
+      assert_includes added_messages.first[:content], "Council and advisor context:"
+      assert_includes added_messages.first[:content], "Purpose: Help with product decisions"
+      assert_includes added_messages.first[:content], "Advisors and roles:"
+
+      assert_equal "system", added_messages.second[:role]
+      assert_includes added_messages.second[:content], "Memory index (curated):"
+
+      assert_equal "user", added_messages.third[:role]
+      assert_equal "[speaker: user] Hello", added_messages.third[:content]
+    end
+
     test "complete is convenience method for single-turn" do
       client = Client.new(model: @llm_model)
 

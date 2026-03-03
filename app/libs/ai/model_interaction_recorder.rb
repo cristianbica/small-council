@@ -114,6 +114,10 @@ module AI
     end
 
     def build_chat_request_payload(chat, response)
+      begin
+        return JSON.parse response.raw.env.request_body
+      rescue JSON::ParserError
+      end
       # Messages up to (but not including) this response
       all_messages = chat.respond_to?(:messages) ? chat.messages : []
       response_index = all_messages.rindex(response)

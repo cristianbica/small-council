@@ -178,7 +178,7 @@ module AI
 
         client.chat(
           messages: messages,
-          context: ctx.merge(context)
+          context: ctx.merge(context).merge(advisor: advisor)
         )
       end
     end
@@ -405,20 +405,22 @@ module AI
         next if thinking_placeholder?(root_msg)
 
         # Add root message
+        root_sender_name = sender_display_name(root_msg.sender)
         messages << {
           role: root_msg.role == "advisor" ? "assistant" : root_msg.role,
-          content: root_msg.content,
-          sender_name: sender_display_name(root_msg.sender)
+          content: outbound_message_content(root_msg.content, root_sender_name, root_msg.role),
+          sender_name: root_sender_name
         }
 
         # Add replies
         root_msg.replies.chronological.each do |reply|
           next if thinking_placeholder?(reply)
 
+          reply_sender_name = sender_display_name(reply.sender)
           messages << {
             role: reply.role == "advisor" ? "assistant" : reply.role,
-            content: reply.content,
-            sender_name: sender_display_name(reply.sender),
+            content: outbound_message_content(reply.content, reply_sender_name, reply.role),
+            sender_name: reply_sender_name,
             in_reply_to: reply.in_reply_to_id
           }
         end
@@ -484,6 +486,11 @@ module AI
 
     def thinking_placeholder?(message)
       message.status == "pending" && message.content&.include?("is thinking...")
+    end
+
+    def outbound_message_content(content, sender_name, role)
+      label = sender_name.presence || role.to_s
+      "[speaker: #{label}] #{content}"
     end
 
     def normalize_generated_title(content)
