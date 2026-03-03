@@ -2,6 +2,11 @@
 
 Max ~200 lines. Keep durable, high-signal facts only.
 
+## Overlays
+- `prompt-engineer`: Specializes agents in writing AI agent prompts (`.ai/overlays/prompt-engineer.md`)
+  - Includes advanced techniques: chain-of-thought, few-shot prompting, role-based prompting
+  - Integrates with `system.md` and `value.md` for comprehensive prompt design
+
 ## Commands (verified 2026-03-02)
 - Install check: `bundle check` (dependencies satisfied)
 - Build: `bin/rails assets:precompile` (succeeds; Tailwind emits `@property` warning)

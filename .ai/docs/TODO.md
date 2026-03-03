@@ -36,11 +36,13 @@ They should take turns so I can actually see their answers
 
 Current model interactions are visible after the advisor has responded. I should be able to see them as they happen, especially for long responses. This would allow me to understand better what the model is doing and if it's going in the right direction. It would also allow me to stop it if I see it's going in the wrong direction.
 
-## Address possible bias in responses
 
-On discussions I get the impression that advisors are getting biased by previous messages in the conversation from other advisorsx.
+## Model interactions improvements
 
+Occupy  95% of the height and 80% of the width of the screen. This would allow me to see more of the conversation and the model interactions, which would be especially useful for long conversations with many interactions.
+Also this should load asynchronously to make larger conversations load faster.
 
 ## Control for long answers / thinking from advisors
 
 When an advisor is taking too long to respond I should be able to see that and decide if I want to wait or stop it. This would allow me to have more control over the conversation and avoid waiting for a response that might never come. Additionally there should be a limit on how many interactions should be allowed between the system and the model.
+It would be nice to see what's currently happening: model waiting (thinking), tool call, etc. This can be shown in small text under the message bubble.
