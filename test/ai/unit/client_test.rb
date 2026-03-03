@@ -199,7 +199,7 @@ module AI
 
       assert_equal [ :with_instructions, "Advisor instructions" ], call_order.first
       assert_equal "system", added_messages.first[:role]
-      assert_includes added_messages.first[:content], "Council and advisor context:"
+      assert_includes added_messages.first[:content], "You are a member of a council of advisors."
       assert_includes added_messages.first[:content], "Purpose: Help with product decisions"
       assert_includes added_messages.first[:content], "Advisors and roles:"
 

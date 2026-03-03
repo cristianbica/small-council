@@ -16,6 +16,7 @@ SimpleCov.start "rails" do
 
   enable_coverage :branch
 end
+SimpleCov.merge_timeout 3600
 
 ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
