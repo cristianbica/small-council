@@ -6,4 +6,8 @@ Rails.application.configure do
 
   # Set host for mailer links
   config.action_mailer.default_url_options = { host: ENV["APP_HOST"] || "localhost:3000" }
+
+  config.hosts << /.*/
+
+  config.eager_load = true
 end

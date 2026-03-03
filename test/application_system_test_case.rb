@@ -1,20 +1,27 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "capybara/cuprite"
 
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
-  driven_by :selenium,
-            using: :headless_chrome,
-            screen_size: [1400, 1400],
+  driven_by :cuprite,
+            screen_size: [1280, 1500],
             options: {
-              browser: ENV.key?("SELENIUM_URL") ? :remote : :chrome,
-              url: ENV.fetch("SELENIUM_URL", nil)
+              js_errors: true,
+              url: ENV.fetch("CHROME_URL", nil),
+              browser_options: {
+                "no-sandbox": nil
+              }
             }.compact
+  setup do
+    Capybara.disable_animation = true
+    Capybara.default_max_wait_time = 5
+  end
 
   def sign_in_as(user, password: "password123")
     visit sign_in_path
-    fill_in "Email", with: user.email
-    fill_in "Password", with: password
-    click_on "Sign in"
+    find("input[name='email']").set(user.email)
+    find("input[name='password']").set(password)
+    click_button "Sign in"
   end
 end

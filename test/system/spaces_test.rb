@@ -19,8 +19,8 @@ class SpacesTest < ApplicationSystemTestCase
     visit spaces_url
     click_on "New Space"
 
-    fill_in "Name", with: "Product Team"
-    fill_in "Description", with: "For product-related councils"
+    find("input[name='space[name]']").set("Product Team")
+    find("textarea[name='space[description]']").set("For product-related councils")
     click_on "Create Space"
 
     assert_text "Space created successfully"
@@ -47,7 +47,7 @@ class SpacesTest < ApplicationSystemTestCase
     visit space_councils_path(space)
 
     click_on "New Council"
-    fill_in "Name", with: "Engineering Council"
+    find("input[name='council[name]']").set("Engineering Council")
     click_on "Create Council"
 
     assert_text "Council created successfully"
