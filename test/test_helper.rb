@@ -29,7 +29,7 @@ if ENV["CI"] || ENV["CHROME_URL"]
   Capybara.always_include_port = true
 end
 Capybara.server = :puma, { Silent: true }
-
+Capybara.reuse_server = false
 
 class ActiveSupport::TestCase
   parallelize(workers: :number_of_processors)

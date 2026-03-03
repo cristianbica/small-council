@@ -9,5 +9,5 @@ Rails.application.configure do
 
   config.hosts << /.*/
 
-  config.eager_load = true
+  # config.eager_load = true
 end

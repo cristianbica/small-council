@@ -48,6 +48,7 @@ Max ~200 lines. Keep durable, high-signal facts only.
 - For request/integration tests, set host explicitly (for APP_HOST/tenant host behavior).
 - Stub current user via `Current.session = stub(user: user)` (not `Current.user = ...`).
 - For AI client tests, stub `AI::Client.new` and then stub instance `#chat`.
+- System tests use Cuprite/Ferrum via `ApplicationSystemTestCase`; set `CHROME_URL` to target a remote Chrome endpoint, or omit it for local headless fallback.
 
 ## Repo layout
 - Main app code: `app/`

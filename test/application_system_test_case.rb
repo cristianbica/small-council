@@ -5,7 +5,7 @@ require "capybara/cuprite"
 
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   driven_by :cuprite,
-            screen_size: [1280, 1500],
+            screen_size: [1280, 1500], # rubocop:disable Layout/SpaceInsideArrayLiteralBrackets
             options: {
               js_errors: true,
               url: ENV.fetch("CHROME_URL", nil),
