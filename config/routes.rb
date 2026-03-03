@@ -43,12 +43,9 @@ Rails.application.routes.draw do
 
   # Councils can still be accessed directly (redirects to current space context)
   resources :councils do
-    resources :advisors, only: [ :new, :create, :edit, :update, :destroy ] do
-      collection do
-        post :generate_prompt
-        get :select
-        post :add_existing
-      end
+    member do
+      get :edit_advisors
+      patch :update_advisors
     end
     resources :conversations, only: [ :index, :show, :new, :create, :update, :destroy ]
 

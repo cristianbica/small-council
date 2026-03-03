@@ -365,15 +365,15 @@ module AI
         AI::Tools::Internal::QueryMemoriesTool.new,
         AI::Tools::Internal::ListMemoriesTool.new,
         AI::Tools::Internal::ReadMemoryTool.new,
-        AI::Tools::Internal::QueryConversationsTool.new,
-        AI::Tools::Internal::ListConversationsTool.new,
-        AI::Tools::Internal::ReadConversationTool.new,
-        AI::Tools::Internal::GetConversationSummaryTool.new,
         AI::Tools::External::BrowseWebTool.new
       ]
 
       if advisor.scribe?
         read_only + [
+          AI::Tools::Internal::QueryConversationsTool.new,
+          AI::Tools::Internal::ListConversationsTool.new,
+          AI::Tools::Internal::ReadConversationTool.new,
+          AI::Tools::Internal::GetConversationSummaryTool.new,
           AI::Tools::Internal::CreateMemoryTool.new,
           AI::Tools::Internal::UpdateMemoryTool.new,
           AI::Tools::Internal::CreateAdvisorTool.new,

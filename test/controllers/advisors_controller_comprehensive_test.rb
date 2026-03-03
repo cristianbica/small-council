@@ -107,122 +107,6 @@ class AdvisorsControllerComprehensiveTest < ActionDispatch::IntegrationTest
   end
 
   # ============================================================================
-  # select Tests (for adding advisors to councils)
-  # ============================================================================
-
-  test "should get select page for council" do
-    get select_council_advisors_url(@council)
-    assert_response :success
-    assert_select "h1", /Add Advisors/
-  end
-
-  test "select shows only advisors not already in council" do
-    # Add advisor to council
-    @council.advisors << @advisor
-
-    # Create another advisor not in council
-    other_advisor = @account.advisors.create!(
-      name: "Other Advisor",
-      system_prompt: "Other prompt",
-      account: @account,
-      llm_model: @llm_model,
-      space: @space
-    )
-
-    get select_council_advisors_url(@council)
-    assert_response :success
-  end
-
-  test "select works via space nested route" do
-    get select_council_advisors_url(@council, space_id: @space.id)
-    assert_response :success
-  end
-
-  # ============================================================================
-  # add_existing Tests
-  # ============================================================================
-
-  test "should add existing advisors to council" do
-    other_advisor = @account.advisors.create!(
-      name: "Advisor to Add",
-      system_prompt: "Prompt",
-      account: @account,
-      llm_model: @llm_model,
-      space: @space
-    )
-
-    assert_difference "@council.advisors.count", 1 do
-      post add_existing_council_advisors_url(@council), params: {
-        advisor_ids: [ other_advisor.id ]
-      }
-    end
-
-    assert_redirected_to council_url(@council)
-    assert_match(/Added 1 advisor/, flash[:notice])
-  end
-
-  test "should add multiple advisors to council" do
-    advisor1 = @account.advisors.create!(
-      name: "Advisor One",
-      system_prompt: "Prompt 1",
-      account: @account,
-      llm_model: @llm_model,
-      space: @space
-    )
-    advisor2 = @account.advisors.create!(
-      name: "Advisor Two",
-      system_prompt: "Prompt 2",
-      account: @account,
-      llm_model: @llm_model,
-      space: @space
-    )
-
-    assert_difference "@council.advisors.count", 2 do
-      post add_existing_council_advisors_url(@council), params: {
-        advisor_ids: [ advisor1.id, advisor2.id ]
-      }
-    end
-
-    assert_redirected_to council_url(@council)
-  end
-
-  test "add_existing redirects when no advisors selected" do
-    post add_existing_council_advisors_url(@council), params: {
-      advisor_ids: []
-    }
-
-    assert_redirected_to select_council_advisors_path(@council)
-    # Empty advisor_ids results in "No advisors were added." message
-    assert_equal "No advisors were added.", flash[:alert]
-  end
-
-  test "add_existing redirects when advisor_ids is missing" do
-    post add_existing_council_advisors_url(@council), params: {}
-
-    assert_redirected_to select_council_advisors_path(@council)
-    # When advisor_ids is missing, it defaults to empty array and shows this message
-    assert_equal "Please select at least one advisor.", flash[:alert]
-  end
-
-  test "add_existing skips advisors from other spaces" do
-    other_space = @account.spaces.create!(name: "Other Space")
-    other_advisor = @account.advisors.create!(
-      name: "Other Space Advisor",
-      system_prompt: "Prompt",
-      account: @account,
-      llm_model: @llm_model,
-      space: other_space
-    )
-
-    # The advisor from other space won't be found in current space scope
-    assert_no_difference "@council.advisors.count" do
-      post add_existing_council_advisors_url(@council), params: {
-        advisor_ids: [ other_advisor.id ]
-      }
-    end
-  end
-
-  # ============================================================================
   # destroy with error handling Tests
   # ============================================================================
 
@@ -267,26 +151,13 @@ class AdvisorsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     assert_match(/successfully deleted/, flash[:notice])
   end
 
-  # ============================================================================
-  # new with council_id Tests
-  # ============================================================================
-
-  test "should get new with council_id param" do
-    get new_space_advisor_url(@space, council_id: @council.id)
-    assert_response :success
-  end
-
-  test "should get new without council_id param" do
+  test "should get new" do
     get new_space_advisor_url(@space)
     assert_response :success
   end
 
-  # ============================================================================
-  # edit with council_id Tests
-  # ============================================================================
-
-  test "should get edit with council_id param" do
-    get edit_space_advisor_url(@space, @advisor, council_id: @council.id)
+  test "should get edit" do
+    get edit_space_advisor_url(@space, @advisor)
     assert_response :success
   end
 
@@ -414,7 +285,7 @@ class AdvisorsControllerComprehensiveTest < ActionDispatch::IntegrationTest
   # Security Tests
   # ============================================================================
 
-  test "cannot access advisor from different space via set_space council_id" do
+  test "cannot access advisor from different space" do
     other_space = @account.spaces.create!(name: "Other Space")
     other_advisor = @account.advisors.create!(
       name: "Other Space Advisor",
@@ -432,7 +303,7 @@ class AdvisorsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     assert_equal "Advisor not found.", flash[:alert]
   end
 
-  test "set_space handles missing space_id and invalid council_id" do
+  test "set_space handles missing space_id" do
     get new_space_advisor_url(space_id: 99999)
     assert_redirected_to spaces_path
     assert_equal "Space not found.", flash[:alert]

@@ -33,15 +33,14 @@
       <div class="flex items-center justify-between mb-4">
         <h2 class="card-title">Advisors</h2>
         <% if @council.user_id == Current.user.id %>
-          <%= link_to "Add Advisor", select_council_advisors_path(@council), class: "btn btn-primary btn-sm" %>
+          <%= link_to "Edit Advisors", edit_advisors_council_path(@council), class: "btn btn-primary btn-sm" %>
         <% end %>
       </div>
 
       <% if @advisors.any? %>
         <div class="space-y-3">
           <% @advisors.each do |advisor| %>
-            <%= link_to edit_council_advisor_path(@council, advisor),
-                class: "flex items-center justify-between p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors" do %>
+            <%= link_to edit_space_advisor_path(@council.space, advisor), class: "block p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors" do %>
               <div class="min-w-0 flex-1">
                 <h3 class="font-semibold truncate"><%= advisor.name %></h3>
                 <p class="text-sm text-base-content/60 line-clamp-1">
@@ -52,15 +51,6 @@
                   <% end %>
                 </p>
               </div>
-              <% if @council.user_id == Current.user.id %>
-                <div class="flex items-center gap-2 ml-4" onclick="event.preventDefault();">
-                  <%= link_to "Edit", edit_council_advisor_path(@council, advisor), class: "btn btn-xs btn-ghost" %>
-                  <%= button_to "Remove", council_advisor_path(@council, advisor),
-                      method: :delete,
-                      class: "btn btn-xs btn-ghost text-error",
-                      data: { turbo_confirm: "Remove this advisor?" } %>
-                </div>
-              <% end %>
             <% end %>
           <% end %>
         </div>
@@ -68,7 +58,7 @@
         <%= render "shared/empty_state",
             title: "No advisors yet",
             description: "Add advisors to this council to start collaborating.",
-            action_path: (@council.user_id == Current.user.id) ? select_council_advisors_path(@council) : nil,
+            action_path: (@council.user_id == Current.user.id) ? edit_advisors_council_path(@council) : nil,
             action_text: "Add First Advisor" %>
       <% end %>
     </div>

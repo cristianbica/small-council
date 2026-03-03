@@ -46,3 +46,12 @@ Also this should load asynchronously to make larger conversations load faster.
 
 When an advisor is taking too long to respond I should be able to see that and decide if I want to wait or stop it. This would allow me to have more control over the conversation and avoid waiting for a response that might never come. Additionally there should be a limit on how many interactions should be allowed between the system and the model.
 It would be nice to see what's currently happening: model waiting (thinking), tool call, etc. This can be shown in small text under the message bubble.
+
+## Advisors are tooling too much
+
+I ask a question about a previous message in the current conversation but it starts to look through memories, other conversations.
+
+
+## Any write tool action should be confirmed by the user
+
+Any tool action that modifies the state of the system (creating, updating or deleting a memory, creating a conversation, etc.) should be confirmed by the user before being executed. This would allow me to have more control over the actions that are being taken and avoid unintended consequences. For example if I ask the scribe to create a memory and it creates it with the wrong information I should be able to stop it before it creates the memory and then ask it to create it again with the correct information.

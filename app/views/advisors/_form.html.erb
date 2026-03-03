@@ -3,7 +3,7 @@
     data: {
       controller: "content-generator",
       "content-generator-profile-value": "advisor",
-      "content-generator-url-value": local_assigns[:council] ? generate_prompt_council_advisors_path(council) : generate_prompt_space_advisors_path(space)
+  "content-generator-url-value": generate_prompt_space_advisors_path(space)
     } do |form| %>
 
   <% if advisor.errors.any? %>
@@ -100,7 +100,7 @@
   </div>
 
   <div class="card-actions justify-end mt-4">
-    <%= link_to "Cancel", local_assigns[:council] ? council_path(council) : space_advisors_path(space), class: "btn btn-ghost" %>
+    <%= link_to "Cancel", space_advisors_path(space), class: "btn btn-ghost" %>
     <%= form.submit class: "btn btn-primary" %>
   </div>
 

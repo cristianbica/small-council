@@ -1,7 +1,7 @@
 class CouncilsController < ApplicationController
   before_action :set_space_from_params_or_current, only: [ :index, :new, :create ]
-  before_action :set_council, only: [ :show, :edit, :update, :destroy ]
-  before_action :require_creator, only: [ :edit, :update, :destroy ]
+  before_action :set_council, only: [ :show, :edit, :update, :destroy, :edit_advisors, :update_advisors ]
+  before_action :require_creator, only: [ :edit, :update, :destroy, :edit_advisors, :update_advisors ]
 
   def index
     # If nested under space, use that space; otherwise use current space
@@ -43,6 +43,34 @@ class CouncilsController < ApplicationController
   def destroy
     @council.destroy
     redirect_to space_councils_path(Current.space), notice: "Council deleted successfully."
+  end
+
+  def edit_advisors
+    @council.ensure_scribe_assigned
+    @available_advisors = @council.space.advisors.order(:name)
+    @scribe_advisor_id = @council.scribe_advisor&.id
+    @selected_advisor_ids = @council.advisor_ids
+  end
+
+  def update_advisors
+    selected_ids = Array(params[:advisor_ids]).map(&:to_i).uniq
+    scribe_id = @council.scribe_advisor&.id
+    selected_ids << scribe_id if scribe_id.present?
+
+    permitted_ids = @council.space.advisors.where(id: selected_ids).pluck(:id)
+
+    existing_ids = @council.council_advisors.pluck(:advisor_id)
+    to_add = permitted_ids - existing_ids
+    to_remove = existing_ids - permitted_ids
+
+    ActiveRecord::Base.transaction do
+      @council.council_advisors.where(advisor_id: to_remove).destroy_all if to_remove.any?
+      to_add.each { |advisor_id| @council.council_advisors.create!(advisor_id: advisor_id) }
+    end
+
+    redirect_to @council, notice: "Council advisors updated successfully."
+  rescue ActiveRecord::RecordInvalid
+    redirect_to edit_advisors_council_path(@council), alert: "Could not update council advisors."
   end
 
   def generate_description

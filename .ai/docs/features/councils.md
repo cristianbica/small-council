@@ -20,7 +20,8 @@ Councils are groups of AI advisors that collaborate on conversations.
 ### Managing Advisors
 - Add advisors when creating or via council edit page
 - Advisors can be reordered (position field)
-- Remove advisors from council via destroy action
+- Remove advisors from council via council-specific removal action
+- Scribe is always assigned to the council and cannot be removed
 - Each advisor can have custom prompt overrides per council
 
 ### Starting Conversations
@@ -33,6 +34,7 @@ Councils are groups of AI advisors that collaborate on conversations.
 ```
 /spaces/:space_id/councils     # index, new, create (nested under space)
 /councils/:id                  # show, edit, update, destroy
+/councils/:id/advisors/:advisor_id # remove_advisor (removes from council only)
 /councils/:council_id/advisors # new, create, edit, update, destroy
 /councils/:council_id/conversations # index, show, new, create
 ```
@@ -52,11 +54,11 @@ Councils are groups of AI advisors that collaborate on conversations.
 ### Access Control
 - All account users can view all councils in their spaces
 - Only the creator can edit/update/delete a council
-- All account users can add/remove advisors from councils they interact with
+- Only the creator can remove advisors from a council via council page actions
 
 ### UI Patterns
 - Council cards on space page
-- Advisor list with avatars/initials
+- Advisor list rows with hover-only trash icon for creator removal action
 - "New Conversation" quick action on council cards
 - Reorder advisors via position field
 

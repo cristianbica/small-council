@@ -175,4 +175,154 @@ class CouncilsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to space_councils_path(@space)
   end
+
+  test "creator can access edit advisors" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "test-key"
+    )
+    llm_model = provider.llm_models.create!(
+      account: @account,
+      name: "GPT-4",
+      identifier: "gpt-4"
+    )
+
+    council = @account.councils.create!(name: "Test", user: @user, space: @space)
+    advisor = @account.advisors.create!(
+      name: "Test Advisor",
+      system_prompt: "Test prompt",
+      account: @account,
+      llm_model: llm_model,
+      space: @space
+    )
+    council.advisors << advisor
+
+    get edit_advisors_council_url(council)
+
+    assert_response :success
+    assert_select "input[type=checkbox][name='advisor_ids[]'][value='#{advisor.id}'][checked]"
+
+    scribe = council.scribe_advisor
+    assert_select "input[type=checkbox][name='advisor_ids[]'][value='#{scribe.id}'][disabled]"
+  end
+
+  test "creator can update council advisors" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "test-key"
+    )
+    llm_model = provider.llm_models.create!(
+      account: @account,
+      name: "GPT-4",
+      identifier: "gpt-4"
+    )
+
+    council = @account.councils.create!(name: "Test", user: @user, space: @space)
+    advisor1 = @account.advisors.create!(
+      name: "Advisor 1",
+      system_prompt: "Test prompt",
+      account: @account,
+      llm_model: llm_model,
+      space: @space
+    )
+    advisor2 = @account.advisors.create!(
+      name: "Advisor 2",
+      system_prompt: "Test prompt",
+      account: @account,
+      llm_model: llm_model,
+      space: @space
+    )
+    council.advisors << advisor1
+
+    patch update_advisors_council_url(council), params: {
+      advisor_ids: [ advisor2.id ]
+    }
+
+    assert_redirected_to council_url(council)
+    assert_equal "Council advisors updated successfully.", flash[:notice]
+
+    updated_ids = council.reload.advisor_ids
+    assert_includes updated_ids, advisor2.id
+    assert_includes updated_ids, council.scribe_advisor.id
+    assert_not_includes updated_ids, advisor1.id
+  end
+
+  test "creator cannot remove scribe from council" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "test-key"
+    )
+    llm_model = provider.llm_models.create!(
+      account: @account,
+      name: "GPT-4",
+      identifier: "gpt-4"
+    )
+
+    council = @account.councils.create!(name: "Test", user: @user, space: @space)
+    advisor = @account.advisors.create!(
+      name: "Advisor 1",
+      system_prompt: "Test prompt",
+      account: @account,
+      llm_model: llm_model,
+      space: @space
+    )
+    council.advisors << advisor
+
+    scribe = council.scribe_advisor
+    council.ensure_scribe_assigned
+
+    patch update_advisors_council_url(council), params: {
+      advisor_ids: [ advisor.id ]
+    }
+
+    assert_redirected_to council_url(council)
+    assert_includes council.reload.advisor_ids, scribe.id
+  end
+
+  test "non-creator cannot update council advisors" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    other_user = @account.users.create!(email: "other@example.com", password: "password123")
+    provider = @account.providers.create!(
+      name: "Test Provider",
+      provider_type: "openai",
+      api_key: "test-key"
+    )
+    llm_model = provider.llm_models.create!(
+      account: @account,
+      name: "GPT-4",
+      identifier: "gpt-4"
+    )
+
+    council = @account.councils.create!(name: "Test", user: other_user, space: @space)
+    advisor = @account.advisors.create!(
+      name: "Test Advisor",
+      system_prompt: "Test prompt",
+      account: @account,
+      llm_model: llm_model,
+      space: @space
+    )
+
+    assert_no_difference("council.council_advisors.count") do
+      patch update_advisors_council_url(council), params: {
+        advisor_ids: [ advisor.id ]
+      }
+    end
+
+    assert_redirected_to space_councils_path(@space)
+    assert_equal "Only the creator can modify this council.", flash[:alert]
+  end
 end

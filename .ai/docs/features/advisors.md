@@ -42,10 +42,13 @@ Best practices:
 
 ### Routes
 ```
-/councils/:council_id/advisors/new       # new, create
-/councils/:council_id/advisors/:id/edit  # edit, update
-/councils/:council_id/advisors/:id         # destroy
+/spaces/:space_id/advisors               # index, new, create
+/spaces/:space_id/advisors/:id           # show, edit, update, destroy
+/councils/:id/edit_advisors              # edit council membership
+/councils/:id/update_advisors            # update council membership
 ```
+
+Scribe membership is mandatory in every council and cannot be removed in the council membership editor.
 
 ### Models
 - `Advisor`: name, system_prompt, llm_model_id, account_id, user_id (creator)

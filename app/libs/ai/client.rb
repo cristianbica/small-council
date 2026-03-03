@@ -421,3 +421,29 @@ module AI
     end
   end
 end
+
+
+module RubyLLM
+  module Providers
+    class OpenAI
+      module Tools
+        module_function
+
+        def parse_tool_call_arguments(tool_call)
+          arguments = tool_call.dig('function', 'arguments')
+
+          if arguments.nil? || arguments.empty?
+            {}
+          else
+            begin
+              JSON.parse(arguments)
+            rescue JSON::ParserError
+              Rails.logger.debug "Failed to parse tool call arguments as JSON: #{arguments.inspect}"
+              {}
+            end
+          end
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,59 @@
+<div class="max-w-4xl mx-auto">
+  <div class="breadcrumbs text-sm mb-4">
+    <ul>
+      <li><%= link_to "Councils", councils_path %></li>
+      <li><%= link_to @council.name, @council %></li>
+      <li>Edit Advisors</li>
+    </ul>
+  </div>
+
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-3xl font-bold">Edit Advisors for <%= @council.name %></h1>
+      <p class="text-base-content/60 mt-1">
+        Select the advisors that should be part of this council.
+      </p>
+    </div>
+    <%= link_to "Back to Council", @council, class: "btn btn-ghost" %>
+  </div>
+
+  <%= form_with url: update_advisors_council_path(@council), method: :patch, class: "space-y-4" do %>
+    <section class="card bg-base-100 shadow">
+      <div class="card-body">
+        <% if @available_advisors.any? %>
+          <div class="space-y-3">
+            <% @available_advisors.each do |advisor| %>
+              <% scribe = advisor.id == @scribe_advisor_id %>
+              <label class="flex items-center gap-4 p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors cursor-pointer">
+                <%= check_box_tag "advisor_ids[]", advisor.id, @selected_advisor_ids.include?(advisor.id), class: "checkbox", disabled: scribe %>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="font-semibold truncate"><%= advisor.name %></span>
+                    <% if scribe %>
+                      <span class="badge badge-info text-xs whitespace-nowrap">Required</span>
+                    <% end %>
+                    <% if advisor.llm_model.present? %>
+                      <span class="badge badge-ghost text-xs whitespace-nowrap"><%= advisor.llm_model.name %></span>
+                    <% end %>
+                  </div>
+                  <p class="text-sm text-base-content/60 mt-1 line-clamp-1">
+                    <%= advisor.short_description.presence || advisor.system_prompt&.truncate(100) || "No description" %>
+                  </p>
+                </div>
+              </label>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="text-center py-8 text-base-content/60">
+            No advisors available in this space.
+          </div>
+        <% end %>
+      </div>
+    </section>
+
+    <div class="card-actions justify-end">
+      <%= link_to "Cancel", @council, class: "btn btn-ghost" %>
+      <%= submit_tag "Save Advisors", class: "btn btn-primary" %>
+    </div>
+  <% end %>
+</div>

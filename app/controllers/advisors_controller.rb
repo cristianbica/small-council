@@ -12,7 +12,6 @@ class AdvisorsController < ApplicationController
 
   def new
     @advisor = @space.advisors.new
-    @council = Current.space.councils.find(params[:council_id]) if params[:council_id]
   end
 
   def create
@@ -27,7 +26,6 @@ class AdvisorsController < ApplicationController
   end
 
   def edit
-    @council = Current.space.councils.find(params[:council_id]) if params[:council_id]
   end
 
   def update
@@ -68,51 +66,11 @@ class AdvisorsController < ApplicationController
     end
   end
 
-  def select
-    # This action is only accessible via council nested route
-    @council = Current.space.councils.find(params[:council_id])
-    # Get all advisors in this space that aren't already in this council
-    @available_advisors = @space.advisors.where.not(id: @council.advisor_ids)
-  rescue ActiveRecord::RecordNotFound
-    redirect_to councils_path, alert: "Council not found."
-  end
-
-  def add_existing
-    @council = Current.space.councils.find(params[:council_id])
-    advisor_ids = params[:advisor_ids] || []
-
-    if advisor_ids.empty?
-      redirect_to select_council_advisors_path(@council), alert: "Please select at least one advisor."
-      return
-    end
-
-    added_count = 0
-    advisor_ids.each do |advisor_id|
-      advisor = @space.advisors.find_by(id: advisor_id)
-      next unless advisor
-      next if @council.advisors.include?(advisor)
-
-      @council.advisors << advisor
-      added_count += 1
-    end
-
-    if added_count > 0
-      redirect_to @council, notice: "Added #{added_count} advisor(s) to the council."
-    else
-      redirect_to select_council_advisors_path(@council), alert: "No advisors were added."
-    end
-  rescue ActiveRecord::RecordNotFound
-    redirect_to councils_path, alert: "Council not found."
-  end
-
   private
 
   def set_space
     if params[:space_id]
       @space = Current.account.spaces.find(params[:space_id])
-    elsif params[:council_id]
-      council = Current.space.councils.find(params[:council_id])
-      @space = council.space
     end
   rescue ActiveRecord::RecordNotFound
     redirect_to spaces_path, alert: "Space not found."
