@@ -113,6 +113,49 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
     assert_equal "advisor", @message.role
   end
 
+  test "strips leading speaker prefix from advisor response before saving" do
+    token_usage = AI::Model::TokenUsage.new(input: 10, output: 5)
+    mock_response = AI::Model::Response.new(
+      content: "[speaker: business-marketing-strategist] Final recommendation",
+      usage: token_usage
+    )
+
+    mock_generator = mock("generator")
+    mock_generator.expects(:generate_advisor_response).returns(mock_response)
+    AI::ContentGenerator.expects(:new).returns(mock_generator)
+
+    GenerateAdvisorResponseJob.perform_now(
+      advisor_id: @advisor.id,
+      conversation_id: @conversation.id,
+      message_id: @message.id
+    )
+
+    @message.reload
+    assert @message.complete?
+    assert_equal "Final recommendation", @message.content
+  end
+
+  test "strips repeated leading speaker prefixes from advisor response" do
+    token_usage = AI::Model::TokenUsage.new(input: 10, output: 5)
+    mock_response = AI::Model::Response.new(
+      content: "[speaker: a] [speaker: b] Consolidated answer",
+      usage: token_usage
+    )
+
+    mock_generator = mock("generator")
+    mock_generator.expects(:generate_advisor_response).returns(mock_response)
+    AI::ContentGenerator.expects(:new).returns(mock_generator)
+
+    GenerateAdvisorResponseJob.perform_now(
+      advisor_id: @advisor.id,
+      conversation_id: @conversation.id,
+      message_id: @message.id
+    )
+
+    @message.reload
+    assert_equal "Consolidated answer", @message.content
+  end
+
   test "marks message as error on API failure" do
     mock_generator = mock("generator")
     mock_generator.expects(:generate_advisor_response).raises(

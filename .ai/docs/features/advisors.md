@@ -107,20 +107,9 @@ message.sender_id    # advisor.id
 
 ## Tool Access
 
-Regular advisors currently have access to 8 read-only tools:
+Regular advisors currently have no tool access.
 
-| Tool | Purpose | Access |
-|------|---------|--------|
-| `query_memories` | Search space memories by keyword | Read-only |
-| `list_memories` | List memories in current space | Read-only |
-| `read_memory` | Read a specific memory | Read-only |
-| `query_conversations` | Find past conversations by topic | Read-only |
-| `list_conversations` | List recent conversations in current space | Read-only |
-| `read_conversation` | Read messages from a specific conversation | Read-only |
-| `get_conversation_summary` | Retrieve stored summary for a conversation | Read-only |
-| `browse_web` | Fetch external web content | Read-only |
-
-Scribe receives additional write/admin tools for memories, advisors, and councils (see [Council Management Tools](council-management-tools.md)).
+Scribe has all read/admin/write tool access, including memory, conversation, advisor, and council management tools (see [Council Management Tools](council-management-tools.md)).
 
 ### ask_advisor status
 

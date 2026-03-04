@@ -512,24 +512,11 @@ module AI
 
     # build_client tool wiring tests
 
-    test "build_client gives regular advisor read-only tools" do
+    test "build_client gives regular advisor no tools" do
       generator = ContentGenerator.new
       client = generator.send(:build_client, @advisor)
 
-      tool_classes = client.tools.map(&:class)
-      # All 8 read-only tools
-      assert_includes tool_classes, AI::Tools::Internal::QueryMemoriesTool
-      assert_includes tool_classes, AI::Tools::Internal::ListMemoriesTool
-      assert_includes tool_classes, AI::Tools::Internal::ReadMemoryTool
-      assert_includes tool_classes, AI::Tools::Internal::QueryConversationsTool
-      assert_includes tool_classes, AI::Tools::Internal::ListConversationsTool
-      assert_includes tool_classes, AI::Tools::Internal::ReadConversationTool
-      assert_includes tool_classes, AI::Tools::Internal::GetConversationSummaryTool
-      refute_includes tool_classes, AI::Tools::Conversations::AskAdvisorTool
-      assert_includes tool_classes, AI::Tools::External::BrowseWebTool
-      # Write tools excluded for regular advisors
-      refute_includes tool_classes, AI::Tools::Internal::CreateMemoryTool
-      refute_includes tool_classes, AI::Tools::Internal::UpdateMemoryTool
+      assert_empty client.tools
     end
 
     test "build_client gives scribe all tools including write tools" do
@@ -567,11 +554,11 @@ module AI
       assert_empty client.tools
     end
 
-    test "advisor_tools returns 8 tools for regular advisor" do
+    test "advisor_tools returns 0 tools for regular advisor" do
       generator = ContentGenerator.new
       tools = generator.send(:advisor_tools, @advisor)
 
-      assert_equal 8, tools.size
+      assert_equal 0, tools.size
     end
 
     test "advisor_tools returns 20 tools for scribe" do

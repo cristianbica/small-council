@@ -82,7 +82,7 @@ module AI
       assert_equal 150, response.usage.total_tokens
     end
 
-    test "chat adds serialized memory_index as system message before conversation messages" do
+    test "chat adds serialized memory_index and tool policy as system messages before conversation messages" do
       client = Client.new(model: @llm_model)
 
       mock_response = Struct.new(:content, :input_tokens, :output_tokens, :model_id, :tool_calls).new(
@@ -133,11 +133,16 @@ module AI
       assert_includes added_messages.first[:content], "Memory index (curated):"
       assert_includes added_messages.first[:content], "Primary summary:"
       assert_includes added_messages.first[:content], "Knowledge entries:"
-      assert_equal "user", added_messages.second[:role]
-      assert_equal "Hello", added_messages.second[:content]
+
+      assert_equal "system", added_messages.second[:role]
+      assert_includes added_messages.second[:content], "Response policy (hard rules):"
+      assert_includes added_messages.second[:content], "Answer directly before considering tools."
+
+      assert_equal "user", added_messages.third[:role]
+      assert_equal "Hello", added_messages.third[:content]
     end
 
-    test "chat orders advisor instructions then council context then memory index then conversation messages" do
+    test "chat orders advisor instructions then council context then memory index then tool policy then conversation messages" do
       client = Client.new(model: @llm_model, system_prompt: "Advisor instructions")
 
       mock_response = Struct.new(:content, :input_tokens, :output_tokens, :model_id, :tool_calls).new(
@@ -206,8 +211,176 @@ module AI
       assert_equal "system", added_messages.second[:role]
       assert_includes added_messages.second[:content], "Memory index (curated):"
 
-      assert_equal "user", added_messages.third[:role]
-      assert_equal "[speaker: user] Hello", added_messages.third[:content]
+      assert_equal "system", added_messages.third[:role]
+      assert_includes added_messages.third[:content], "Response policy (hard rules):"
+      assert_includes added_messages.third[:content], "Do not prefix your response with speaker labels"
+      assert_includes added_messages.third[:content], "Use @user only when explicitly requesting a response from the user"
+
+      assert_equal "user", added_messages.fourth[:role]
+      assert_equal "[speaker: user] Hello", added_messages.fourth[:content]
+    end
+
+    test "chat uses stricter in-thread reply guidance when context includes parent message" do
+      client = Client.new(model: @llm_model)
+
+      mock_response = Struct.new(:content, :input_tokens, :output_tokens, :model_id, :tool_calls).new(
+        "Response", 10, 5, "gpt-4", nil
+      )
+
+      added_messages = []
+      mock_chat = Object.new
+      mock_chat.define_singleton_method(:with_instructions) { |*| self }
+      mock_chat.define_singleton_method(:with_temperature) { |*| self }
+      mock_chat.define_singleton_method(:with_tools) { |*| self }
+      mock_chat.define_singleton_method(:on_end_message) { |&block| self }
+      mock_chat.define_singleton_method(:on_tool_call) { |&block| self }
+      mock_chat.define_singleton_method(:on_tool_result) { |&block| self }
+      mock_chat.define_singleton_method(:add_message) do |role:, content:|
+        added_messages << { role: role, content: content }
+        self
+      end
+      mock_chat.define_singleton_method(:complete) { mock_response }
+
+      mock_context = Struct.new(:chat_result) do
+        def chat(**args); chat_result; end
+      end.new(mock_chat)
+
+      RubyLLM.stubs(:context).yields(stub(:openai_api_key= => nil, :openai_organization_id= => nil)).returns(mock_context)
+
+      reply_message = Struct.new(:parent_message).new(Struct.new(:id).new(123))
+
+      client.chat(
+        messages: [ { role: "user", content: "Hello" } ],
+        context: {
+          message: reply_message
+        }
+      )
+
+      policy_message = added_messages.find { |msg| msg[:role] == "system" && msg[:content].include?("Response policy (hard rules):") }
+      assert policy_message.present?
+      assert_includes policy_message[:content], "This is a reply to an in-thread message"
+    end
+
+    test "chat adds no-tools rule when latest user message references summary above" do
+      client = Client.new(model: @llm_model)
+
+      mock_response = Struct.new(:content, :input_tokens, :output_tokens, :model_id, :tool_calls).new(
+        "Response", 10, 5, "gpt-4", nil
+      )
+
+      added_messages = []
+      mock_chat = Object.new
+      mock_chat.define_singleton_method(:with_instructions) { |*| self }
+      mock_chat.define_singleton_method(:with_temperature) { |*| self }
+      mock_chat.define_singleton_method(:with_tools) { |*| self }
+      mock_chat.define_singleton_method(:on_end_message) { |&block| self }
+      mock_chat.define_singleton_method(:on_tool_call) { |&block| self }
+      mock_chat.define_singleton_method(:on_tool_result) { |&block| self }
+      mock_chat.define_singleton_method(:add_message) do |role:, content:|
+        added_messages << { role: role, content: content }
+        self
+      end
+      mock_chat.define_singleton_method(:complete) { mock_response }
+
+      mock_context = Struct.new(:chat_result) do
+        def chat(**args); chat_result; end
+      end.new(mock_chat)
+
+      RubyLLM.stubs(:context).yields(stub(:openai_api_key= => nil, :openai_organization_id= => nil)).returns(mock_context)
+
+      client.chat(
+        messages: [
+          { role: "user", content: "Please review the summary above and add feedback." }
+        ],
+        context: {}
+      )
+
+      policy_message = added_messages.find { |msg| msg[:role] == "system" && msg[:content].include?("Response policy (hard rules):") }
+      assert policy_message.present?
+      assert_includes policy_message[:content], "For this turn, do not call tools"
+    end
+
+    test "chat adds no-tools rule when latest user message references context below" do
+      client = Client.new(model: @llm_model)
+
+      mock_response = Struct.new(:content, :input_tokens, :output_tokens, :model_id, :tool_calls).new(
+        "Response", 10, 5, "gpt-4", nil
+      )
+
+      added_messages = []
+      mock_chat = Object.new
+      mock_chat.define_singleton_method(:with_instructions) { |*| self }
+      mock_chat.define_singleton_method(:with_temperature) { |*| self }
+      mock_chat.define_singleton_method(:with_tools) { |*| self }
+      mock_chat.define_singleton_method(:on_end_message) { |&block| self }
+      mock_chat.define_singleton_method(:on_tool_call) { |&block| self }
+      mock_chat.define_singleton_method(:on_tool_result) { |&block| self }
+      mock_chat.define_singleton_method(:add_message) do |role:, content:|
+        added_messages << { role: role, content: content }
+        self
+      end
+      mock_chat.define_singleton_method(:complete) { mock_response }
+
+      mock_context = Struct.new(:chat_result) do
+        def chat(**args); chat_result; end
+      end.new(mock_chat)
+
+      RubyLLM.stubs(:context).yields(stub(:openai_api_key= => nil, :openai_organization_id= => nil)).returns(mock_context)
+
+      client.chat(
+        messages: [
+          { role: "user", content: "@advisor give feedback on the below summary" }
+        ],
+        context: {}
+      )
+
+      policy_message = added_messages.find { |msg| msg[:role] == "system" && msg[:content].include?("Response policy (hard rules):") }
+      assert policy_message.present?
+      assert_includes policy_message[:content], "For this turn, do not call tools"
+    end
+
+    test "chat adds no-tools rule when latest user message includes long structured inline context" do
+      client = Client.new(model: @llm_model)
+
+      mock_response = Struct.new(:content, :input_tokens, :output_tokens, :model_id, :tool_calls).new(
+        "Response", 10, 5, "gpt-4", nil
+      )
+
+      added_messages = []
+      mock_chat = Object.new
+      mock_chat.define_singleton_method(:with_instructions) { |*| self }
+      mock_chat.define_singleton_method(:with_temperature) { |*| self }
+      mock_chat.define_singleton_method(:with_tools) { |*| self }
+      mock_chat.define_singleton_method(:on_end_message) { |&block| self }
+      mock_chat.define_singleton_method(:on_tool_call) { |&block| self }
+      mock_chat.define_singleton_method(:on_tool_result) { |&block| self }
+      mock_chat.define_singleton_method(:add_message) do |role:, content:|
+        added_messages << { role: role, content: content }
+        self
+      end
+      mock_chat.define_singleton_method(:complete) { mock_response }
+
+      mock_context = Struct.new(:chat_result) do
+        def chat(**args); chat_result; end
+      end.new(mock_chat)
+
+      RubyLLM.stubs(:context).yields(stub(:openai_api_key= => nil, :openai_organization_id= => nil)).returns(mock_context)
+
+      long_summary = <<~TEXT
+        Please review this and comment.
+
+        ## Summary of Tower Defense Tycoon Specification Discussion
+        **Game Design Lead's Contribution:** #{'A' * 520}
+      TEXT
+
+      client.chat(
+        messages: [ { role: "user", content: long_summary } ],
+        context: {}
+      )
+
+      policy_message = added_messages.find { |msg| msg[:role] == "system" && msg[:content].include?("Response policy (hard rules):") }
+      assert policy_message.present?
+      assert_includes policy_message[:content], "For this turn, do not call tools"
     end
 
     test "complete is convenience method for single-turn" do

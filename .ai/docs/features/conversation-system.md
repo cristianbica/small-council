@@ -23,7 +23,7 @@ Both types share the same underlying mechanics but differ in how they're created
 | Type | Behavior | Max Depth |
 |------|----------|-----------|
 | **Open** | Advisors respond when @mentioned. Use @all for all. | 1 |
-| **Consensus** | All advisors discuss until agreement reached | 2 |
+| **Consensus** | All advisors discuss until agreement reached | 5 |
 | **Brainstorming** | All advisors iterate on ideas | 2 |
 
 Depth controls how many levels of replies are allowed:

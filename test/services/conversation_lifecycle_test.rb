@@ -269,9 +269,9 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
     assert_equal 1, conv.max_depth
   end
 
-  test "Consensus RoE: max depth is 2" do
+  test "Consensus RoE: max depth is 5" do
     conv = create_conversation(roe_type: :consensus)
-    assert_equal 2, conv.max_depth
+    assert_equal 5, conv.max_depth
   end
 
   test "Brainstorming RoE: max depth is 2" do
@@ -453,5 +453,76 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
     end
 
     assert_equal 0, conv.reload.scribe_initiated_count
+  end
+
+  test "advisor mention in advisor response triggers mentioned advisor follow-up" do
+    conv = create_conversation(roe_type: :consensus)
+
+    parent_msg = conv.messages.create!(
+      account: @account,
+      sender: @user,
+      role: "user",
+      content: "@strategic-advisor and @technical-expert discuss this",
+      pending_advisor_ids: [ @advisor1.id ]
+    )
+
+    advisor_message = conv.messages.create!(
+      account: @account,
+      sender: @advisor1,
+      role: "advisor",
+      content: "@technical-expert can you validate feasibility?",
+      parent_message: parent_msg,
+      status: "complete"
+    )
+
+    lifecycle = ConversationLifecycle.new(conv)
+
+    clear_enqueued_jobs
+
+    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
+      lifecycle.advisor_responded(advisor_message)
+    end
+
+    payload = enqueued_jobs.last[:args][0]
+    advisor_id = payload[:advisor_id] || payload["advisor_id"]
+    conversation_id = payload[:conversation_id] || payload["conversation_id"]
+    message_id = payload[:message_id] || payload["message_id"]
+
+    assert_equal @advisor2.id, advisor_id
+    assert_equal conv.id, conversation_id
+    assert message_id.is_a?(Integer)
+
+    advisor_message.reload
+    assert_includes advisor_message.pending_advisor_ids, @advisor2.id
+  end
+
+  test "advisor mention does not trigger self-response" do
+    conv = create_conversation(roe_type: :consensus)
+
+    parent_msg = conv.messages.create!(
+      account: @account,
+      sender: @user,
+      role: "user",
+      content: "@strategic-advisor review",
+      pending_advisor_ids: [ @advisor1.id ]
+    )
+
+    advisor_message = conv.messages.create!(
+      account: @account,
+      sender: @advisor1,
+      role: "advisor",
+      content: "@strategic-advisor I agree with my prior point",
+      parent_message: parent_msg,
+      status: "complete"
+    )
+
+    lifecycle = ConversationLifecycle.new(conv)
+
+    assert_no_enqueued_jobs do
+      lifecycle.advisor_responded(advisor_message)
+    end
+
+    advisor_message.reload
+    assert_equal [], advisor_message.pending_advisor_ids
   end
 end

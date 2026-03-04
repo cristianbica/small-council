@@ -359,8 +359,11 @@ module AI
     end
 
     # Returns the tool instances appropriate for this advisor.
-    # All advisors get 8 read-only tools (memory, conversation, and web browsing).
+    # Non-scribe advisors do not have tool access.
+    # Scribe keeps read/admin/write tools.
     def advisor_tools(advisor)
+      return [] unless advisor.scribe?
+
       read_only = [
         AI::Tools::Internal::QueryMemoriesTool.new,
         AI::Tools::Internal::ListMemoriesTool.new,
@@ -368,28 +371,24 @@ module AI
         AI::Tools::External::BrowseWebTool.new
       ]
 
-      if advisor.scribe?
-        read_only + [
-          AI::Tools::Internal::QueryConversationsTool.new,
-          AI::Tools::Internal::ListConversationsTool.new,
-          AI::Tools::Internal::ReadConversationTool.new,
-          AI::Tools::Internal::GetConversationSummaryTool.new,
-          AI::Tools::Internal::CreateMemoryTool.new,
-          AI::Tools::Internal::UpdateMemoryTool.new,
-          AI::Tools::Internal::CreateAdvisorTool.new,
-          AI::Tools::Internal::ListAdvisorsTool.new,
-          AI::Tools::Internal::GetAdvisorTool.new,
-          AI::Tools::Internal::UpdateAdvisorTool.new,
-          AI::Tools::Internal::CreateCouncilTool.new,
-          AI::Tools::Internal::ListCouncilsTool.new,
-          AI::Tools::Internal::GetCouncilTool.new,
-          AI::Tools::Internal::UpdateCouncilTool.new,
-          AI::Tools::Internal::AssignAdvisorToCouncilTool.new,
-          AI::Tools::Internal::UnassignAdvisorFromCouncilTool.new
-        ]
-      else
-        read_only
-      end
+      read_only + [
+        AI::Tools::Internal::QueryConversationsTool.new,
+        AI::Tools::Internal::ListConversationsTool.new,
+        AI::Tools::Internal::ReadConversationTool.new,
+        AI::Tools::Internal::GetConversationSummaryTool.new,
+        AI::Tools::Internal::CreateMemoryTool.new,
+        AI::Tools::Internal::UpdateMemoryTool.new,
+        AI::Tools::Internal::CreateAdvisorTool.new,
+        AI::Tools::Internal::ListAdvisorsTool.new,
+        AI::Tools::Internal::GetAdvisorTool.new,
+        AI::Tools::Internal::UpdateAdvisorTool.new,
+        AI::Tools::Internal::CreateCouncilTool.new,
+        AI::Tools::Internal::ListCouncilsTool.new,
+        AI::Tools::Internal::GetCouncilTool.new,
+        AI::Tools::Internal::UpdateCouncilTool.new,
+        AI::Tools::Internal::AssignAdvisorToCouncilTool.new,
+        AI::Tools::Internal::UnassignAdvisorFromCouncilTool.new
+      ]
     end
 
     def find_suitable_model(account)

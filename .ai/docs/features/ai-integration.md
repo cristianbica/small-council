@@ -58,6 +58,13 @@ AI::Client.list_models(provider: provider)
 Usage (tokens + cost) is automatically tracked inside `#chat` via `UsageRecord.create!`.
 Model interactions (full request/response payloads) are recorded via event handlers registered in `AI::Client#register_interaction_handler` when `context[:message]` and account context are present. See [Model Interactions](model-interactions.md).
 
+`AI::Client#chat` also injects system guidance messages from context in this order:
+1. Council context (when available)
+2. Memory index context (when available)
+3. Response policy guidance (hard rules: thread-first, tools-only-when-needed, stricter for in-thread replies, no-tools when the user references above/below/previous thread context or provides substantial inline summary/context, and no `[speaker: ...]` response prefixes)
+
+`GenerateAdvisorResponseJob` also sanitizes model output before saving by removing leading `[speaker: ...]` prefixes if present.
+
 ### Provider#api / LlmModel#api DSL
 
 ```ruby
@@ -152,8 +159,8 @@ Every API call creates a UsageRecord:
 
 `AI::ContentGenerator#advisor_tools` currently wires:
 
-- **All advisors (8 read-only tools):** `query_memories`, `list_memories`, `read_memory`, `query_conversations`, `list_conversations`, `read_conversation`, `get_conversation_summary`, `browse_web`
-- **Scribe additional (12 tools):** `create_memory`, `update_memory`, `create_advisor`, `list_advisors`, `get_advisor`, `update_advisor`, `create_council`, `list_councils`, `get_council`, `update_council`, `assign_advisor_to_council`, `unassign_advisor_from_council`
+- **Non-scribe advisors:** no tools
+- **Scribe tools (20 total):** read-only tools `query_memories`, `list_memories`, `read_memory`, `browse_web`, `query_conversations`, `list_conversations`, `read_conversation`, `get_conversation_summary` plus write/admin tools `create_memory`, `update_memory`, `create_advisor`, `list_advisors`, `get_advisor`, `update_advisor`, `create_council`, `list_councils`, `get_council`, `update_council`, `assign_advisor_to_council`, `unassign_advisor_from_council`
 
 `ask_advisor_tool.rb` exists in `app/libs/ai/tools/conversations/` but is not currently included in `advisor_tools`.
 

@@ -96,7 +96,7 @@ Rules of Engagement (RoE) control how advisors respond to user messages.
 | Mode | Behavior |
 |------|----------|
 | **Open** | Advisors respond only when @mentioned; use @all for all advisors; max depth 1 |
-| **Consensus** | All advisors discuss until consensus; max depth 2 (advisors can reply to each other) |
+| **Consensus** | All advisors discuss until consensus; max depth 5 (advisors can reply to each other) |
 | **Brainstorming** | All advisors iterate on ideas; max depth 2 |
 
 ### Changing RoE
@@ -109,6 +109,7 @@ Use `@advisor-name` in messages to trigger specific advisors:
 - Works in all modes (overrides normal RoE behavior)
 - Names are canonicalized to lowercase letters, numbers, and dashes
 - Example: `@helper-bot` mentions advisor named `helper-bot`
+- Mention triggers also apply inside advisor responses (including scribe): when an advisor mentions another advisor handle, the mentioned advisor is queued to respond (depth limits still apply)
 
 ### AI Response Flow
 

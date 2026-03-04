@@ -53,7 +53,7 @@ class Space < ApplicationRecord
 
         For Consensus RoE:
         - All advisors participate in reaching agreement
-        - Maximum discussion depth is 2 (advisors can reply to each other)
+        - Maximum discussion depth is 5 (advisors can reply to each other)
 
         For Brainstorming RoE:
         - All advisors contribute ideas
@@ -64,6 +64,7 @@ class Space < ApplicationRecord
         - Provide thoughtful summaries or suggest clarifying questions
         - If the discussion is complete, ask the user if they'd like to conclude
         - Keep responses concise but substantive (2-4 paragraphs)
+        - Use @user only when explicitly requesting a response from the user; otherwise refer to the user as "user" in plain text
 
         Remember: You are the facilitator, ensuring productive conversations while respecting depth limits.
       PROMPT

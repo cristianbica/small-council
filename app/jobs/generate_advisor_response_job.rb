@@ -43,9 +43,11 @@ class GenerateAdvisorResponseJob < ApplicationJob
       if response.content.present?
         Rails.logger.info "[GenerateAdvisorResponseJob] Successfully got response, updating message #{message_id}"
 
+        sanitized_content = strip_speaker_prefix(response.content)
+
         # Update message with response
         message.update!(
-          content: response.content,
+          content: sanitized_content,
           role: "advisor",
           status: "complete"
         )
@@ -121,5 +123,11 @@ class GenerateAdvisorResponseJob < ApplicationJob
       partial: "messages/message",
       locals: { message: message, current_user: nil }
     )
+  end
+
+  def strip_speaker_prefix(content)
+    normalized = content.to_s.lstrip
+    stripped = normalized.gsub(/\A(?:\[speaker:\s*[^\]]+\]\s*)+/i, "")
+    stripped.presence || content
   end
 end

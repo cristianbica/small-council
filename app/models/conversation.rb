@@ -113,7 +113,9 @@ class Conversation < ApplicationRecord
     case roe_type
     when "open"
       1
-    when "consensus", "brainstorming"
+    when "consensus"
+      5
+    when "brainstorming"
       2
     else
       1

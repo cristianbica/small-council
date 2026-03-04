@@ -78,6 +78,8 @@ class ConversationLifecycle
       Rails.logger.debug "[ConversationLifecycle] Message #{parent_message.id} is now solved"
       handle_message_solved(parent_message)
     end
+
+    trigger_mentioned_advisor_responses(advisor_response_message)
   end
 
   # Handle error during advisor response generation
@@ -202,6 +204,30 @@ class ConversationLifecycle
     advisors_by_name = @conversation.all_participant_advisors.index_by(&:name)
 
     mentioned_names.filter_map { |name| advisors_by_name[name] }
+  end
+
+  def trigger_mentioned_advisor_responses(advisor_message)
+    return unless advisor_message&.advisor?
+
+    mentioned_advisors = parse_advisor_mentions_from_advisor_message(advisor_message)
+    return if mentioned_advisors.empty?
+
+    advisor_message.update!(pending_advisor_ids: mentioned_advisors.map(&:id))
+
+    mentioned_advisors.each do |advisor|
+      create_pending_message_and_enqueue(advisor, advisor_message)
+    end
+  end
+
+  def parse_advisor_mentions_from_advisor_message(advisor_message)
+    mentioned_names = Message.extract_mentions(advisor_message.content).map(&:downcase).uniq
+    mentioned_names.reject! { |name| name == "all" || name == "everyone" }
+    return [] if mentioned_names.empty?
+
+    advisors_by_name = @conversation.all_participant_advisors.index_by(&:name)
+
+    mentioned = mentioned_names.filter_map { |name| advisors_by_name[name] }
+    mentioned.reject { |advisor| advisor.id == advisor_message.sender_id }
   end
 
   def create_system_message(content)

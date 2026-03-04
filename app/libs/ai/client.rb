@@ -69,6 +69,11 @@ module AI
           ruby_llm_chat.add_message(role: "system", content: memory_index_message)
         end
 
+        tool_policy_message = build_tool_policy_context_message(context, messages)
+        if tool_policy_message.present?
+          ruby_llm_chat.add_message(role: "system", content: tool_policy_message)
+        end
+
         # Add messages to chat
         messages.each do |msg|
           role = msg[:role] || msg["role"]
@@ -367,7 +372,11 @@ module AI
         end
       end
 
-      lines << "If more detail is needed, fetch by memory id using memory tools."
+      if in_thread_reply_context?(context)
+        lines << "Treat this memory index as optional background only; prioritize current conversation thread context first."
+      else
+        lines << "Use memory tools only if required details are missing from the current conversation context or explicitly requested by the user."
+      end
       lines.join("\n")
     end
 
@@ -418,6 +427,67 @@ module AI
       # end
 
       lines.join("\n")
+    end
+
+    def build_tool_policy_context_message(context, messages)
+      message = context[:message]
+      parent_message = context[:parent_message] || message&.parent_message
+      is_reply = parent_message.present?
+      last_user_content = extract_last_user_content(messages)
+      references_thread = references_in_thread_context?(last_user_content)
+      rich_inline_context = rich_inline_context_provided?(last_user_content)
+
+      lines = [ "Response policy (hard rules):" ]
+      lines << "- Prioritize the provided current conversation messages as your primary source of truth."
+      lines << "- Answer directly before considering tools."
+      lines << "- Use tools only when information is genuinely missing from the current conversation context."
+
+      if is_reply
+        lines << "- This is a reply to an in-thread message: do not search memories or other conversations unless the user explicitly asks for lookup outside the current thread."
+      else
+        lines << "- Avoid searching memories or other conversations unless the user asks for it or current-thread context is insufficient."
+      end
+
+      if references_thread || rich_inline_context
+        lines << "- The latest user message references or includes substantial in-thread context. For this turn, do not call tools; answer using the current conversation content only."
+      end
+
+      lines << "- Do not prefix your response with speaker labels such as '[speaker: ...]'; start directly with the answer content."
+      lines << "- Use @user only when explicitly requesting a response from the user; otherwise use plain 'user' when referring to the user."
+      lines << "- Do not call write/admin tools unless the user explicitly requests that action."
+      lines.join("\n")
+    end
+
+    def in_thread_reply_context?(context)
+      message = context[:message]
+      parent_message = context[:parent_message] || message&.parent_message
+      parent_message.present?
+    end
+
+    def extract_last_user_content(messages)
+      msg = messages.reverse.find do |entry|
+        role = entry[:role] || entry["role"]
+        role.to_s == "user"
+      end
+
+      return "" unless msg
+
+      (msg[:content] || msg["content"]).to_s
+    end
+
+    def references_in_thread_context?(content)
+      return false if content.blank?
+
+      content.match?(/\b(above|below|previous|earlier|following|message above|message below|summary above|summary below|this thread|current conversation|quoted below|pasted below)\b/i)
+    end
+
+    def rich_inline_context_provided?(content)
+      return false if content.blank?
+
+      long_form = content.length >= 500
+      structured = content.match?(/\n\s*\#{1,6}\s+/) || content.match?(/\*\*.+\*\*/) || content.match?(/\[speaker:/i)
+
+      long_form && structured
     end
   end
 end
