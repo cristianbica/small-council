@@ -62,6 +62,7 @@ Rails.application.routes.draw do
     resources :messages, only: [ :create ] do
       member do
         get :interactions
+        post :retry
       end
     end
     member do

@@ -261,6 +261,17 @@ class MessageTest < ActiveSupport::TestCase
     assert message.error?
   end
 
+  test "can set status to responding" do
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Test",
+      status: "responding"
+    )
+    assert message.responding?
+  end
+
   test "status enum methods work" do
     message = @account.messages.create!(
       conversation: @conversation,
@@ -288,8 +299,8 @@ class MessageTest < ActiveSupport::TestCase
     end
   end
 
-  test "valid status values are pending, complete, error, and cancelled" do
-    assert_equal({ "pending" => "pending", "complete" => "complete", "error" => "error", "cancelled" => "cancelled" }, Message.statuses)
+  test "valid status values include responding" do
+    assert_equal({ "pending" => "pending", "responding" => "responding", "complete" => "complete", "error" => "error", "cancelled" => "cancelled" }, Message.statuses)
   end
 
   test "chronological scope orders by created_at ascending" do

@@ -32,6 +32,7 @@ class Message < ApplicationRecord
 
   enum :status, {
     pending: "pending",
+    responding: "responding",
     complete: "complete",
     error: "error",
     cancelled: "cancelled"

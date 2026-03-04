@@ -175,6 +175,7 @@ module AI
       RubyLLM.stubs(:context).yields(stub(:openai_api_key= => nil, :openai_organization_id= => nil)).returns(mock_context)
 
       council = Struct.new(:name, :description).new("Product Council", "Help with product decisions")
+      conversation = Struct.new(:id).new(38)
       responder = Struct.new(:name) do
         def scribe?
           false
@@ -184,6 +185,7 @@ module AI
       client.chat(
         messages: [ { role: "user", content: "[speaker: user] Hello" } ],
         context: {
+          conversation: conversation,
           council: council,
           participants: [
             { name: "Avery", role: "advisor" },
@@ -205,6 +207,7 @@ module AI
       assert_equal [ :with_instructions, "Advisor instructions" ], call_order.first
       assert_equal "system", added_messages.first[:role]
       assert_includes added_messages.first[:content], "You are a member of a council of advisors."
+      assert_includes added_messages.first[:content], "Conversation ID: 38"
       assert_includes added_messages.first[:content], "Purpose: Help with product decisions"
       assert_includes added_messages.first[:content], "Advisors and roles:"
 

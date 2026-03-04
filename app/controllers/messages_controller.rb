@@ -1,7 +1,7 @@
 class MessagesController < ApplicationController
   before_action :set_conversation
   before_action :verify_conversation_accessible
-  before_action :set_message, only: [ :interactions ]
+  before_action :set_message, only: [ :interactions, :retry ]
 
   def create
     Rails.logger.info "[MessagesController#create] User #{Current.user.id} posting message to conversation #{@conversation.id}"
@@ -19,7 +19,7 @@ class MessagesController < ApplicationController
       redirect_to @conversation
     else
       Rails.logger.warn "[MessagesController#create] Failed to save message: #{@message.errors.full_messages.join(', ')}"
-      @messages = @conversation.messages.chronological.includes(:sender)
+      @messages = @conversation.messages.where.not(status: "pending").chronological.includes(:sender)
       @new_message = @message
       @available_advisors = available_advisors_for_invite
       render "conversations/show", status: :unprocessable_entity
@@ -34,6 +34,33 @@ class MessagesController < ApplicationController
       message: @message,
       interactions: @interactions
     }
+  end
+
+  def retry
+    unless retryable_advisor_api_error?(@message)
+      redirect_to @conversation, alert: "This message cannot be retried."
+      return
+    end
+
+    @message.update!(
+      status: "responding",
+      content: "..."
+    )
+
+    Turbo::StreamsChannel.broadcast_replace_to(
+      "conversation_#{@conversation.id}",
+      target: "message_#{@message.id}",
+      partial: "messages/message",
+      locals: { message: @message, current_user: nil }
+    )
+
+    GenerateAdvisorResponseJob.perform_later(
+      advisor_id: @message.sender_id,
+      conversation_id: @conversation.id,
+      message_id: @message.id
+    )
+
+    redirect_to @conversation, notice: "Retry started."
   end
 
   private
@@ -73,5 +100,12 @@ class MessagesController < ApplicationController
     return unless user_message_count == 1
 
     GenerateConversationTitleJob.perform_later(@conversation.id, message.id)
+  end
+
+  def retryable_advisor_api_error?(message)
+    return false unless message.sender.is_a?(Advisor)
+    return false unless message.error?
+
+    message.content.to_s.include?("API Error:") || message.content.to_s.match?(/Empty response from AI/)
   end
 end

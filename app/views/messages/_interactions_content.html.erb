@@ -1,8 +1,15 @@
 <div class="h-full flex flex-col">
-  <h3 class="font-bold text-lg mb-4 flex items-center">
-    Model Interactions
-    <%= render "messages/interactions_count", message: message, interactions: interactions %>
-  </h3>
+  <div class="mb-4 flex items-center justify-between">
+    <h3 class="font-bold text-lg flex items-center">
+      Model Interactions
+      <%= render "messages/interactions_count", message: message, interactions: interactions %>
+    </h3>
+    <button onclick="document.getElementById('interactions-modal-<%= message.id %>').close()"
+            class="btn btn-ghost btn-sm btn-circle"
+            title="Close">
+      ✕
+    </button>
+  </div>
 
   <div class="flex-1 overflow-y-auto">
     <% if interactions.any? %>

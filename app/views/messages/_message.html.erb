@@ -1,9 +1,12 @@
 <%= turbo_frame_tag "message_#{message.id}", data: { action: "turbo:frame-load->conversation#messageRendered" } do %>
   <% is_current_user = message.sender == current_user %>
   <% is_pending = message.pending? %>
+  <% is_responding = message.responding? %>
+  <% is_loading = is_pending || is_responding %>
   <% is_error = message.error? %>
-  <% is_advisor = message.advisor? %>
+  <% is_api_error = is_error && message.content.to_s.match?(/API Error|Empty response from AI/) %>
   <% sender_is_advisor = message.sender.is_a?(Advisor) %>
+  <% is_advisor = message.advisor? || sender_is_advisor %>
   <% sender_name = message.sender.respond_to?(:name) ? message.sender.name : message.sender.email %>
   <% alignment = is_current_user ? 'chat-end' : 'chat-start' %>
   <% bubble_class = is_current_user ? 'bg-primary text-primary-content' : 'bg-base-200 text-base-content' %>
@@ -13,8 +16,8 @@
      else
        message.model_interactions.loaded? ? message.model_interactions.any? : message.model_interactions.exists?
      end %>
-  <% show_interactions_button = sender_is_advisor && (is_pending || has_interactions) %>
-  <% displayed_content = (sender_is_advisor && is_pending) ? "..." : message.content %>
+  <% show_interactions_button = sender_is_advisor && (is_loading || has_interactions) %>
+  <% displayed_content = (sender_is_advisor && is_loading) ? "..." : message.content %>
 
   <div class="chat <%= alignment %> group" id="message_<%= message.id %>">
     <%# Avatar %>
@@ -30,7 +33,7 @@
       <time class="text-xs opacity-60 ml-2" title="<%= message.created_at.strftime('%B %d, %Y at %I:%M %p') %>">
         <%= time_ago_in_words(message.created_at) %> ago
       </time>
-      <% if is_pending %>
+      <% if is_loading %>
         <span class="loading loading-spinner loading-xs ml-2"></span>
       <% end %>
       <% if is_advisor && message.prompt_text.present? %>
@@ -58,8 +61,8 @@
     <%# Chat Bubble - using <%- to suppress whitespace %>
     <div class="chat-bubble <%= bubble_class %> text-sm max-w-[85%] sm:max-w-[75%] whitespace-pre-wrap"><%-
       if is_error -%><div class="flex items-center gap-2 text-error-content"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><%= displayed_content %></div><%-
-      elsif sender_is_advisor && displayed_content.present? && displayed_content.length > 500 -%><div data-controller="message-expand" data-message-expand-max-length-value="500"><div data-message-expand-target="content" class="<%= is_pending ? 'animate-pulse' : '' %>"><%= displayed_content %></div><button data-message-expand-target="toggle" data-action="click->message-expand#toggle" class="btn btn-ghost btn-xs mt-2 hidden">Read more</button></div><%-
-      else -%><div class="<%= is_pending ? 'animate-pulse opacity-70 italic' : '' %>"><%= displayed_content %></div><%-
+      elsif sender_is_advisor && displayed_content.present? && displayed_content.length > 500 -%><div data-controller="message-expand" data-message-expand-max-length-value="500"><div data-message-expand-target="content" class="<%= is_loading ? 'animate-pulse' : '' %>"><%= displayed_content %></div><button data-message-expand-target="toggle" data-action="click->message-expand#toggle" class="btn btn-ghost btn-xs mt-2 hidden">Read more</button></div><%-
+      else -%><div class="<%= is_loading ? 'animate-pulse opacity-70 italic' : '' %>"><%= displayed_content %></div><%-
       end -%></div>
 
     <%# Chat Footer with Actions (visible on hover) %>
@@ -75,7 +78,13 @@
       <% if is_advisor %>
         <button class="btn btn-ghost btn-xs" title="Good response">👍</button>
         <button class="btn btn-ghost btn-xs" title="Bad response">👎</button>
-        <button class="btn btn-ghost btn-xs" title="Regenerate">🔄</button>
+        <% if is_api_error %>
+          <%= button_to "Retry",
+              retry_conversation_message_path(message.conversation, message),
+              method: :post,
+              class: "btn btn-ghost btn-xs",
+              form: { data: { turbo_confirm: "Retry this advisor response?" } } %>
+        <% end %>
       <% end %>
     </div>
   </div>
@@ -135,10 +144,6 @@
             Loading interactions...
           </div>
         </turbo-frame>
-        <div class="modal-action">
-          <button onclick="document.getElementById('interactions-modal-<%= message.id %>').close()"
-                  class="btn">Close</button>
-        </div>
       </div>
       <form method="dialog" class="modal-backdrop">
         <button>close</button>

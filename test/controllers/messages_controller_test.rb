@@ -388,4 +388,93 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     get interactions_conversation_message_url(conversation_a, message)
     assert_response :not_found
   end
+
+  test "retry re-enqueues advisor message for API error" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Retry Test", space: @space)
+    advisor = @account.advisors.create!(
+      name: "Retry Advisor",
+      system_prompt: "You are a test advisor",
+      llm_model: @llm_model,
+      space: @space
+    )
+
+    message = @account.messages.create!(
+      conversation: conversation,
+      sender: advisor,
+      role: "advisor",
+      status: "error",
+      content: "[Error: API Error: provider timeout]"
+    )
+
+    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
+      post retry_conversation_message_url(conversation, message)
+    end
+
+    assert_redirected_to conversation_url(conversation)
+    message.reload
+    assert_equal "responding", message.status
+    assert_match(/is thinking/, message.content)
+  end
+
+  test "retry rejects non-api errors" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Retry Test", space: @space)
+    advisor = @account.advisors.create!(
+      name: "Retry Advisor",
+      system_prompt: "You are a test advisor",
+      llm_model: @llm_model,
+      space: @space
+    )
+
+    message = @account.messages.create!(
+      conversation: conversation,
+      sender: advisor,
+      role: "advisor",
+      status: "error",
+      content: "[Error: Unexpected error: boom]"
+    )
+
+    assert_no_enqueued_jobs only: GenerateAdvisorResponseJob do
+      post retry_conversation_message_url(conversation, message)
+    end
+
+    assert_redirected_to conversation_url(conversation)
+    message.reload
+    assert_equal "error", message.status
+  end
+
+  test "conversation UI shows retry action for advisor API error message" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
+    conversation = @account.conversations.create!(council: council, user: @user, title: "Retry Test", space: @space)
+    advisor = @account.advisors.create!(
+      name: "Retry Advisor",
+      system_prompt: "You are a test advisor",
+      llm_model: @llm_model,
+      space: @space
+    )
+
+    message = @account.messages.create!(
+      conversation: conversation,
+      sender: advisor,
+      role: "advisor",
+      status: "error",
+      content: "[Error: API Error: provider timeout]"
+    )
+
+    get conversation_url(conversation)
+
+    assert_response :success
+    assert_includes response.body, "Retry"
+    assert_includes response.body, retry_conversation_message_path(conversation, message)
+  end
 end

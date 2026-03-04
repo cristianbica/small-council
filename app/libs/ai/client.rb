@@ -383,12 +383,18 @@ module AI
     def build_council_context_message(context)
       council = context[:council]
       participants = context[:participants]
+      conversation = context[:conversation]
 
       has_council = council.respond_to?(:name) || council.respond_to?(:description)
       has_participants = participants.respond_to?(:any?) && participants.any?
-      return nil unless has_council || has_participants
+      has_conversation = conversation.respond_to?(:id) && conversation.id.present?
+      return nil unless has_council || has_participants || has_conversation
 
       lines = [ "You are a member of a council of advisors." ]
+
+      if has_conversation
+        lines << "Conversation ID: #{conversation.id}"
+      end
 
       if has_council
         lines << "Council: #{council.name}" if council.respond_to?(:name) && council.name.present?

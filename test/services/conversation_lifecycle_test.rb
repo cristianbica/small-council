@@ -83,12 +83,82 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
 
     lifecycle = ConversationLifecycle.new(conv)
 
-    # In consensus mode, all participants respond (2 advisors + 1 scribe = 3)
+    # In consensus mode, all participants get pending placeholders (2 advisors + 1 scribe = 3)
+    # but only the first advisor is enqueued immediately (turn-based).
     assert_difference "Message.where(status: :pending).count", 3 do
-      assert_enqueued_jobs 3, only: GenerateAdvisorResponseJob do
+      assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
         lifecycle.user_posted_message(user_message)
       end
     end
+  end
+
+  test "turn-based flow enqueues next advisor only after previous advisor responds" do
+    conv = create_conversation(roe_type: :open)
+
+    msg = conv.messages.create!(
+      account: @account,
+      sender: @user,
+      role: "user",
+      content: "@strategic-advisor @technical-expert share your thoughts"
+    )
+
+    lifecycle = ConversationLifecycle.new(conv)
+
+    clear_enqueued_jobs
+    lifecycle.user_posted_message(msg)
+
+    assert_equal 1, enqueued_jobs.size
+
+    first_placeholder = msg.replies.where(role: "advisor", status: "pending").chronological.first
+    first_placeholder.update!(role: "advisor", status: "complete", content: "First advisor response")
+
+    clear_enqueued_jobs
+    lifecycle.advisor_responded(first_placeholder)
+
+    assert_equal 1, enqueued_jobs.size
+    payload = enqueued_jobs.last[:args][0]
+    advisor_id = payload[:advisor_id] || payload["advisor_id"]
+    assert_equal @advisor2.id, advisor_id
+  end
+
+  test "turn-based flow enqueues legacy system-role pending advisor placeholders" do
+    conv = create_conversation(roe_type: :open)
+
+    parent_msg = conv.messages.create!(
+      account: @account,
+      sender: @user,
+      role: "user",
+      content: "@strategic-advisor @technical-expert share your thoughts",
+      pending_advisor_ids: [ @advisor1.id, @advisor2.id ]
+    )
+
+    completed = conv.messages.create!(
+      account: @account,
+      sender: @advisor1,
+      role: "advisor",
+      status: "complete",
+      content: "First advisor response",
+      parent_message: parent_msg
+    )
+
+    conv.messages.create!(
+      account: @account,
+      sender: @advisor2,
+      role: "system",
+      status: "pending",
+      content: "[Technical Expert] is thinking...",
+      parent_message: parent_msg
+    )
+
+    lifecycle = ConversationLifecycle.new(conv)
+    clear_enqueued_jobs
+
+    lifecycle.advisor_responded(completed)
+
+    assert_equal 1, enqueued_jobs.size
+    payload = enqueued_jobs.last[:args][0]
+    advisor_id = payload[:advisor_id] || payload["advisor_id"]
+    assert_equal @advisor2.id, advisor_id
   end
 
   test "user_posted_message returns early if message not persisted" do
@@ -122,7 +192,7 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
     pending_message = conv.messages.create!(
       account: @account,
       sender: @advisor1,
-      role: "system",
+      role: "advisor",
       content: "[Strategic Advisor] is thinking...",
       status: "pending",
       parent_message: parent_msg
@@ -492,8 +562,8 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
     assert_equal conv.id, conversation_id
     assert message_id.is_a?(Integer)
 
-    advisor_message.reload
-    assert_includes advisor_message.pending_advisor_ids, @advisor2.id
+    parent_msg.reload
+    assert_includes parent_msg.pending_advisor_ids, @advisor2.id
   end
 
   test "advisor mention does not trigger self-response" do
@@ -522,7 +592,7 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
       lifecycle.advisor_responded(advisor_message)
     end
 
-    advisor_message.reload
-    assert_equal [], advisor_message.pending_advisor_ids
+    parent_msg.reload
+    assert_equal [], parent_msg.pending_advisor_ids
   end
 end

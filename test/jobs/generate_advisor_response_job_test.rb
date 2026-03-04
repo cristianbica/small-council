@@ -53,6 +53,27 @@ class GenerateAdvisorResponseJobTest < ActiveJob::TestCase
     )
   end
 
+  test "processes message when status is responding" do
+    @message.update!(status: "responding")
+
+    token_usage = AI::Model::TokenUsage.new(input: 10, output: 5)
+    mock_response = AI::Model::Response.new(content: "Resume response", usage: token_usage)
+
+    mock_generator = mock("generator")
+    mock_generator.expects(:generate_advisor_response).returns(mock_response)
+    AI::ContentGenerator.expects(:new).returns(mock_generator)
+
+    GenerateAdvisorResponseJob.perform_now(
+      advisor_id: @advisor.id,
+      conversation_id: @conversation.id,
+      message_id: @message.id
+    )
+
+    @message.reload
+    assert @message.complete?
+    assert_equal "Resume response", @message.content
+  end
+
   test "skips processing if advisor not found" do
     GenerateAdvisorResponseJob.perform_now(
       advisor_id: 99999,

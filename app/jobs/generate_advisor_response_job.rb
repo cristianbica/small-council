@@ -19,8 +19,8 @@ class GenerateAdvisorResponseJob < ApplicationJob
       return
     end
 
-    unless message.pending?
-      Rails.logger.info "[GenerateAdvisorResponseJob] Message #{message_id} is not pending (status: #{message.status}), skipping"
+    unless message.pending? || message.responding?
+      Rails.logger.info "[GenerateAdvisorResponseJob] Message #{message_id} is not processable (status: #{message.status}), skipping"
       return
     end
 
@@ -31,6 +31,8 @@ class GenerateAdvisorResponseJob < ApplicationJob
     Current.space = conversation.space || advisor.space || conversation.advisors.where.not(space: nil).first&.space
 
     Rails.logger.info "[GenerateAdvisorResponseJob] Processing message #{message_id} for advisor #{advisor.name} (space: #{Current.space&.id || 'nil'})"
+
+    mark_responding_and_broadcast(message)
 
     begin
       # Generate response based on advisor type
@@ -112,6 +114,7 @@ class GenerateAdvisorResponseJob < ApplicationJob
   def handle_error(message, lifecycle, error_content)
     message.update!(
       content: "[Error: #{error_content}]",
+      role: "advisor",
       status: "error"
     )
 
@@ -120,6 +123,19 @@ class GenerateAdvisorResponseJob < ApplicationJob
     Turbo::StreamsChannel.broadcast_replace_to(
       "conversation_#{message.conversation.id}",
       target: "message_#{message.id}",
+      partial: "messages/message",
+      locals: { message: message, current_user: nil }
+    )
+  end
+
+  def mark_responding_and_broadcast(message)
+    return unless message.pending?
+
+    message.update!(role: "advisor", status: "responding")
+
+    Turbo::StreamsChannel.broadcast_append_to(
+      "conversation_#{message.conversation.id}",
+      target: "messages",
       partial: "messages/message",
       locals: { message: message, current_user: nil }
     )

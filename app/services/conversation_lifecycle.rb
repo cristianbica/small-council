@@ -52,10 +52,13 @@ class ConversationLifecycle
     # Populate pending_advisor_ids on the message
     user_message.update!(pending_advisor_ids: mentioned_advisors.map(&:id))
 
-    # Create pending responses for each advisor
+    # Create pending placeholders for each advisor
     mentioned_advisors.each do |advisor|
-      create_pending_message_and_enqueue(advisor, user_message)
+      create_pending_message(advisor, user_message)
     end
+
+    # Enqueue only the next advisor in order (turn-based)
+    enqueue_next_pending_for(user_message)
 
     mentioned_advisors
   end
@@ -70,6 +73,13 @@ class ConversationLifecycle
     # Remove advisor from pending list
     parent_message.resolve_for_advisor!(advisor_response_message.sender_id)
 
+    # Trigger advisor mentions before solved check so newly mentioned advisors
+    # are added to the same pending chain for this parent message.
+    trigger_mentioned_advisor_responses(advisor_response_message)
+
+    # Continue turn-based processing for remaining pending advisors
+    enqueue_next_pending_for(parent_message)
+
     # Broadcast the completed response
     broadcast_message(advisor_response_message)
 
@@ -78,8 +88,6 @@ class ConversationLifecycle
       Rails.logger.debug "[ConversationLifecycle] Message #{parent_message.id} is now solved"
       handle_message_solved(parent_message)
     end
-
-    trigger_mentioned_advisor_responses(advisor_response_message)
   end
 
   # Handle error during advisor response generation
@@ -94,6 +102,7 @@ class ConversationLifecycle
     # Remove from pending to prevent blocking
     if message.parent_message
       message.parent_message.resolve_for_advisor!(message.sender_id)
+      enqueue_next_pending_for(message.parent_message)
     end
 
     broadcast_message(message)
@@ -155,7 +164,7 @@ class ConversationLifecycle
     broadcast_system_message(result[:message])
   end
 
-  def create_pending_message_and_enqueue(advisor, parent_message)
+  def create_pending_message(advisor, parent_message)
     # Check depth limit
     current_depth = parent_message.depth + 1
     max_depth = @conversation.max_depth
@@ -170,23 +179,13 @@ class ConversationLifecycle
     placeholder = @conversation.messages.create!(
       account: @conversation.account,
       sender: advisor,
-      role: "system",
+      role: "advisor",
       parent_message: parent_message,
       content: "[#{advisor.name}] is thinking...",
       status: "pending"
     )
 
     Rails.logger.debug "[ConversationLifecycle] Created placeholder message #{placeholder.id}"
-
-    # Broadcast placeholder
-    broadcast_placeholder(placeholder)
-
-    # Enqueue job
-    GenerateAdvisorResponseJob.perform_later(
-      advisor_id: advisor.id,
-      conversation_id: @conversation.id,
-      message_id: placeholder.id
-    )
 
     placeholder
   end
@@ -212,10 +211,15 @@ class ConversationLifecycle
     mentioned_advisors = parse_advisor_mentions_from_advisor_message(advisor_message)
     return if mentioned_advisors.empty?
 
-    advisor_message.update!(pending_advisor_ids: mentioned_advisors.map(&:id))
+    parent_message = advisor_message.parent_message || advisor_message
+    existing_pending = Array(parent_message.pending_advisor_ids).map(&:to_i)
+    advisors_to_add = mentioned_advisors.reject { |advisor| existing_pending.include?(advisor.id) }
+    return if advisors_to_add.empty?
 
-    mentioned_advisors.each do |advisor|
-      create_pending_message_and_enqueue(advisor, advisor_message)
+    parent_message.update!(pending_advisor_ids: (existing_pending + advisors_to_add.map(&:id)).uniq)
+
+    advisors_to_add.each do |advisor|
+      create_pending_message(advisor, parent_message)
     end
   end
 
@@ -228,6 +232,22 @@ class ConversationLifecycle
 
     mentioned = mentioned_names.filter_map { |name| advisors_by_name[name] }
     mentioned.reject { |advisor| advisor.id == advisor_message.sender_id }
+  end
+
+  def enqueue_next_pending_for(parent_message)
+    return unless parent_message
+
+    next_placeholder = parent_message.replies
+                                     .where(sender_type: "Advisor", status: "pending")
+                                     .chronological
+                                     .first
+    return unless next_placeholder
+
+    GenerateAdvisorResponseJob.perform_later(
+      advisor_id: next_placeholder.sender_id,
+      conversation_id: @conversation.id,
+      message_id: next_placeholder.id
+    )
   end
 
   def create_system_message(content)

@@ -500,6 +500,18 @@ class MessageAdditionalTest < ActiveSupport::TestCase
     assert msg.error?
   end
 
+  test "can set responding status" do
+    msg = @conversation.messages.create!(
+      account: @account,
+      sender: @advisor,
+      role: "system",
+      content: "[Thinking...]",
+      status: :responding
+    )
+
+    assert msg.responding?
+  end
+
   test "can set cancelled status" do
     msg = @conversation.messages.create!(
       account: @account,

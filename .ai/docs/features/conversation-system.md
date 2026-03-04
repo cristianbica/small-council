@@ -77,7 +77,9 @@ Set pending_advisor_ids
         ↓
 Create placeholder messages
         ↓
-Enqueue GenerateAdvisorResponseJob
+Enqueue first GenerateAdvisorResponseJob (turn-based)
+        ↓
+On advisor completion/error: enqueue next pending advisor for same parent
         ↓
 Advisor Completes Response
         ↓

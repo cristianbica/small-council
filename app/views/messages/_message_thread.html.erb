@@ -8,7 +8,7 @@
 
   <%# Render replies recursively %>
   <% if message.replies.any? %>
-    <% message.replies.chronological.each do |reply| %>
+    <% message.replies.where.not(status: "pending").chronological.each do |reply| %>
       <%= render "messages/message_thread", message: reply, current_user: current_user %>
     <% end %>
   <% end %>

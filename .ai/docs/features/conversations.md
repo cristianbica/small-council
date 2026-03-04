@@ -115,11 +115,13 @@ Use `@advisor-name` in messages to trigger specific advisors:
 
 1. User posts message
 2. `MessagesController` calls `ConversationLifecycle#user_posted_message`
-3. Placeholder messages created with `pending` status
-4. `GenerateAdvisorResponseJob` enqueued for each responder
+3. Placeholder messages are created with `pending` status for all selected responders
+4. Jobs are enqueued in turn order (one advisor at a time per parent message)
+5. Placeholder remains hidden while `pending`; when a job starts it transitions to `responding` and appears in chat
 5. Background job:
    - Calls `AI::ContentGenerator#generate_advisor_response`
    - Updates placeholder with AI response and `complete` status
+   - `ConversationLifecycle#advisor_responded` enqueues the next pending advisor for that same parent message
    - Creates `UsageRecord` (auto-tracked inside `AI::Client#chat`)
    - Calls `ConversationLifecycle#advisor_responded` for follow-up logic
    - Broadcasts via Turbo Streams to update UI in real-time
