@@ -44,3 +44,8 @@ I ask a question about a previous message in the current conversation but it sta
 ## Any write tool action should be confirmed by the user
 
 Any tool action that modifies the state of the system (creating, updating or deleting a memory, creating a conversation, etc.) should be confirmed by the user before being executed. This would allow me to have more control over the actions that are being taken and avoid unintended consequences. For example if I ask the scribe to create a memory and it creates it with the wrong information I should be able to stop it before it creates the memory and then ask it to create it again with the correct information.
+
+
+## Add some folders to structure memories
+
+As the number of memories grows it would be nice to have some way to organize them. For example, I could have a folder for each project I'm working on and then have the memories related to that project inside that folder. This would allow me to easily find the memories I'm looking for and keep my memory list organized.

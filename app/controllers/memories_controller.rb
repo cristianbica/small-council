@@ -79,7 +79,7 @@ class MemoriesController < ApplicationController
   # POST /spaces/:space_id/memories/:id/archive
   def archive
     @memory.archive!(Current.user)
-    redirect_to space_memory_path(@space, @memory), notice: "Memory was archived."
+    redirect_to space_memories_path(@space), notice: "Memory was archived."
   end
 
   # POST /spaces/:space_id/memories/:id/activate
