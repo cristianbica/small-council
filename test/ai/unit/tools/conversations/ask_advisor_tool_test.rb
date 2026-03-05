@@ -44,7 +44,6 @@ module AI
 
         teardown do
           GenerateAdvisorResponseJob.unstub(:perform_later)
-
         end
 
         test "name returns ask_advisor" do

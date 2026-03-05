@@ -44,48 +44,6 @@ class MessageAdditionalTest < ActiveSupport::TestCase
   # Pending Advisor Tests
   # ============================================================================
 
-  test "pending_for? returns true when advisor is in pending list" do
-    msg = @conversation.messages.create!(
-      account: @account,
-      sender: @user,
-      role: "user",
-      content: "Question",
-      pending_advisor_ids: [ @advisor.id.to_s ]
-    )
-
-    assert msg.pending_for?(@advisor.id)
-  end
-
-  test "pending_for? returns false when advisor not in pending list" do
-    other_advisor = @account.advisors.create!(
-      name: "Other",
-      system_prompt: "Help",
-      space: @space,
-      llm_model: @llm_model
-    )
-
-    msg = @conversation.messages.create!(
-      account: @account,
-      sender: @user,
-      role: "user",
-      content: "Question",
-      pending_advisor_ids: [ @advisor.id.to_s ]
-    )
-
-    assert_not msg.pending_for?(other_advisor.id)
-  end
-
-  test "pending_for? handles nil pending_advisor_ids" do
-    msg = @conversation.messages.create!(
-      account: @account,
-      sender: @user,
-      role: "user",
-      content: "Question"
-    )
-
-    assert_not msg.pending_for?(@advisor.id)
-  end
-
   test "resolve_for_advisor! removes advisor from pending" do
     msg = @conversation.messages.create!(
       account: @account,
@@ -98,7 +56,8 @@ class MessageAdditionalTest < ActiveSupport::TestCase
     msg.resolve_for_advisor!(@advisor.id)
 
     assert_equal [ 999 ], msg.reload.pending_advisor_ids
-    assert_not msg.pending_for?(@advisor.id)
+    assert_not_includes msg.pending_advisor_ids, @advisor.id
+    assert_not_includes msg.pending_advisor_ids, @advisor.id.to_s
   end
 
   test "resolve_for_advisor! handles string advisor_id" do

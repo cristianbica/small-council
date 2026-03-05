@@ -170,16 +170,6 @@ module AI
         msg = Message.new(role: "assistant", content: "", tool_calls: [ { name: "test" } ])
         assert_equal({ role: "assistant", content: "", tool_calls: [ { name: "test" } ] }, msg.to_h)
       end
-
-      test "from_hash creates message from hash" do
-        msg = Message.from_hash({ "role" => "user", "content" => "Hello" })
-        assert_equal "user", msg.role
-        assert_equal "Hello", msg.content
-
-        msg = Message.from_hash({ role: "assistant", content: "Hi" })
-        assert_equal "assistant", msg.role
-        assert_equal "Hi", msg.content
-      end
     end
   end
 end

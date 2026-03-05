@@ -129,10 +129,6 @@ class Conversation < ApplicationRecord
     self.space = council.space
   end
 
-  def clear_responded_advisors
-    update_column(:context, context.except("responded_advisor_ids"))
-  end
-
   def increment_scribe_initiated_count!
     increment!(:scribe_initiated_count)
   end

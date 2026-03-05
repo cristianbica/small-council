@@ -506,7 +506,7 @@ module RubyLLM
         module_function
 
         def parse_tool_call_arguments(tool_call)
-          arguments = tool_call.dig('function', 'arguments')
+          arguments = tool_call.dig("function", "arguments")
 
           if arguments.nil? || arguments.empty?
             {}

@@ -53,11 +53,6 @@ class Message < ApplicationRecord
     pending_advisor_ids.blank? || pending_advisor_ids.empty?
   end
 
-  # Check if this message is pending responses from specific advisors
-  def pending_for?(advisor_id)
-    pending_advisor_ids&.include?(advisor_id.to_s) || pending_advisor_ids&.include?(advisor_id)
-  end
-
   # Remove an advisor from pending list
   def resolve_for_advisor!(advisor_id)
     current_pending = pending_advisor_ids || []

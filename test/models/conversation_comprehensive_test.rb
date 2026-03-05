@@ -620,22 +620,6 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     assert_equal 0, conv.reload.scribe_initiated_count
   end
 
-  test "clear_responded_advisors removes responded_advisor_ids from context" do
-    conv = @account.conversations.create!(
-      title: "Test",
-      user: @user,
-      council: @council,
-      context: { "responded_advisor_ids" => [ "1", "2", "3" ], "other_key" => "value" },
-      space: @space
-    )
-    conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
-
-    conv.clear_responded_advisors
-
-    assert_nil conv.reload.context["responded_advisor_ids"]
-    assert_equal "value", conv.context["other_key"]  # Other keys preserved
-  end
-
   # ============================================================================
   # VALIDATIONS
   # ============================================================================

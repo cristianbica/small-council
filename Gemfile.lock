@@ -116,6 +116,10 @@ GEM
       capybara (~> 3.0)
       ferrum (~> 0.17.0)
     date (3.5.1)
+    debride (1.15.1)
+      path_expander (~> 2.0)
+      prism (~> 1.7)
+      sexp_processor (~> 4.17)
     debug (1.11.1)
       irb (~> 1.10)
       reline (>= 0.3.8)
@@ -254,6 +258,7 @@ GEM
     parser (3.3.10.2)
       ast (~> 2.4.1)
       racc
+    path_expander (2.0.1)
     pg (1.6.3)
     pg (1.6.3-aarch64-linux)
     pg (1.6.3-aarch64-linux-musl)
@@ -376,6 +381,7 @@ GEM
       zeitwerk (~> 2)
     ruby_llm-schema (0.3.0)
     securerandom (0.4.1)
+    sexp_processor (4.17.5)
     simplecov (0.22.0)
       docile (~> 1.1)
       simplecov-html (~> 0.11)
@@ -466,6 +472,7 @@ DEPENDENCIES
   capybara
   commonmarker (~> 2.0)
   cuprite
+  debride (~> 1.15)
   debug
   diffy (~> 3.4)
   dotenv-rails

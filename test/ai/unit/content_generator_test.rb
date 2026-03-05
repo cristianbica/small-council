@@ -175,60 +175,6 @@ module AI
       assert knowledge_entries.any?
     end
 
-    # generate_conversation_summary Tests
-
-    test "generate_conversation_summary returns summary text" do
-      mock_response = AI::Model::Response.new(content: "This is a summary.")
-      mock_client = stub("client")
-      mock_client.stubs(:complete).returns(mock_response)
-
-      generator = ContentGenerator.new(client: mock_client)
-
-      # Create messages
-      @account.messages.create!(
-        conversation: @conversation,
-        sender: @user,
-        role: "user",
-        content: "Message 1"
-      )
-      @account.messages.create!(
-        conversation: @conversation,
-        sender: @advisor,
-        role: "advisor",
-        content: "Response 1"
-      )
-
-      summary = generator.generate_conversation_summary(
-        conversation: @conversation,
-        style: :brief
-      )
-
-      assert_equal "This is a summary.", summary
-    end
-
-    test "generate_conversation_summary supports different styles" do
-      mock_client = stub("client")
-      mock_client.stubs(:complete).returns(AI::Model::Response.new(content: "Summary"))
-
-      generator = ContentGenerator.new(client: mock_client)
-
-      # Create a message
-      @account.messages.create!(
-        conversation: @conversation,
-        sender: @user,
-        role: "user",
-        content: "Hello"
-      )
-
-      [ :brief, :detailed, :bullet_points ].each do |style|
-        result = generator.generate_conversation_summary(
-          conversation: @conversation,
-          style: style
-        )
-        assert_equal "Summary", result
-      end
-    end
-
     test "generate_conversation_title returns normalized title" do
       mock_response = AI::Model::Response.new(content: "\"Launch Planning Session\"\n")
       mock_client = stub("client")
@@ -257,34 +203,6 @@ module AI
       )
 
       assert_nil title
-    end
-
-    # generate_memory_content Tests
-
-    test "generate_memory_content returns generated content" do
-      mock_response = AI::Model::Response.new(content: "Generated memory content.")
-      mock_client = stub("client")
-      mock_client.stubs(:complete).returns(mock_response)
-
-      generator = ContentGenerator.new(client: mock_client)
-
-      content = generator.generate_memory_content(
-        prompt: "Create a summary of project status",
-        context: { account: @account }
-      )
-
-      assert_equal "Generated memory content.", content
-    end
-
-    test "generate_memory_content raises GenerationError without account" do
-      generator = ContentGenerator.new
-
-      assert_raises(ContentGenerator::GenerationError) do
-        generator.generate_memory_content(
-          prompt: "Create a summary",
-          context: {} # Missing account
-        )
-      end
     end
 
     # generate_advisor_profile Tests

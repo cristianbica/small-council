@@ -485,26 +485,6 @@ class MessageTest < ActiveSupport::TestCase
     assert_not msg.solved?
   end
 
-  test "pending_for? returns true for advisor in pending list" do
-    space = @account.spaces.create!(name: "Pending Test Space")
-    advisor = @account.advisors.create!(
-      name: "Test Advisor",
-      system_prompt: "You are a test advisor",
-      llm_model: @llm_model,
-      space: space
-    )
-
-    msg = @account.messages.create!(
-      conversation: @conversation,
-      sender: @user,
-      role: "user",
-      content: "Test",
-      pending_advisor_ids: [ advisor.id ]
-    )
-
-    assert msg.pending_for?(advisor.id)
-  end
-
   test "resolve_for_advisor! removes advisor from pending list" do
     space = @account.spaces.create!(name: "Pending Test Space")
     advisor = @account.advisors.create!(
@@ -525,7 +505,8 @@ class MessageTest < ActiveSupport::TestCase
     msg.resolve_for_advisor!(advisor.id)
 
     assert msg.solved?
-    assert_not msg.pending_for?(advisor.id)
+    assert_not_includes msg.pending_advisor_ids, advisor.id
+    assert_not_includes msg.pending_advisor_ids, advisor.id.to_s
   end
 
   # Command Detection Tests

@@ -219,28 +219,6 @@ module AI
       end
     end
 
-    # Generate a summary of a conversation
-    #
-    # @param conversation [Conversation] The conversation to summarize
-    # @param style [Symbol] Summary style: :brief, :detailed, :bullet_points
-    # @return [String] The generated summary text
-    def generate_conversation_summary(conversation:, style: :detailed)
-      cache_key = build_cache_key("conversation_summary", conversation.id, style)
-
-      fetch_from_cache(cache_key) do
-        client = build_client_with_system_model(conversation.account)
-
-        conversation_text = format_conversation_for_summary(conversation)
-        prompt = render_template(:conversation_summary,
-          conversation_text: conversation_text,
-          style: style
-        )
-
-        response = client.complete(prompt: prompt)
-        response.content.strip
-      end
-    end
-
     # Generate a concise title for an adhoc conversation from its first user message
     #
     # @param conversation [Conversation] The conversation context
@@ -258,31 +236,6 @@ module AI
 
         response = client.complete(prompt: prompt)
         normalize_generated_title(response.content)
-      end
-    end
-
-    # Generate structured memory content
-    #
-    # @param prompt [String] The prompt describing what to generate
-    # @param context [Hash] Additional context (source, format, etc.)
-    # @return [String] The generated memory content
-    def generate_memory_content(prompt:, context: {})
-      cache_key = build_cache_key("memory_content", prompt.hash, context.hash)
-
-      fetch_from_cache(cache_key) do
-        # Use account from context or raise
-        account = context[:account]
-        raise GenerationError, "Account required in context" unless account
-
-        client = build_client_with_system_model(account)
-
-        rendered_prompt = render_template(:memory_content,
-          prompt: prompt,
-          context: context
-        )
-
-        response = client.complete(prompt: rendered_prompt)
-        response.content.strip
       end
     end
 

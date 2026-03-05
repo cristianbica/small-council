@@ -100,14 +100,6 @@ module AI
         h[:tool_calls] = tool_calls if tool_calls
         h
       end
-
-      def self.from_hash(hash)
-        new(
-          role: hash[:role] || hash["role"],
-          content: hash[:content] || hash["content"],
-          tool_calls: hash[:tool_calls] || hash["tool_calls"]
-        )
-      end
     end
   end
 end

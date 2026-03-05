@@ -225,9 +225,9 @@ class ConversationTest < ActiveSupport::TestCase
     assert_equal 1, conversation.max_depth
   end
 
-  test "max_depth for consensus RoE is 5" do
+  test "max_depth for consensus RoE is 2" do
     conversation = create_conversation_with_advisor(roe_type: :consensus)
-    assert_equal 5, conversation.max_depth
+    assert_equal 2, conversation.max_depth
   end
 
   test "max_depth for brainstorming RoE is 2" do

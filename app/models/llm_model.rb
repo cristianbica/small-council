@@ -64,16 +64,4 @@ class LLMModel < ApplicationRecord
   def output_price
     metadata.dig("pricing", "output").to_f
   end
-
-  private
-
-  def extract_capabilities(full_metadata)
-    {
-      "chat" => full_metadata["type"] == "chat",
-      "vision" => full_metadata["vision"] || false,
-      "json_mode" => full_metadata["structured_output"] || false,
-      "functions" => full_metadata["supports_functions"] || false,
-      "streaming" => full_metadata["streaming"] || false
-    }
-  end
 end
