@@ -167,25 +167,6 @@ class ConversationParticipantTest < ActiveSupport::TestCase
     assert participant.scribe?
   end
 
-  test "advisors_only scope excludes scribes" do
-    # Use advisor2 since advisor1 is already added in setup
-    @conversation.conversation_participants.create!(advisor: @advisor2, role: :advisor)
-    @conversation.conversation_participants.create!(advisor: @scribe, role: :scribe)
-
-    assert_equal 2, @conversation.conversation_participants.advisors_only.count
-    assert_includes @conversation.conversation_participants.advisors_only.map(&:advisor), @advisor1
-    assert_includes @conversation.conversation_participants.advisors_only.map(&:advisor), @advisor2
-    assert_not_includes @conversation.conversation_participants.advisors_only.map(&:advisor), @scribe
-  end
-
-  test "scribes_only scope includes only scribes" do
-    @conversation.conversation_participants.create!(advisor: @advisor2, role: :advisor)
-    @conversation.conversation_participants.create!(advisor: @scribe, role: :scribe)
-
-    assert_equal 1, @conversation.conversation_participants.scribes_only.count
-    assert_includes @conversation.conversation_participants.scribes_only.map(&:advisor), @scribe
-  end
-
   test "sets account from conversation before create" do
     # Use advisor2 since advisor1 is already added in setup
     participant = @conversation.conversation_participants.create!(advisor: @advisor2)

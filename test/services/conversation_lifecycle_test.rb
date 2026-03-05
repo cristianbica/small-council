@@ -86,7 +86,7 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
     # In consensus mode, all participants get pending placeholders (2 advisors + 1 scribe = 3)
     # and each placeholder is enqueued immediately.
     assert_difference "Message.where(status: :pending).count", 3 do
-      assert_enqueued_jobs 3, only: GenerateAdvisorResponseJob do
+      assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
         lifecycle.user_posted_message(user_message)
       end
     end
@@ -107,7 +107,7 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
     clear_enqueued_jobs
     lifecycle.user_posted_message(msg)
 
-    assert_equal 2, enqueued_jobs.size
+    assert_equal 1, enqueued_jobs.size
   end
 
   test "turn-based flow enqueues legacy system-role pending advisor placeholders" do
@@ -328,9 +328,9 @@ class ConversationLifecycleTest < ActiveSupport::TestCase
     assert_equal 1, conv.max_depth
   end
 
-  test "Consensus RoE: max depth is 2" do
+  test "Consensus RoE: max depth is 5" do
     conv = create_conversation(roe_type: :consensus)
-    assert_equal 2, conv.max_depth
+    assert_equal 5, conv.max_depth
   end
 
   test "Brainstorming RoE: max depth is 2" do

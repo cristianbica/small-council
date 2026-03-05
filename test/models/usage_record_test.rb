@@ -222,39 +222,6 @@ class UsageRecordTest < ActiveSupport::TestCase
     assert_equal 0, usage_record.total_tokens
   end
 
-  test "cost_dollars returns cost in dollars" do
-    usage_record = @account.usage_records.new(
-      provider: "openai",
-      model: "gpt-4",
-      input_tokens: 100,
-      output_tokens: 50,
-      cost_cents: 250
-    )
-    assert_equal 2.50, usage_record.cost_dollars
-  end
-
-  test "cost_dollars with zero cost" do
-    usage_record = @account.usage_records.new(
-      provider: "openai",
-      model: "gpt-4",
-      input_tokens: 100,
-      output_tokens: 50,
-      cost_cents: 0
-    )
-    assert_equal 0.0, usage_record.cost_dollars
-  end
-
-  test "cost_dollars with fractional cents" do
-    usage_record = @account.usage_records.new(
-      provider: "openai",
-      model: "gpt-4",
-      input_tokens: 100,
-      output_tokens: 50,
-      cost_cents: 1
-    )
-    assert_equal 0.01, usage_record.cost_dollars
-  end
-
   # Default value tests
   test "input_tokens defaults to 0" do
     usage_record = @account.usage_records.create!(

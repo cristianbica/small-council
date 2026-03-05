@@ -98,8 +98,8 @@ chat.with_tools(adapter)
 ## Tool Wiring
 
 `AI::ContentGenerator#advisor_tools` currently wires:
-- 8 read-only tools for all advisors
-- 12 additional write/admin tools for Scribe
+- no tools for non-scribe advisors
+- 20 tools for Scribe (4 baseline read tools + 16 conversation/memory/advisor/council tools)
 - `ask_advisor` is not currently included in the wired list
 
 ## Tool Execution Context

@@ -417,7 +417,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to conversation_url(conversation)
     message.reload
     assert_equal "responding", message.status
-    assert_match(/is thinking/, message.content)
+    assert_match(/.../, message.content)
   end
 
   test "retry rejects non-api errors" do

@@ -87,4 +87,4 @@ model = provider.llm_models.create!(account: @account, name: "GPT-4", identifier
 | AI integration tests | `test/ai/integration/` (includes mock pattern examples) |
 | System tests | `test/system/` (run on Cuprite/Ferrum; uses `CHROME_URL` when set, otherwise launches local headless Chrome) |
 
-Current verified run (`bin/rails test`): 1420 runs, 11 failures, 95.29% line coverage, 80.65% branch coverage.
+Use `bin/rails test` for full suite execution; status varies by branch state.

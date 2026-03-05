@@ -509,36 +509,21 @@ class MessageTest < ActiveSupport::TestCase
     assert_not_includes msg.pending_advisor_ids, advisor.id.to_s
   end
 
-  # Command Detection Tests
-  test "command? returns true for messages starting with slash" do
-    msg = @account.messages.new(content: "/invite @advisor")
-    assert msg.command?
-  end
-
-  test "command? returns false for regular messages" do
-    msg = @account.messages.new(content: "Hello everyone")
-    assert_not msg.command?
-  end
-
   # Mention Parsing Tests
-  test "mentions extracts @mentions from content" do
-    msg = @account.messages.new(content: "@advisor1 and @advisor-2 please help")
-    assert_equal [ "advisor1", "advisor-2" ], msg.mentions
+  test "extract_mentions extracts @mentions from content" do
+    assert_equal [ "advisor1", "advisor-2" ], Message.extract_mentions("@advisor1 and @advisor-2 please help")
   end
 
-  test "mentions does not parse underscore handles" do
-    msg = @account.messages.new(content: "@advisor_name and @advisor-name")
-    assert_equal [ "advisor-name" ], msg.mentions
+  test "extract_mentions does not parse underscore handles" do
+    assert_equal [ "advisor-name" ], Message.extract_mentions("@advisor_name and @advisor-name")
   end
 
-  test "mentions does not partially parse invalid handle tokens" do
-    msg = @account.messages.new(content: "@data_science and @data-science")
-    assert_equal [ "data-science" ], msg.mentions
+  test "extract_mentions does not partially parse invalid handle tokens" do
+    assert_equal [ "data-science" ], Message.extract_mentions("@data_science and @data-science")
   end
 
-  test "mentions returns empty array for content without mentions" do
-    msg = @account.messages.new(content: "Hello everyone")
-    assert_equal [], msg.mentions
+  test "extract_mentions returns empty array for content without mentions" do
+    assert_equal [], Message.extract_mentions("Hello everyone")
   end
 
   test "mentions_all? returns true for @all mention" do

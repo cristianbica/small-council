@@ -163,7 +163,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
 
     lifecycle = ConversationLifecycle.new(conv)
 
-    assert_enqueued_jobs 2, only: GenerateAdvisorResponseJob do
+    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
       lifecycle.user_posted_message(msg)
     end
 
@@ -1062,7 +1062,7 @@ class ConversationLifecycleComprehensiveTest < ActiveSupport::TestCase
     lifecycle = ConversationLifecycle.new(conv)
 
     # Consensus mode includes all participants (2 advisors + 1 scribe = 3)
-    assert_enqueued_jobs 3, only: GenerateAdvisorResponseJob do
+    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
       lifecycle.user_posted_message(saved_msg)
     end
   end

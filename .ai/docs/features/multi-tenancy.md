@@ -1,108 +1,36 @@
 # Multi-Tenancy
 
-Multi-tenancy with automatic query scoping via `acts_as_tenant` gem.
+Tenant isolation is enforced with `acts_as_tenant`. Runtime context is carried by `Current.account` and `Current.space`.
 
-## Architecture
+## Runtime flow
 
-**Account** is the root tenant entity:
-- All data belongs to an account
-- Users are scoped to accounts (email uniqueness per account)
-- `acts_as_tenant` gem enforces automatic query scoping
+In `ApplicationController`:
 
-## Integration with Authentication
-
-### Account Creation During Signup
-When a user signs up:
-1. Account is created (name + slug)
-2. First user is created as admin
-3. User automatically belongs to that account
-4. Session created, user logged in
-
-### User Scoping
 ```ruby
-class User < ApplicationRecord
-  belongs_to :account
-  validates :email, uniqueness: { scope: :account_id }
+def set_current_tenant
+  Current.account = Current.user&.account
+  ActsAsTenant.current_tenant = Current.account
+end
+
+def set_current_space
+  Current.space = Current.account.spaces.find_by(id: session[:space_id]) if session[:space_id]
+  Current.space ||= Current.account.spaces.first
+  Current.space ||= Current.account.spaces.create!(name: "General", description: "Default space for your councils")
 end
 ```
 
-Same email can exist across different accounts.
+## Scope model
 
-### Session Scoping
-Sessions belong to users, so access to account data is through:
-```
-Current.user.account
-```
+- `account_id` is present on tenant data tables and enforced by model-level `acts_as_tenant :account`
+- Controllers use `Current.account` and `Current.space` to bound lookups (for example `Current.space.conversations.find(params[:id])`)
+- Cross-space access in controllers returns `404` for missing scoped records
 
-## acts_as_tenant Configuration
+## Authentication tie-in
 
-### Automatic Tenant Setting
-Tenant is set in `ApplicationController`:
+- Sessions resolve `Current.session`
+- `Current.user` is delegated from session
+- Tenant is derived from `Current.user.account`
 
-```ruby
-class ApplicationController < ActionController::Base
-  set_current_tenant_through_filter
-  before_action :set_current_tenant
+## Note on user email uniqueness
 
-  private
-
-  def set_current_tenant
-    if Current.user
-      Current.account = Current.user.account
-      set_current_tenant(Current.account)
-    end
-  end
-end
-```
-
-### Current.account Attribute
-After sign-in, `Current.account` is available:
-
-```ruby
-# In controllers/views
-Current.account  # => Account record for the signed-in user
-```
-
-### Automatic Query Scoping
-All queries are automatically scoped to the current account:
-
-```sql
--- Queries include automatic WHERE clause
-SELECT * FROM users WHERE account_id = X
-SELECT * FROM conversations WHERE account_id = X
-```
-
-- Account ID required for all records (enforced by gem)
-- No manual scoping needed in application code
-
-## Data Model
-
-```
-Account
-├── Users
-├── Spaces
-├── Advisors
-├── Councils
-├── Conversations
-├── Messages
-├── UsageRecords
-├── Providers
-└── LlmModels
-```
-
-All tables except `accounts` have `account_id` column for scoping.
-
-## Query Scoping
-
-All queries automatically include `WHERE account_id = X`:
-
-```ruby
-# Controller (implicit scoping)
-@spaces = Current.account.spaces
-
-# Model level (automatic)
-Space.all  # => SELECT * FROM spaces WHERE account_id = 1
-
-# Bypass for admin/migration tasks
-ActsAsTenant.without_tenant { Space.count }
-```
+`User` currently validates globally unique email (`validates :email, uniqueness: true`) with a unique DB index on `users.email`.

@@ -58,13 +58,13 @@ Scribe membership is mandatory in every council and cannot be removed in the cou
 - `Advisor.has_many :messages, as: :sender` (polymorphic)
 
 ### Controllers
-- `AdvisorsController`: CRUD within council context
-- Creator authorization for edit/update/destroy
+- `AdvisorsController`: CRUD within space context (`/spaces/:space_id/advisors`)
+- Name normalization + validation enforce canonical handles
 - Automatic account scoping via acts_as_tenant
 
 ### Access Control
 - All account users can view all advisors
-- Only creator can modify/delete their advisors
+- Any authenticated account user with access to the space can create/update/delete advisors
 - All users can add existing advisors to councils
 
 ## Relationships
@@ -131,7 +131,6 @@ See [Tool System pattern](../patterns/tool-system.md) for implementation details
 - `belongs_to :space, optional: true` — Scribe belongs to a space; regular advisors can too
 - `short_description` field (encrypted at rest) used in list views and AI profile generation
 - `effective_llm_model`: returns advisor's model or falls back to account default
-- `llm_model_configured?` always returns true for Scribe (uses special handling)
 - System prompts can be overridden per council via `council_advisors.custom_prompt_override` (JSONB)
 - Deleting an advisor raises error if messages exist (`restrict_with_error`)
 - LLM model validated to belong to same account

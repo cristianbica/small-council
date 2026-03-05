@@ -36,10 +36,4 @@ class Provider < ApplicationRecord
   def organization_id=(value)
     self.credentials = (credentials || {}).merge("organization_id" => value)
   end
-
-  # Returns AI::Client class methods for provider-level operations
-  # (list_models, test_connection - chat needs a model)
-  def api
-    @api ||= AI::Client
-  end
 end

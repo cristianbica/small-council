@@ -48,7 +48,7 @@ Root tenant table for multi-tenancy.
 
 ### users
 Scoped to accounts.
-- `email` (scoped unique per account)
+- `email` (currently globally unique)
 - `password_digest` — For authentication
 - `role` — member or admin
 - `preferences` (jsonb) — User-specific settings
@@ -57,8 +57,7 @@ Scoped to accounts.
 LLM provider configuration per account.
 - `name` — Display name (e.g., "OpenAI Production")
 - `provider_type` — Enum: `openai`, `openrouter`
-- `api_key_ciphertext` — Encrypted API key
-- `organization_id` — OpenAI only, optional
+- `credentials` (jsonb, encrypted attributes accessor) — API key and optional org id
 - `enabled`
 
 ### llm_models
@@ -76,7 +75,7 @@ AI personas configured per account.
 - `global` — Whether available to all accounts
 - `is_scribe` — True for the Scribe (moderator) advisor
 - `metadata` (jsonb) — Version, tags, description
-- Belongs to `space` and `account`
+- Belongs to `account`; `space` is optional in model
 
 ### spaces
 Contextual containers (workspaces).
@@ -116,7 +115,7 @@ Individual messages in conversations with polymorphic sender.
 - `content` — Plain text
 - `content_blocks` (jsonb array) — Structured content (thinking, code, etc.)
 - `metadata` (jsonb) — Tokens, latency, model version
-- `status` — pending, complete, error
+- `status` — pending, responding, complete, error, cancelled
 
 ### usage_records
 Billing and observability for AI API calls.

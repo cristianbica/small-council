@@ -406,7 +406,7 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     assert_equal 1, conv.max_depth
   end
 
-  test "max_depth returns 2 for consensus roe" do
+  test "max_depth returns 5 for consensus roe" do
     conv = @account.conversations.create!(
       title: "Test",
       user: @user,
@@ -416,7 +416,7 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     )
     conv.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
-    assert_equal 2, conv.max_depth
+    assert_equal 5, conv.max_depth
   end
 
   test "max_depth returns 2 for brainstorming roe" do

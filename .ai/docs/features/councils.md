@@ -33,10 +33,10 @@ Councils are groups of AI advisors that collaborate on conversations.
 ### Routes
 ```
 /spaces/:space_id/councils     # index, new, create (nested under space)
-/councils/:id                  # show, edit, update, destroy
-/councils/:id/advisors/:advisor_id # remove_advisor (removes from council only)
-/councils/:council_id/advisors # new, create, edit, update, destroy
+/councils/:id                  # show, edit, update, destroy, edit_advisors, update_advisors
 /councils/:council_id/conversations # index, show, new, create
+/councils/generate_description # POST (collection)
+/councils/:id/generate_description # POST (member)
 ```
 
 ### Models
@@ -48,7 +48,7 @@ Councils are groups of AI advisors that collaborate on conversations.
 
 ### Controllers
 - `CouncilsController`: Standard CRUD within space context
-- `AdvisorsController`: Manage advisors within council context
+- Advisor membership management happens via `edit_advisors` / `update_advisors`
 - Creator tracking: `user_id` stored on council for authorization
 
 ### Access Control
@@ -58,7 +58,7 @@ Councils are groups of AI advisors that collaborate on conversations.
 
 ### UI Patterns
 - Council cards on space page
-- Advisor list rows with hover-only trash icon for creator removal action
+- Dedicated council advisor membership editor
 - "New Conversation" quick action on council cards
 - Reorder advisors via position field
 
@@ -95,7 +95,7 @@ end
 ## Implementation Notes
 
 - Council creation sets `user_id` to `Current.user.id`
-- Advisors can be added during council creation or later
+- Advisors are assigned/removed through `update_advisors`
 - Position field controls display order (lower = first)
 - Deleting a council destroys all associated conversations (dependent: :destroy)
 - Custom prompt overrides allow per-council advisor customization

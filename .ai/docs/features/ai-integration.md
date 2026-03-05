@@ -112,9 +112,14 @@ Advisors reference an `LlmModel` instead of hardcoded provider/model strings.
 `AI::ContentGenerator` (in `app/libs/ai/content_generator.rb`) handles high-level advisor interactions:
 
 ```ruby
-generator = AI::ContentGenerator.new(advisor: advisor, conversation: conversation, message: message)
-result = generator.generate_response
-# Returns: { content: "...", input_tokens: N, output_tokens: M, total_tokens: P, tool_calls: [], tool_results: [] }
+generator = AI::ContentGenerator.new
+result = generator.generate_advisor_response(
+  advisor: advisor,
+  conversation: conversation,
+  parent_message: message,
+  context: { account: conversation.account, message: message }
+)
+# Returns AI::Model::Response with content, usage, and tool call metadata
 ```
 
 ## Error Handling

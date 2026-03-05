@@ -37,7 +37,8 @@ After creating a provider, models are managed through the UI:
 ### Enable/Disable Models
 ```ruby
 # Via AI::ModelManager service
-AI::ModelManager.sync_models(provider)  # Syncs metadata from ruby_llm
+AI::ModelManager.enable_model(account, provider, model_id)
+AI::ModelManager.disable_model(account, provider, model_id)
 ```
 
 Models can also be toggled via the UI at `/providers/:id/models` (toggle switch per model).
@@ -51,10 +52,17 @@ Models can also be toggled via the UI at `/providers/:id/models` (toggle switch 
 
 ### Routes
 ```
-/providers              # index, new, create
-/providers/:id/edit     # edit, update
-/providers/:id          # destroy
-/providers/:id/models   # model management UI
+/providers                    # index, new, create
+/providers/:id/edit           # edit, update
+/providers/:id                # destroy
+/providers/wizard             # GET
+/providers/wizard_step        # POST
+/providers/wizard_back        # POST
+/providers/wizard_cancel      # POST
+/providers/test_connection    # POST
+/providers/models             # GET (collection)
+/providers/:id/models         # GET (member)
+/providers/toggle_model       # POST
 ```
 
 ### Models
@@ -81,17 +89,18 @@ AI::Client.list_models(provider: provider)
 Manages model lifecycle and sync:
 
 ```ruby
-# Sync all models for a provider from ruby_llm registry
-AI::ModelManager.sync_models(provider)
+# Enumerate available models for account/provider(s)
+AI::ModelManager.available_models(account)
 
-# Validates model_id, enables/creates record
-# Model info (capabilities, pricing, context window) stored in llm_models.metadata
+# Enable/disable a model
+AI::ModelManager.enable_model(account, provider, model_id)
+AI::ModelManager.disable_model(account, provider, model_id)
 ```
 
 ### Encrypted Credentials
 ```ruby
 class Provider < ApplicationRecord
-  encrypts :credentials, deterministic: false
+  encrypts :credentials
 end
 ```
 
@@ -140,4 +149,4 @@ UsageRecord.create!(
 - Models are soft-enabled/disabled (not deleted) for historical references
 - Each advisor references one LlmModel
 - Changing an advisor's model requires selecting from account's available models
-- Model metadata is synced from ruby_llm on enable
+- Model metadata/capabilities are populated from ruby_llm on enable

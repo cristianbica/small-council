@@ -48,16 +48,11 @@ class Memory < ApplicationRecord
     where("title ILIKE ? OR content ILIKE ?", "%#{query}%", "%#{query}%")
   }
 
-  # Type predicates
-  def summary? = memory_type == "summary"
-  def conversation_summary? = memory_type == "conversation_summary"
-  def conversation_notes? = memory_type == "conversation_notes"
-  def knowledge? = memory_type == "knowledge"
-
   # Status predicates
   def active? = status == "active"
   def archived? = status == "archived"
   def draft? = status == "draft"
+  def summary? = memory_type == "summary"
 
   # Archive this memory
   def archive!(updater = nil)

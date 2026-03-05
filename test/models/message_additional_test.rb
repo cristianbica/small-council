@@ -130,58 +130,27 @@ class MessageAdditionalTest < ActiveSupport::TestCase
   end
 
   # ============================================================================
-  # Command Detection Tests
-  # ============================================================================
-
-  test "command? returns true for various command formats" do
-    [ "/help", "/invite", "/finish", "/summarize", "/status"
-    ].each do |cmd|
-      msg = @conversation.messages.new(content: cmd)
-      assert msg.command?, "#{cmd} should be a command"
-    end
-  end
-
-  test "command? returns false for non-commands" do
-    [
-      "Hello", "Help me", "Regular text", "With/slash/in/middle"
-    ].each do |text|
-      msg = @conversation.messages.new(content: text)
-      assert_not msg.command?, "#{text} should not be a command"
-    end
-  end
-
-  test "command? handles nil content" do
-    msg = @conversation.messages.new(content: nil)
-    assert_not msg.command?
-  end
-
-  # ============================================================================
   # Mention Parsing Tests
   # ============================================================================
 
-  test "mentions extracts all @references" do
-    msg = @conversation.messages.new(content: "@john and @jane please help @everyone")
-    assert_equal [ "john", "jane", "everyone" ], msg.mentions
+  test "extract_mentions extracts all @references" do
+    assert_equal [ "john", "jane", "everyone" ], Message.extract_mentions("@john and @jane please help @everyone")
   end
 
-  test "mentions returns empty array for no mentions" do
-    msg = @conversation.messages.new(content: "Hello world")
-    assert_equal [], msg.mentions
+  test "extract_mentions returns empty array for no mentions" do
+    assert_equal [], Message.extract_mentions("Hello world")
   end
 
-  test "mentions handles multiple mentions of same user" do
-    msg = @conversation.messages.new(content: "@john @john @john")
-    assert_equal [ "john", "john", "john" ], msg.mentions
+  test "extract_mentions handles multiple mentions of same user" do
+    assert_equal [ "john", "john", "john" ], Message.extract_mentions("@john @john @john")
   end
 
-  test "mentions handles nil content" do
-    msg = @conversation.messages.new(content: nil)
-    assert_equal [], msg.mentions
+  test "extract_mentions handles nil content" do
+    assert_equal [], Message.extract_mentions(nil)
   end
 
-  test "mentions handles special characters in names" do
-    msg = @conversation.messages.new(content: "@user_name @user-name @UserName")
-    assert_equal [ "user-name", "UserName" ], msg.mentions
+  test "extract_mentions handles special characters in names" do
+    assert_equal [ "user-name", "UserName" ], Message.extract_mentions("@user_name @user-name @UserName")
   end
 
   # ============================================================================

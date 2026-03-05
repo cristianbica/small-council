@@ -520,7 +520,7 @@ class MemoriesControllerComprehensiveTest < ActionDispatch::IntegrationTest
     archived_memory = memories(:archived)
 
     post archive_space_memory_url(@space, archived_memory)
-    assert_redirected_to space_memory_url(@space, archived_memory)
+    assert_redirected_to space_memories_url(@space)
 
     archived_memory.reload
     assert archived_memory.archived?

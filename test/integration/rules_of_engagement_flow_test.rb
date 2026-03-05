@@ -73,7 +73,7 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
 
     placeholder = Message.last
     assert_equal @advisor, placeholder.sender
-    assert_equal "system", placeholder.role
+    assert_equal "advisor", placeholder.role
     assert_equal "pending", placeholder.status
     assert_match(/thinking/, placeholder.content)
   end

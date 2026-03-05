@@ -186,36 +186,6 @@ class AdvisorComprehensiveTest < ActiveSupport::TestCase
     assert_nil advisor.effective_llm_model
   end
 
-  test "llm_model_configured? returns true when model is set" do
-    advisor = @account.advisors.new(
-      llm_model: @llm_model
-    )
-    assert advisor.llm_model_configured?
-  end
-
-  test "llm_model_configured? returns true when effective model is available" do
-    @account.update!(default_llm_model: @llm_model)
-
-    advisor = @account.advisors.new
-    assert advisor.llm_model_configured?
-  end
-
-  test "llm_model_configured? returns false when no model available" do
-    @account.llm_models.destroy_all
-    @account.update!(default_llm_model: nil)
-
-    advisor = @account.advisors.new
-    assert_not advisor.llm_model_configured?
-  end
-
-  test "llm_model_configured? returns true for scribe regardless of model" do
-    @account.llm_models.destroy_all
-    @account.update!(default_llm_model: nil)
-
-    scribe = @account.advisors.new(is_scribe: true)
-    assert scribe.llm_model_configured?
-  end
-
   test "delegates provider to effective_llm_model" do
     advisor = @account.advisors.create!(
       name: "Test Advisor",

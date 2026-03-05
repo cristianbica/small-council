@@ -14,9 +14,6 @@ class ConversationParticipant < ApplicationRecord
   validates :role, presence: true
   validates :advisor_id, uniqueness: { scope: :conversation_id, message: "is already a participant in this conversation" }
 
-  # Default scope excludes scribe for regular advisor listings
-  scope :advisors_only, -> { where(role: "advisor") }
-  scope :scribes_only, -> { where(role: "scribe") }
   scope :ordered, -> { order(:position, :created_at) }
 
   before_validation :set_account_from_conversation, on: :create

@@ -17,7 +17,7 @@ Built with [authentication-zero](https://github.com/lazaronixon/authentication-z
 - Redirects to root/dashboard on success
 
 ### Sign Out
-- Path: `DELETE /session/:id` or destroy own session
+- Path: `DELETE /sessions/:id` (from session list)
 - Destroys session record, clears cookie
 
 ### Password Reset
@@ -39,8 +39,8 @@ Access via `Current`:
 Authentication automatically sets the tenant for multi-tenancy:
 
 ```ruby
-# After sign-in, the tenant is set via:
-set_current_tenant(Current.user.account)
+Current.account = Current.user&.account
+ActsAsTenant.current_tenant = Current.account
 ```
 
 All queries are automatically scoped to `Current.account`.

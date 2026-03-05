@@ -2,9 +2,9 @@
 
 ## What this app does
 
-Small Council is a multi-tenant AI advisor platform. Organizations create **Spaces** (contextual containers) that hold **Councils** (groups of AI advisors). Users start **Conversations** within councils, where advisors respond based on configurable **Rules of Engagement** (Open, Consensus, Brainstorming). A special **Scribe** advisor moderates each space and facilitates conversation flow.
+Small Council is a multi-tenant AI advisor workspace. Accounts own Spaces; Spaces contain Councils and Advisors; Conversations run in a Space as either `council_meeting` or `adhoc`.
 
-The platform tracks AI usage per account with encrypted provider credentials, supports multiple LLM providers (OpenAI, OpenRouter), and delivers real-time chat via Turbo Streams.
+Message orchestration is asynchronous: user messages create advisor placeholders, `GenerateAdvisorResponseJob` resolves them, and Turbo Streams update chat in real time. A per-space Scribe advisor is auto-created and can run management/memory tools.
 
 ## Tech stack
 
@@ -17,65 +17,42 @@ The platform tracks AI usage per account with encrypted provider credentials, su
 | Jobs | Solid Queue |
 | Cache | Solid Cache |
 | Cable | Solid Cable |
-| Tests | Minitest (currently 1420 runs; latest local run has 11 failures, 95.29% line / 80.65% branch coverage) |
-| Auth | authentication-zero |
-| Multi-tenancy | acts_as_tenant (active) |
-| AI APIs | ruby_llm |
+| Tests | Minitest |
+| Auth | authentication-zero generated flows |
+| Multi-tenancy | acts_as_tenant + `Current.account` / `Current.space` |
+| AI APIs | ruby_llm via `AI::Client` |
 
-## Business domains
+## Core domains
 
-- **Spaces**: Contextual containers (workspaces) holding councils; each has a Scribe advisor
-- **Councils**: Groups of AI advisors that collaborate
-- **Advisors**: AI personas with LLM configuration (via LlmModel)
-- **Conversations**: Chat sessions (`council_meeting` or `adhoc`) with advisor participation
-- **AI Integration**: Multi-provider LLM support via `AI::Client` (class methods)
-- **Usage Tracking**: Per-account billing and observability
-- **Memories**: Persistent knowledge entries with versioning
+- Spaces and councils for organizing advisors and conversations
+- Advisor personas with `LlmModel` assignment and canonical handle names
+- Conversation lifecycle with RoE (`open`, `consensus`, `brainstorming`)
+- Provider/model management for `openai` and `openrouter`
+- Memory system with version history and export
+- Model interaction recording per AI response (`ModelInteraction`)
 
 ## Repo landmarks
 
 ```
 app/
-├── controllers/    # Request handling
-├── models/         # 18 models: Account, User, Space, Council, Advisor,
-│                   #   CouncilAdvisor, Conversation, ConversationParticipant,
-│                   #   Message, Memory, MemoryVersion, Provider, LlmModel,
-│                   #   UsageRecord, ModelInteraction, Session, Current, ApplicationRecord
-├── views/          # ERB templates with DaisyUI components
-├── services/       # ConversationLifecycle, ProviderConnectionTester, InlineDiff, CommandParser
-├── libs/ai/        # AI::Client (instance), AI::ContentGenerator, AI::ModelManager,
-│                   #   AI::ContextBuilders, AI::Tools (22 classes; 20 wired), AI::Model (Response/TokenUsage)
-├── jobs/           # GenerateAdvisorResponseJob, GenerateConversationTitleJob (Solid Queue)
-└── assets/         # Tailwind CSS v4 + DaisyUI
+├── controllers/    # Request handling + authorization/scoping
+├── models/         # Tenant-scoped domain models + CurrentAttributes
+├── services/       # ConversationLifecycle, CommandParser, ProviderConnectionTester, InlineDiff
+├── libs/ai/        # Client, content generator, model manager, tools, adapters, interaction recorder
+├── jobs/           # GenerateAdvisorResponseJob, GenerateConversationTitleJob
+└── views/          # ERB + Turbo Streams + DaisyUI classes
 
-test/               # ~1396 runs: models, controllers, integration, jobs, ai/unit, ai/integration
-config/
-├── routes.rb       # All app routes
-└── initializers/   # App configuration
-.ai/docs/           # This documentation
+config/routes.rb    # Auth, spaces/councils/advisors/memories, conversations/messages, providers
+test/               # models, controllers, integration, jobs, ai unit/integration, system
+.ai/docs/           # Feature + pattern documentation
 ```
 
-## Verified commands
+## Common commands
 
 ```bash
-# Development
-bin/dev                    # Starts web + CSS watch (fails if stale tmp/pids/server.pid exists)
-bin/rails server          # Rails only
-
-# Testing
-bin/rails test            # Full suite (currently 11 failures on latest local run)
-
-# Lint
-bin/rubocop               # 3 offenses currently
-
-# Build
-bin/rails assets:precompile  # Succeeds; emits Tailwind @property warning
-
-# Database
-bin/rails db:migrate
-bin/rails db:reset        # + demo user (demo@example.com / password123)
+bin/dev
+bin/rails server
+bin/rails test
+bin/rubocop
+bin/rails assets:precompile
 ```
-
-Rules:
-- Keep this file to a few paragraphs + bullet lists.
-- Prefer concrete commands/paths over vague descriptions.

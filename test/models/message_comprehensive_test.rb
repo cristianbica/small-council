@@ -598,76 +598,43 @@ class MessageComprehensiveTest < ActiveSupport::TestCase
   end
 
   # ============================================================================
-  # COMMAND METHODS
-  # ============================================================================
-
-  test "command? returns true for command messages" do
-    msg = @account.messages.new(content: "/invite @advisor")
-    assert msg.command?
-  end
-
-  test "command? returns false for regular messages" do
-    msg = @account.messages.new(content: "Hello everyone")
-    assert_not msg.command?
-  end
-
-  test "command? returns false for nil content" do
-    msg = @account.messages.new(content: nil)
-    assert_not msg.command?
-  end
-
-  test "command? returns false for empty content" do
-    msg = @account.messages.new(content: "")
-    assert_not msg.command?
-  end
-
-  # ============================================================================
   # MENTION METHODS
   # ============================================================================
 
-  test "mentions extracts single mention" do
-    msg = @account.messages.new(content: "@advisor help me")
-    assert_equal [ "advisor" ], msg.mentions
+  test "extract_mentions extracts single mention" do
+    assert_equal [ "advisor" ], Message.extract_mentions("@advisor help me")
   end
 
-  test "mentions extracts multiple mentions" do
-    msg = @account.messages.new(content: "@advisor1 and @advisor2 please help")
-    assert_equal [ "advisor1", "advisor2" ], msg.mentions
+  test "extract_mentions extracts multiple mentions" do
+    assert_equal [ "advisor1", "advisor2" ], Message.extract_mentions("@advisor1 and @advisor2 please help")
   end
 
-  test "mentions returns empty array for no mentions" do
-    msg = @account.messages.new(content: "Hello everyone")
-    assert_equal [], msg.mentions
+  test "extract_mentions returns empty array for no mentions" do
+    assert_equal [], Message.extract_mentions("Hello everyone")
   end
 
-  test "mentions returns empty array for nil content" do
-    msg = @account.messages.new(content: nil)
-    assert_equal [], msg.mentions
+  test "extract_mentions returns empty array for nil content" do
+    assert_equal [], Message.extract_mentions(nil)
   end
 
-  test "mentions returns empty array for empty content" do
-    msg = @account.messages.new(content: "")
-    assert_equal [], msg.mentions
+  test "extract_mentions returns empty array for empty content" do
+    assert_equal [], Message.extract_mentions("")
   end
 
-  test "mentions handles mentions with dashes" do
-    msg = @account.messages.new(content: "@advisor-name help")
-    assert_equal [ "advisor-name" ], msg.mentions
+  test "extract_mentions handles mentions with dashes" do
+    assert_equal [ "advisor-name" ], Message.extract_mentions("@advisor-name help")
   end
 
-  test "mentions handles mentions with underscores" do
-    msg = @account.messages.new(content: "@advisor_name help")
-    assert_equal [], msg.mentions
+  test "extract_mentions handles mentions with underscores" do
+    assert_equal [], Message.extract_mentions("@advisor_name help")
   end
 
-  test "mentions handles mentions with numbers" do
-    msg = @account.messages.new(content: "@advisor123 help")
-    assert_equal [ "advisor123" ], msg.mentions
+  test "extract_mentions handles mentions with numbers" do
+    assert_equal [ "advisor123" ], Message.extract_mentions("@advisor123 help")
   end
 
-  test "mentions is case-insensitive" do
-    msg = @account.messages.new(content: "@Advisor @ADVISOR @advisor")
-    assert_equal [ "Advisor", "ADVISOR", "advisor" ], msg.mentions
+  test "extract_mentions is case-insensitive" do
+    assert_equal [ "Advisor", "ADVISOR", "advisor" ], Message.extract_mentions("@Advisor @ADVISOR @advisor")
   end
 
   test "mentions_all? returns true for @all" do

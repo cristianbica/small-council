@@ -48,13 +48,6 @@ class LLMModelTest < ActiveSupport::TestCase
     assert model.valid?
   end
 
-  test "soft delete sets deleted_at" do
-    model = @provider.llm_models.create!(account: @account, name: "Old Model", identifier: "old")
-    model.soft_delete
-    assert model.deleted?
-    assert model.deleted_at.present?
-  end
-
   test "scope enabled excludes deprecated" do
     enabled = @provider.llm_models.create!(account: @account, name: "Active", identifier: "active")
     deprecated = @provider.llm_models.create!(account: @account, name: "Deprecated", identifier: "old", deprecated: true)
@@ -62,11 +55,6 @@ class LLMModelTest < ActiveSupport::TestCase
     enabled_models = LLMModel.enabled
     assert_includes enabled_models, enabled
     assert_not_includes enabled_models, deprecated
-  end
-
-  test "full_identifier returns provider/type format" do
-    model = @provider.llm_models.create!(account: @account, name: "GPT-4", identifier: "gpt-4")
-    assert_equal "openai/gpt-4", model.full_identifier
   end
 
   test "display_name includes provider name" do
@@ -97,59 +85,6 @@ class LLMModelTest < ActiveSupport::TestCase
     model.destroy
     advisor.reload
     assert_nil advisor.llm_model_id
-  end
-
-  # Capability tests
-  test "supports_chat? returns true when capabilities chat is true" do
-    model = @provider.llm_models.create!(
-      account: @account, name: "Chat Model", identifier: "chat-model",
-      capabilities: { "chat" => true }
-    )
-    assert model.supports_chat?
-  end
-
-  # NOTE: supports_chat? has a bug - falls through to undefined `type` method when both
-  # capabilities["chat"] and metadata["capabilities"]["chat"] are falsy.
-  # See production bug report. Testing only the truthy path here.
-  test "supports_chat? returns true via metadata fallback when capabilities is absent" do
-    model = @provider.llm_models.create!(
-      account: @account, name: "No Cap Model", identifier: "no-cap-model",
-      capabilities: {},
-      metadata: { "capabilities" => { "chat" => true } }
-    )
-    assert model.supports_chat?
-  end
-
-  test "supports_vision? returns true when capabilities vision is true" do
-    model = @provider.llm_models.create!(
-      account: @account, name: "Vision Model", identifier: "vision-model",
-      capabilities: { "vision" => true }
-    )
-    assert model.supports_vision?
-  end
-
-  test "supports_json_mode? returns true when capabilities json_mode is true" do
-    model = @provider.llm_models.create!(
-      account: @account, name: "JSON Model", identifier: "json-model",
-      capabilities: { "json_mode" => true }
-    )
-    assert model.supports_json_mode?
-  end
-
-  test "supports_functions? returns true when capabilities functions is true" do
-    model = @provider.llm_models.create!(
-      account: @account, name: "Func Model", identifier: "func-model",
-      capabilities: { "functions" => true }
-    )
-    assert model.supports_functions?
-  end
-
-  test "supports_streaming? returns true when capabilities streaming is true" do
-    model = @provider.llm_models.create!(
-      account: @account, name: "Stream Model", identifier: "stream-model",
-      capabilities: { "streaming" => true }
-    )
-    assert model.supports_streaming?
   end
 
   test "input_price returns 0.0 when metadata is empty" do

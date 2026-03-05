@@ -51,7 +51,7 @@ t.references :updated_by, polymorphic: true
 
 3. **Tool System** (`app/libs/ai/tools/`)
    - Tools inherit from `AI::Tools::BaseTool`
-   - `AI::Tools::Internal::QueryMemoriesTool` - Search memories (all agents)
+  - `AI::Tools::Internal::QueryMemoriesTool` - Search memories (Scribe, currently)
    - `AI::Tools::Internal::CreateMemoryTool` - Create memory entries (Scribe only)
    - `AI::Tools::Internal::ReadMemoryTool` - Read specific memory
    - `AI::Tools::Internal::UpdateMemoryTool` - Edit memory entry
@@ -60,9 +60,9 @@ t.references :updated_by, polymorphic: true
 4. **Available Tools**
   - `create_memory` - Add new memory entry (Scribe)
   - `update_memory` - Edit existing memory (Scribe)
-  - `list_memories` - List memories in current space
-  - `read_memory` - Read specific memory
-  - `query_memories` - Search memories (all advisors)
+  - `list_memories` - List memories in current space (Scribe)
+  - `read_memory` - Read specific memory (Scribe)
+  - `query_memories` - Search memories (Scribe)
 
 ## Usage
 

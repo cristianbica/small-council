@@ -76,11 +76,6 @@ class Message < ApplicationRecord
     in_reply_to_id.nil?
   end
 
-  # Check if this message is a command
-  def command?
-    content&.start_with?("/")
-  end
-
   # Get thread messages (this message + all replies recursively)
   def thread_messages
     result = [ self ]
@@ -88,11 +83,6 @@ class Message < ApplicationRecord
       result += reply.thread_messages
     end
     result
-  end
-
-  # Parse @mentions from content
-  def mentions
-    self.class.extract_mentions(content)
   end
 
   # Check if content mentions @all or @everyone

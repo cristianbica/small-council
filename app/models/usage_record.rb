@@ -14,9 +14,4 @@ class UsageRecord < ApplicationRecord
   def total_tokens
     input_tokens + output_tokens
   end
-
-  # Helper to format cost as dollars
-  def cost_dollars
-    cost_cents / 100.0
-  end
 end

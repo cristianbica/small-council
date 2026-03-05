@@ -58,19 +58,6 @@ class ProviderTest < ActiveSupport::TestCase
     assert_equal "secret-key-123", provider.api_key
   end
 
-  test "api_key setter updates credentials" do
-    provider = @account.providers.new(name: "Test", provider_type: "openai")
-    provider.api_key = "my-secret-key"
-    assert_equal "my-secret-key", provider.api_key
-    assert_equal "my-secret-key", provider.credentials["api_key"]
-  end
-
-  test "organization_id getter and setter" do
-    provider = @account.providers.new(name: "Test", provider_type: "openai")
-    provider.organization_id = "org-123"
-    assert_equal "org-123", provider.organization_id
-  end
-
   test "scopes enabled providers" do
     enabled = @account.providers.create!(name: "Enabled", provider_type: "openai", api_key: "key", enabled: true)
     disabled = @account.providers.create!(name: "Disabled", provider_type: "openai", api_key: "key", enabled: false)
@@ -116,19 +103,5 @@ class ProviderTest < ActiveSupport::TestCase
     provider = @account.providers.new(name: "No Creds", provider_type: "openai")
     # credentials is nil by default
     assert_nil provider.api_key
-  end
-
-  test "api_key= initializes credentials when nil" do
-    provider = @account.providers.new(name: "No Creds", provider_type: "openai")
-    provider.api_key = "new-key"
-    assert_equal "new-key", provider.api_key
-  end
-
-  test "api_key= updates existing credentials preserving other keys" do
-    provider = @account.providers.new(name: "Has Creds", provider_type: "openai")
-    provider.organization_id = "org-123"  # sets credentials with org key
-    provider.api_key = "updated-key"      # updates credentials that already exist
-    assert_equal "updated-key", provider.api_key
-    assert_equal "org-123", provider.organization_id
   end
 end

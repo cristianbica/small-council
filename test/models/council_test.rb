@@ -106,7 +106,12 @@ class CouncilTest < ActiveSupport::TestCase
       space: @space
     )
     council.council_advisors.create!(advisor: advisor, position: 0)
-    conversation = council.create_conversation!(user: @user, title: "Test Conversation")
+    @account.conversations.create!(
+      council: council,
+      user: @user,
+      title: "Test Conversation",
+      space: @space
+    )
     assert_difference("Conversation.count", -1) do
       council.destroy
     end
@@ -191,65 +196,5 @@ class CouncilTest < ActiveSupport::TestCase
     council.ensure_scribe_assigned
 
     assert_includes council.advisors.reload, scribe
-  end
-
-  # create_conversation! tests
-  test "create_conversation! creates message when initial_message present" do
-    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    conversation = council.create_conversation!(
-      user: @user, title: "Chat", initial_message: "Hello advisors"
-    )
-    assert_equal 1, conversation.messages.count
-    assert_equal "Hello advisors", conversation.messages.first.content
-  end
-
-  test "create_conversation! does not create message when initial_message blank" do
-    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    conversation = council.create_conversation!(user: @user, title: "Silent Chat")
-    assert_equal 0, conversation.messages.count
-  end
-
-  test "create_conversation! sets participant role to scribe for scribe advisor" do
-    scribe = @account.advisors.create!(
-      name: "Scribe", system_prompt: "Scribe prompt",
-      llm_model: @llm_model, space: @space, is_scribe: true
-    )
-    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    council.council_advisors.create!(advisor: scribe, position: 0)
-
-    conversation = council.create_conversation!(user: @user, title: "Meeting")
-    participant = conversation.conversation_participants.find_by(advisor: scribe)
-    assert_equal "scribe", participant.role
-  end
-
-  test "create_conversation! sets participant role to advisor for non-scribe advisors" do
-    regular = @account.advisors.create!(
-      name: "Expert", system_prompt: "Expert prompt",
-      llm_model: @llm_model, space: @space, is_scribe: false
-    )
-    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-    council.council_advisors.create!(advisor: regular, position: 0)
-
-    conversation = council.create_conversation!(user: @user, title: "Meeting")
-    participant = conversation.conversation_participants.find_by(advisor: regular)
-    assert_equal "advisor", participant.role
-  end
-
-  # available_advisors test
-  test "available_advisors returns non-scribe advisors from space" do
-    @space.advisors.where(is_scribe: true).destroy_all
-    scribe = @account.advisors.create!(
-      name: "Scribe", system_prompt: "Scribe",
-      llm_model: @llm_model, space: @space, is_scribe: true
-    )
-    regular = @account.advisors.create!(
-      name: "Regular", system_prompt: "Regular",
-      llm_model: @llm_model, space: @space, is_scribe: false
-    )
-    council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
-
-    result = council.available_advisors
-    assert_includes result, regular
-    assert_not_includes result, scribe
   end
 end

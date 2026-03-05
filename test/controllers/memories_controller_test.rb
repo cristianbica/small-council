@@ -107,7 +107,7 @@ class MemoriesControllerTest < ActionDispatch::IntegrationTest
   test "should archive memory" do
     post archive_space_memory_url(@space, @memory)
 
-    assert_redirected_to space_memory_url(@space, @memory)
+    assert_redirected_to space_memories_url(@space)
     @memory.reload
     assert @memory.archived?
   end

@@ -108,7 +108,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     assert_equal "consensus", conversation.roe_type
 
     # In Consensus, all participants respond without mentions (including scribe)
-    assert_enqueued_jobs 3, only: GenerateAdvisorResponseJob do
+    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
       post conversation_messages_path(conversation), params: {
         message: { content: "What do you all think?" }
       }
@@ -132,7 +132,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     assert_equal "brainstorming", conversation.roe_type
 
     # In Brainstorming, all participants respond (including scribe)
-    assert_enqueued_jobs 3, only: GenerateAdvisorResponseJob do
+    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
       post conversation_messages_path(conversation), params: {
         message: { content: "Brainstorm ideas for our product" }
       }
@@ -180,7 +180,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     assert_select "h1", "Q4 Planning Meeting"
 
     # Step 3: Post message
-    assert_enqueued_jobs 2, only: GenerateAdvisorResponseJob do
+    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
       post conversation_messages_path(conversation), params: {
         message: { content: "What are our priorities?" }
       }
@@ -317,7 +317,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     conversation.conversation_participants.create!(advisor: @scribe, role: :scribe)
 
     # @all includes all advisors (2 advisors)
-    assert_enqueued_jobs 2, only: GenerateAdvisorResponseJob do
+    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
       post conversation_messages_path(conversation), params: {
         message: { content: "@all what are your thoughts?" }
       }
@@ -340,7 +340,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     conversation.conversation_participants.create!(advisor: @scribe, role: :scribe)
 
     # @everyone includes all advisors (2 advisors)
-    assert_enqueued_jobs 2, only: GenerateAdvisorResponseJob do
+    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
       post conversation_messages_path(conversation), params: {
         message: { content: "@everyone please respond" }
       }

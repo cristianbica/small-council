@@ -45,12 +45,6 @@ class Advisor < ApplicationRecord
     llm_model || account.default_llm_model || account.llm_models.enabled.first
   end
 
-  # Check if this advisor has a valid LLM model (either specific or default)
-  def llm_model_configured?
-    return true if is_scribe?  # Scribe uses special handling
-    effective_llm_model.present?
-  end
-
   # Delegation to effective_llm_model for convenience
   delegate :provider, :provider_type, to: :effective_llm_model, allow_nil: true
 

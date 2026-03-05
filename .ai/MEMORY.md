@@ -2,23 +2,13 @@
 
 Max ~200 lines. Keep durable, high-signal facts only.
 
-## Overlays
-- `prompt-engineer`: Specializes agents in writing AI agent prompts (`.ai/overlays/prompt-engineer.md`)
-  - Includes advanced techniques: chain-of-thought, few-shot prompting, role-based prompting
-  - Integrates with `system.md` and `value.md` for comprehensive prompt design
-
-## Commands (verified 2026-03-02)
+## Commands (verified 2026-03-05)
 - Install check: `bundle check` (dependencies satisfied)
-- Build: `bin/rails assets:precompile` (succeeds; Tailwind emits `@property` warning)
-- Test: `bin/rails test` (runs 1420 tests; currently 11 failures)
-- Lint: `bin/rubocop` (currently 3 offenses)
+- Targeted test: `bin/rails test test/models/conversation_test.rb` (32 runs, 0 failures)
+- Dev startup smoke: `timeout 12s bin/dev` (web + css booted; timeout sends SIGTERM)
 - Run (Rails only): `bin/rails server`
-- Dev server: `bin/dev` (foreman web + css watch; fails if stale `tmp/pids/server.pid` exists)
-- DB migrate: `bin/rails db:migrate`
-- DB reset: `bin/rails db:reset`
-- DB seed: `bin/rails db:seed` (demo user)
-- CSS build: `bin/rails tailwindcss:build`
-- CSS watch: `bin/rails tailwindcss:watch`
+- Full suite entrypoint: `bin/rails test`
+- Lint entrypoint: `bin/rubocop`
 
 ## URLs (development)
 - Sign in: http://localhost:3000/sign_in
@@ -28,32 +18,31 @@ Max ~200 lines. Keep durable, high-signal facts only.
 ## Demo credentials
 - Email: `demo@example.com`
 - Password: `password123`
-- Created by: `bin/rails db:seed`
+- Seed source: `bin/rails db:seed`
 
 ## Architecture + invariants
-- Multi-tenancy is enforced with `acts_as_tenant`; app data is account-scoped.
-- `Conversation` belongs to `space` (required), and `Current.space` is used for access scoping in controllers/jobs.
-- Conversation statuses are `active`, `resolved`, `archived`.
-- Conversation RoE types are `open`, `consensus`, `brainstorming`.
-- Advisor names are canonicalized to lowercase dash handles (for example, `Strategic Advisor` -> `strategic-advisor`) and mentions/invites should use this handle form.
-- Messages use polymorphic sender (`User` or `Advisor`) and `pending_advisor_ids` JSONB for response tracking.
-- Sensitive fields are encrypted at rest (e.g., provider credentials, conversation memory fields, advisor prompts).
+- Multi-tenancy is enforced with `acts_as_tenant`; `ApplicationController` sets `Current.account` and `ActsAsTenant.current_tenant`.
+- `Current.space` is restored from `session[:space_id]`, falls back to first account space, and auto-creates `General` for legacy accounts.
+- `Conversation` requires `space`; statuses are `active|resolved|archived`; types are `council_meeting|adhoc`; RoE is `open|consensus|brainstorming`.
+- Advisor names are canonical lowercase dash handles; mentions/invites must use this handle format.
+- Messages use polymorphic sender (`User`/`Advisor`) and track turn state with `pending_advisor_ids` + status (`pending|responding|complete|error|cancelled`).
+- Sensitive fields are encrypted at rest (`Provider.credentials`, `Advisor.system_prompt/short_description`, `Conversation.memory/draft_memory`, `Message.content/prompt_text`, `Memory.content`).
 
 ## AI stack
-- `AI::Client` is instance-based for chat, with class methods for provider operations (`test_connection`, `list_models`).
-- Supported provider types: `openai`, `openrouter`.
-- Usage tracking is automatic in `AI::Client#track_usage` via `UsageRecord`.
-- Model interactions are captured via RubyLLM event handlers in `AI::Client#register_interaction_handler`.
-- Tool framework uses `AI::Tools::BaseTool` under `app/libs/ai/tools/` with adapter `AI::Adapters::RubyLLMToolAdapter`.
-- Tool classes present: 22 (`internal`: 19, `external`: 1, `conversations`: 1, `base_tool`: 1).
-- Current wiring in `AI::ContentGenerator#advisor_tools`: 8 read-only tools for all advisors + 12 additional tools for Scribe; `AskAdvisorTool` exists but is not currently wired.
+- `AI::Client` is instance-based for chat/complete, with class methods for provider operations (`test_connection`, `list_models`).
+- Supported providers: `openai`, `openrouter`.
+- Usage is tracked automatically in `AI::Client#track_usage` via `UsageRecord`.
+- Model interactions are recorded via RubyLLM event handlers wired in `AI::Client#register_interaction_handler`.
+- Tool framework is `AI::Tools::BaseTool` + `AI::Adapters::RubyLLMToolAdapter`.
+- Tool inventory: 22 files total (`internal`: 19, `external`: 1, `conversations`: 1, `base_tool`: 1).
+- Current wiring in `AI::ContentGenerator#advisor_tools`: non-scribe advisors get no tools; Scribe gets 20 tools; `AskAdvisorTool` exists but is not wired.
 
 ## Testing conventions
 - Use `set_tenant(account)` in model/unit tests for tenant-scoped models.
-- For request/integration tests, set host explicitly (for APP_HOST/tenant host behavior).
+- For request/integration tests, set host explicitly when host behavior matters.
 - Stub current user via `Current.session = stub(user: user)` (not `Current.user = ...`).
-- For AI client tests, stub `AI::Client.new` and then stub instance `#chat`.
-- System tests use Cuprite/Ferrum via `ApplicationSystemTestCase`; set `CHROME_URL` to target a remote Chrome endpoint, or omit it for local headless fallback.
+- For AI client tests, stub `AI::Client.new` then stub instance `#chat`.
+- System tests use Cuprite/Ferrum in `ApplicationSystemTestCase`; optional `CHROME_URL` for remote browser.
 
 ## Repo layout
 - Main app code: `app/`
