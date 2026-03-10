@@ -147,67 +147,6 @@ class MemoryTest < ActiveSupport::TestCase
     assert preview.end_with?("...")
   end
 
-  test "primary_summary_for should return the most recent active summary" do
-    # Create two summaries
-    old_summary = @space.memories.create!(
-      account: @account,
-      title: "Old Summary",
-      content: "Old content",
-      memory_type: "summary",
-      status: "active",
-      updated_at: 1.day.ago
-    )
-
-    new_summary = @space.memories.create!(
-      account: @account,
-      title: "New Summary",
-      content: "New content",
-      memory_type: "summary",
-      status: "active",
-      updated_at: Time.current
-    )
-
-    result = Memory.primary_summary_for(@space)
-    assert_equal new_summary, result, "Should return the most recently updated summary"
-  end
-
-  test "primary_summary_for should not return archived summaries" do
-    # Archive the existing summary fixture
-    summary = memories(:summary)
-    summary.archive!(@user)
-
-    result = Memory.primary_summary_for(@space)
-    assert_nil result, "Should not return archived summaries"
-  end
-
-  test "create_conversation_summary! should create linked memory" do
-    # Create a council and conversation directly
-    council = @space.councils.create!(
-      account: @account,
-      user: @user,
-      name: "Test Council",
-      description: "Test council"
-    )
-    conversation = council.conversations.create!(
-      account: @account,
-      user: @user,
-      title: "Test Conversation",
-      space: @space
-    )
-
-    memory = Memory.create_conversation_summary!(
-      conversation: conversation,
-      title: "Discussion Summary",
-      content: "Summary content",
-      creator: @user
-    )
-
-    assert memory.persisted?
-    assert_equal "conversation_summary", memory.memory_type
-    assert_equal conversation, memory.source
-    assert_equal conversation.space, memory.space
-  end
-
   test "search scope should find by title" do
     memory = memories(:one)
     memory.update!(title: "Unique Searchable Title XYZ123")

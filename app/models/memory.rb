@@ -36,7 +36,6 @@ class Memory < ApplicationRecord
   scope :draft, -> { where(status: "draft") }
   scope :by_type, ->(type) { type.present? ? where(memory_type: type) : all }
   scope :summary_type, -> { where(memory_type: "summary") }
-  scope :conversation_summaries, -> { where(memory_type: "conversation_summary") }
   scope :conversation_notes, -> { where(memory_type: "conversation_notes") }
   scope :knowledge, -> { where(memory_type: "knowledge") }
   scope :ordered, -> { order(position: :asc, created_at: :desc) }
@@ -102,32 +101,6 @@ class Memory < ApplicationRecord
     else
       created_by.to_s
     end
-  end
-
-  # Class method to get the primary summary for a space
-  # Only the summary memory type is auto-fed to AI agents
-  def self.primary_summary_for(space)
-    return nil unless space.present?
-    space.memories
-         .active
-         .summary_type
-         .recent
-         .first
-  end
-
-  # Class method to create a conversation summary memory
-  def self.create_conversation_summary!(conversation:, title:, content:, creator: nil)
-    create!(
-      account: conversation.account,
-      space: conversation.space,
-      source: conversation,
-      title: title,
-      content: content,
-      memory_type: "conversation_summary",
-      status: "active",
-      created_by: creator,
-      updated_by: creator
-    )
   end
 
   # Versioning methods

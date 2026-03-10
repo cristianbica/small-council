@@ -44,7 +44,7 @@ class ConversationsController < ApplicationController
     @messages = @conversation.messages.visible_in_chat.chronological.includes(:sender)
     @new_message = Message.new
     @available_advisors = available_advisors_for_invite
-    @inner_layout = :fullscreen #if @conversation&.adhoc?
+    @inner_layout = :fullscreen
   end
 
   def new
