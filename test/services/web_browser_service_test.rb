@@ -39,6 +39,11 @@ class WebBrowserServiceTest < ActiveSupport::TestCase
     assert_nil result
   end
 
+  test "normalize_url only preserves explicit http or https schemes" do
+    result = @service.send(:normalize_url, "ftp://example.com/file")
+    assert_equal "https://ftp//example.com/file", result
+  end
+
   test "normalize_url handles URLs with paths" do
     result = @service.send(:normalize_url, "example.com/path/to/page")
     assert_equal "https://example.com/path/to/page", result
@@ -197,6 +202,15 @@ class WebBrowserServiceTest < ActiveSupport::TestCase
 
     refute_includes result[:content], "var x"
     assert_includes result[:content], "Clean content"
+  end
+
+  test "extract_with_regex truncates very long content" do
+    html = "<html><body>#{'x' * 70000}</body></html>"
+
+    result = @service.send(:extract_with_regex, html, "https://example.com")
+
+    assert_includes result[:content], "[Content truncated...]"
+    assert result[:content].length <= WebBrowserService::MAX_CONTENT_LENGTH + 50
   end
 
   # ============================================================================

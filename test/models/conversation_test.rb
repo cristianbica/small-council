@@ -269,4 +269,84 @@ class ConversationTest < ActiveSupport::TestCase
     conversation.update_column(:memory, "not valid json {{{")
     assert_equal({}, conversation.memory_data)
   end
+
+  test "assign_space_from_council sets space when missing and council exists" do
+    conversation = @account.conversations.new(council: @council, user: @user, title: "From council")
+
+    conversation.valid?
+
+    assert_equal @space, conversation.space
+  end
+
+  test "assign_space_from_council does not overwrite explicit space" do
+    other_space = @account.spaces.create!(name: "Other")
+    conversation = @account.conversations.new(council: @council, user: @user, title: "Keep", space: other_space)
+
+    conversation.valid?
+
+    assert_equal other_space, conversation.space
+  end
+
+  test "memory_data returns hash memory as-is" do
+    conversation = create_conversation_with_advisor
+    payload = { "summary" => "x" }
+    conversation.stubs(:memory).returns(payload)
+
+    assert_equal payload, conversation.memory_data
+  end
+
+  test "scribe initiated helpers increment and reset" do
+    conversation = create_conversation_with_advisor
+
+    assert_equal 0, conversation.scribe_initiated_count
+
+    conversation.increment_scribe_initiated_count!
+    assert_equal 1, conversation.reload.scribe_initiated_count
+
+    conversation.reset_scribe_initiated_count!
+    assert_equal 0, conversation.reload.scribe_initiated_count
+  end
+
+  test "deletable_by? returns false for nil user" do
+    conversation = create_conversation_with_advisor
+
+    assert_equal false, conversation.deletable_by?(nil)
+  end
+
+  test "add_advisor returns false when advisor already included" do
+    conversation = create_conversation_with_advisor
+
+    assert_equal false, conversation.add_advisor(@advisor)
+  end
+
+  test "add_advisor returns false for scribe advisor" do
+    conversation = create_conversation_with_advisor
+    scribe = @account.advisors.create!(
+      name: "scribe-only",
+      system_prompt: "scribe",
+      space: @space,
+      llm_model: @advisor.llm_model,
+      is_scribe: true
+    )
+
+    assert_equal false, conversation.add_advisor(scribe)
+  end
+
+  test "ensure_scribe_present! no-ops when scribe cannot be resolved" do
+    conversation = create_conversation_with_advisor
+    conversation.stubs(:has_scribe?).returns(false)
+    conversation.space.stubs(:scribe_advisor).returns(nil)
+
+    assert_no_difference "ConversationParticipant.count" do
+      conversation.ensure_scribe_present!
+    end
+  end
+
+  test "adhoc_conversations scope returns only adhoc rows" do
+    adhoc = @account.conversations.create!(title: "Adhoc", user: @user, conversation_type: :adhoc, space: @space)
+    council = @account.conversations.create!(title: "Council", user: @user, council: @council, conversation_type: :council_meeting, space: @space)
+
+    assert_includes Conversation.adhoc_conversations, adhoc
+    assert_not_includes Conversation.adhoc_conversations, council
+  end
 end

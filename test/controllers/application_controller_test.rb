@@ -96,4 +96,45 @@ class ApplicationControllerTest < ActionDispatch::IntegrationTest
     get spaces_url
     assert_response :success
   end
+
+  test "falls back to first space when session space_id is stale" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    space = @account.spaces.first
+    get space_url(space)
+    assert_equal space.id, session[:space_id]
+
+    session[:space_id] = -1
+    get spaces_url
+
+    assert_response :success
+  end
+
+  test "supports page modal turbo frame header" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    get dashboard_url, headers: { "Turbo-Frame" => "page-modal" }
+
+    assert_response :redirect
+  end
+
+  test "non page-modal turbo frame header follows normal variant" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    get dashboard_url, headers: { "Turbo-Frame" => "sidebar" }
+
+    assert_response :redirect
+  end
+
+  test "unauthenticated request keeps tenant unset" do
+    ActsAsTenant.current_tenant = @account
+
+    get dashboard_url
+
+    assert_redirected_to sign_in_url
+    assert_nil Current.account
+  end
 end
