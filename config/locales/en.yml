@@ -29,3 +29,32 @@
 
 en:
   hello: "Hello world"
+  form_fillers:
+    actions:
+      cancel: "Cancel"
+      close: "Close"
+    errors:
+      missing_request_details: "Missing request details"
+      unsupported_profile: "Unsupported form filler profile"
+      description_blank: "Description can't be blank"
+      unable_to_generate: "Unable to generate content right now"
+      generated_response_incomplete: "Generated response was incomplete"
+    profiles:
+      advisor_profile:
+        modal_title: "Generate Advisor Profile"
+        helper_text: "Describe the advisor's role or expertise. The AI will draft the name, short description, and system prompt."
+        description_label: "Concept / Role Description"
+        description_placeholder: "e.g., A strategic product advisor who turns ambiguous goals into practical launch plans"
+        submit_label: "Generate Advisor"
+        pending_title: "Generating Advisor Profile"
+        pending_label: "Generating fields"
+        pending_message: "The modal stays open while the AI finishes. You can close it if you no longer want the result applied."
+      council_profile:
+        modal_title: "Generate Council"
+        helper_text: "Describe the council's purpose or focus area. The AI will draft the name and description."
+        description_label: "Concept / Purpose"
+        description_placeholder: "e.g., A council of senior engineers to discuss architecture decisions and technical strategy"
+        submit_label: "Generate Council"
+        pending_title: "Generating Council"
+        pending_label: "Generating fields"
+        pending_message: "The modal stays open while the AI finishes. You can close it if you no longer want the result applied."

@@ -6,7 +6,7 @@ class Conversation < ApplicationRecord
   belongs_to :user
 
   has_many :messages, dependent: :destroy
-  has_many :conversation_participants, dependent: :destroy
+  has_many :conversation_participants, -> { ordered }, dependent: :destroy
   has_many :advisors, through: :conversation_participants
 
   # Encrypt memory fields at rest (stored in *_ciphertext columns)
@@ -41,7 +41,7 @@ class Conversation < ApplicationRecord
   # Council is required for council_meeting type
   validates :council, presence: true, if: -> { council_meeting? }
 
-  scope :recent, -> { order(last_message_at: :desc) }
+  scope :recent, -> { order(updated_at: :desc) }
   scope :active, -> { where(status: "active") }
   scope :adhoc_conversations, -> { where(conversation_type: "adhoc") }
 
@@ -93,6 +93,7 @@ class Conversation < ApplicationRecord
     )
   end
 
+  # TODO: replace the below with scopes
   # Returns non-scribe participants
   def advisor_participants
     conversation_participants.where(role: "advisor").order(:position)

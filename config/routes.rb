@@ -17,15 +17,12 @@ Rails.application.routes.draw do
 
   # Settings
   resource :settings, only: [ :edit, :update ]
+  resource :form_filler, only: [ :new, :create ]
 
   # Spaces routes with nested councils, advisors, memories, and scribe
   resources :spaces do
     resources :councils, only: [ :index, :new, :create ]
-    resources :advisors do
-      collection do
-        post :generate_prompt
-      end
-    end
+    resources :advisors
     resources :memories do
       member do
         post :archive
@@ -48,14 +45,6 @@ Rails.application.routes.draw do
       patch :update_advisors
     end
     resources :conversations, only: [ :index, :show, :new, :create, :update, :destroy ]
-
-    collection do
-      post :generate_description
-    end
-
-    member do
-      post :generate_description
-    end
   end
 
   resources :conversations do

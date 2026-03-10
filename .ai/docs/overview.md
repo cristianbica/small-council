@@ -4,7 +4,9 @@
 
 Small Council is a multi-tenant AI advisor workspace. Accounts own Spaces; Spaces contain Councils and Advisors; Conversations run in a Space as either `council_meeting` or `adhoc`.
 
-Message orchestration is asynchronous: user messages create advisor placeholders, `GenerateAdvisorResponseJob` resolves them, and Turbo Streams update chat in real time. A per-space Scribe advisor is auto-created and can run management/memory tools.
+Message orchestration is asynchronous and runtime-driven: user messages create advisor placeholders, `AI.runtime_for_conversation(...).user_posted(...)` schedules responses, and `AI.generate_advisor_response` runs through `AI::Runner` (`AIRunnerJob` when async). `AI::Handlers::ConversationResponseHandler` persists completion/error state and continues sequencing. Turbo Streams keep chat updated in real time. A per-space Scribe advisor is auto-created and can run management/memory tools.
+
+AI-assisted form generation is a separate utility flow: `FormFillersController#create` calls `AI.generate_text(..., async: true)`, which runs a `TextTask` and returns results through `AI::Handlers::TurboFormFillerHandler`.
 
 ## Tech stack
 
@@ -30,6 +32,7 @@ Message orchestration is asynchronous: user messages create advisor placeholders
 - Provider/model management for `openai` and `openrouter`
 - Memory system with version history and export
 - Model interaction recording per AI response (`ModelInteraction`)
+- Reusable AI form filling for advisor and council creation/edit flows
 
 ## Repo landmarks
 
@@ -37,10 +40,11 @@ Message orchestration is asynchronous: user messages create advisor placeholders
 app/
 ├── controllers/    # Request handling + authorization/scoping
 ├── models/         # Tenant-scoped domain models + CurrentAttributes
-├── services/       # ConversationLifecycle, CommandParser, ProviderConnectionTester, InlineDiff
-├── libs/ai/        # Client, content generator, model manager, tools, adapters, interaction recorder
-├── jobs/           # GenerateAdvisorResponseJob, GenerateConversationTitleJob
-└── views/          # ERB + Turbo Streams + DaisyUI classes
+├── services/       # ProviderConnectionTester, InlineDiff
+├── libs/ai/        # Runner, contexts, tasks, handlers, runtimes, trackers, tools
+├── jobs/           # AIRunnerJob, GenerateConversationTitleJob
+├── views/          # ERB + Turbo Streams + DaisyUI classes
+└── javascript/     # Stimulus controllers, including form_filler_controller
 
 config/routes.rb    # Auth, spaces/councils/advisors/memories, conversations/messages, providers
 test/               # models, controllers, integration, jobs, ai unit/integration, system

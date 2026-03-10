@@ -3,8 +3,6 @@ class ConversationsController < ApplicationController
   before_action :set_conversation, only: [ :show, :update, :destroy, :finish, :archive, :invite_advisor ]
   before_action :set_sidebar_conversations, only: [ :show ]
 
-  layout :choose_layout
-
   def index
     if @council
       # Show council-specific conversations list
@@ -43,10 +41,10 @@ class ConversationsController < ApplicationController
   end
 
   def show
-    @messages = @conversation.messages.where.not(status: "pending").chronological.includes(:sender)
-    @messages_with_interactions = ModelInteraction.where(message_id: @messages.map(&:id)).distinct.pluck(:message_id).index_with(true)
+    @messages = @conversation.messages.visible_in_chat.chronological.includes(:sender)
     @new_message = Message.new
     @available_advisors = available_advisors_for_invite
+    @inner_layout = :fullscreen #if @conversation&.adhoc?
   end
 
   def new
@@ -324,14 +322,6 @@ class ConversationsController < ApplicationController
 
   def set_sidebar_conversations
     return unless @conversation&.adhoc?
-    @sidebar_conversations = Current.space.conversations.adhoc_conversations.recent.limit(10)
-  end
-
-  def choose_layout
-    if action_name == "show" && @conversation&.adhoc?
-      "conversation"
-    else
-      "application"
-    end
+    @sidebar_conversations = Current.space.conversations.adhoc_conversations.recent
   end
 end

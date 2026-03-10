@@ -54,14 +54,16 @@ class ConversationFlowTest < ActionDispatch::IntegrationTest
     }
     assert_redirected_to conversation_url(conversation)
 
-    # Verify all messages appear in correct order
+    # Verify messages appear in chronological order (including pending advisor placeholders)
     get conversation_url(conversation)
     assert_response :success
 
     messages = conversation.messages.chronological.to_a
-    assert_equal 2, messages.count
+    assert_equal 4, messages.count
     assert_equal "Second message", messages[0].content
-    assert_equal "Third message", messages[1].content
+    assert_equal "...", messages[1].content
+    assert_equal "Third message", messages[2].content
+    assert_equal "...", messages[3].content
 
     # Verify messages appear on the page
     assert_select ".whitespace-pre-wrap", "Second message"

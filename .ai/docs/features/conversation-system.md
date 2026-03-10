@@ -32,11 +32,7 @@ Depth controls how many levels of replies are allowed:
 
 ### Commands
 
-| Command | Usage | Description |
-|---------|-------|-------------|
-| `/invite` | `/invite @advisor-name` | Add advisor to conversation |
-
-Commands are parsed by `CommandParser` and executed by command classes in `app/services/commands/`.
+Slash-command parsing is not part of the runtime path. Conversation actions (for example inviting advisors) are handled by explicit controller endpoints and UI actions.
 
 ## Data Model
 
@@ -69,47 +65,43 @@ Commands are parsed by `CommandParser` and executed by command classes in `app/s
 ```
 User Message Posted
         ↓
-[Command?] ──Yes──→ Execute Command
-        ↓ No
-  Parse Mentions
+`MessagesController#create`
         ↓
-Set pending_advisor_ids
+`AI.runtime_for_conversation(conversation).user_posted(message)`
         ↓
-Create placeholder messages
+Runtime creates pending placeholders + writes parent `pending_advisor_ids`
         ↓
-Enqueue first GenerateAdvisorResponseJob (turn-based)
+Runtime requests first advisor response via `AI.generate_advisor_response(..., async: true)`
         ↓
-On advisor completion/error: enqueue next pending advisor for same parent
+`AIRunnerJob` executes `AI::Runner` with `RespondTask`
         ↓
-Advisor Completes Response
+`AI::Handlers::ConversationResponseHandler` updates message state/content
         ↓
-Update message status → complete
+Runtime `advisor_responded` resolves parent pending list and schedules next advisor
         ↓
-Remove from pending_advisor_ids
-        ↓
-[Message Solved?] ──Yes──→ Scribe Follow-up? (if < 3 consecutive)
+[Parent solved?] ──Yes──→ Scribe follow-up for active council meetings only
 ```
 
 ## Services
 
-### ConversationLifecycle
-Main orchestrator for conversation flow:
-- `user_posted_message`: Processes user input, creates pending responses
-- `advisor_responded`: Handles completed advisor responses
+### Runtime classes
+Main orchestrators for conversation flow:
+- `AI::Runtimes::OpenConversationRuntime`
+- `AI::Runtimes::ConsensusConversationRuntime`
+- `AI::Runtimes::BrainstormingConversationRuntime`
+
+Shared sequencing behavior (create placeholders, advance pending queue, resolve parent) lives in `AI::Runtimes::ConversationRuntime`.
 
 ### Explicit finish flow
 - Council meetings are finished by explicit user action (`POST /conversations/:id/finish`)
 - `ConversationsController#finish` transitions `active` council meetings directly to `resolved`
 - No auto-summary/background summary generation is triggered by finish
 
-### CommandParser
-Parses `/` commands from messages. Extensible system for adding new commands.
-
-### Commands::InviteCommand
-Validates and executes `/invite @advisor-name`:
+### Advisor Invite Flow
+`ConversationsController#invite_advisor` handles advisor invitations explicitly:
 - Checks advisor exists
 - Checks not already in conversation
-- Cannot invite scribe (auto-present)
+- Scribe remains auto-present
 
 ## Usage
 
@@ -171,4 +163,4 @@ The following old RoE services were deleted:
 - `app/services/roe/silent_roe.rb`
 - `app/services/roe/consensus_roe.rb`
 
-The new unified `ConversationLifecycle` handles all RoE logic internally.
+Current RoE logic is implemented in `AI::Runtimes::*ConversationRuntime` classes.

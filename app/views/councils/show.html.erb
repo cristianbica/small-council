@@ -81,11 +81,7 @@
                   <h3 class="font-semibold truncate"><%= conversation.title %></h3>
                   <p class="text-sm text-base-content/60">
                     <%= conversation.messages.count %> messages ·
-                    <% if conversation.last_message_at %>
-                      Last activity <%= time_ago_in_words(conversation.last_message_at) %> ago
-                    <% else %>
-                      Created <%= time_ago_in_words(conversation.created_at) %> ago
-                    <% end %>
+                    Last activity <%= time_ago_in_words(conversation.updated_at) %> ago
                   </p>
                 </div>
               <% end %>

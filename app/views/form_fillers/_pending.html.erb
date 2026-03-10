@@ -1,0 +1,19 @@
+<% i18n_scope = "form_fillers.profiles.#{@profile[:id]}" %>
+
+<turbo-frame id="form_filler_panel_<%= @filler_id %>">
+  <%= turbo_stream_from "form_filler_result_#{@filler_id}" %>
+
+  <h3 class="font-bold text-lg mb-4"><%= t(:pending_title, scope: i18n_scope) %></h3>
+
+  <div class="rounded-lg bg-base-200 p-4">
+    <div class="flex items-start gap-3">
+      <span class="loading loading-spinner loading-sm mt-1"></span>
+      <div class="space-y-1">
+        <p class="font-medium"><%= t(:pending_label, scope: i18n_scope) %></p>
+        <p class="text-sm text-base-content/70"><%= t(:pending_message, scope: i18n_scope) %></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="form_filler_result_<%= @filler_id %>"></div>
+</turbo-frame>

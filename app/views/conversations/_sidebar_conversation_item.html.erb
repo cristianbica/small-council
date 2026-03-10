@@ -1,0 +1,39 @@
+<li class="w-full">
+  <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 w-full min-w-0 rounded-md px-2 py-1 <%= conv.id == @conversation.id ? 'bg-base-300' : '' %>">
+    <%= link_to conversation_path(conv), class: "min-w-0 w-full overflow-hidden block" do %>
+      <div class="flex flex-col min-w-0 w-full">
+        <p class="truncate text-sm font-medium leading-5 w-full"><%= conv.title.presence || "Untitled conversation" %></p>
+        <p class="text-xs text-base-content/60 truncate leading-4 w-full">
+        <%= conv.updated_at ? l(conv.updated_at, format: :short) : "No activity yet" %>
+        </p>
+      </div>
+    <% end %>
+
+    <% if can_delete_conversation?(conv) %>
+      <div class="dropdown dropdown-left flex-none self-start">
+        <button tabindex="0" class="btn btn-ghost btn-xs btn-circle" title="Conversation actions" aria-label="Conversation actions">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6h.01M12 12h.01M12 18h.01" />
+          </svg>
+        </button>
+        <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-36 z-20">
+          <% if conv.active? %>
+            <li>
+              <%= button_to archive_conversation_path(conv), method: :post, class: "w-full text-left" do %>
+                Archive
+              <% end %>
+            </li>
+          <% end %>
+          <li>
+            <%= button_to conversation_path(conv),
+                method: :delete,
+                class: "w-full text-left text-error",
+                data: { turbo_confirm: "Delete this conversation?" } do %>
+              Delete
+            <% end %>
+          </li>
+        </ul>
+      </div>
+    <% end %>
+  </div>
+</li>

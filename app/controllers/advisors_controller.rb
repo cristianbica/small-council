@@ -44,28 +44,6 @@ class AdvisorsController < ApplicationController
     end
   end
 
-  def generate_prompt
-    concept = params[:concept]
-
-    if concept.blank?
-      render json: { error: "Concept is required" }, status: :unprocessable_entity
-      return
-    end
-
-    begin
-      generator = AI::ContentGenerator.new
-      result = generator.generate_advisor_profile(
-        description: concept,
-        account: Current.account
-      )
-      render json: result
-    rescue AI::ContentGenerator::NoModelError => e
-      render json: { error: e.message }, status: :unprocessable_entity
-    rescue AI::ContentGenerator::GenerationError => e
-      render json: { error: e.message }, status: :unprocessable_entity
-    end
-  end
-
   private
 
   def set_space

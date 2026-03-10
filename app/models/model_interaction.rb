@@ -21,21 +21,18 @@ class ModelInteraction < ApplicationRecord
   private
 
   def broadcast_interaction_updates
-    stream = "conversation_#{message.conversation_id}"
-    interactions = message.model_interactions.chronological
+    stream = "message_interactions_#{message_id}"
 
-    Turbo::StreamsChannel.broadcast_replace_to(
+    Turbo::StreamsChannel.broadcast_remove_to(
       stream,
-      target: "interactions-list-#{message_id}",
-      partial: "messages/interactions_list",
-      locals: { message: message, interactions: interactions }
+      target: "interactions-empty-#{message_id}"
     )
 
-    Turbo::StreamsChannel.broadcast_replace_to(
+    Turbo::StreamsChannel.broadcast_append_to(
       stream,
-      target: "interactions-count-#{message_id}",
-      partial: "messages/interactions_count",
-      locals: { message: message, interactions: interactions }
+      target: "interactions-list-#{message_id}",
+      partial: "messages/interaction_item",
+      locals: { interaction: self, expanded: sequence.zero? }
     )
   rescue => e
     Rails.logger.error "[ModelInteraction] Failed to broadcast interaction update: #{e.message}"

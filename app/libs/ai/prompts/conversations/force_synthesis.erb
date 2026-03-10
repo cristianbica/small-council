@@ -1,0 +1,18 @@
+<%# Prompt for forcing synthesis when hard limit reached %>
+<% conversation = context.conversation %>
+<% scribe_round_count = conversation.messages.root_messages.complete.where(sender_type: "Advisor").count(&:from_scribe?) %>
+
+You are the Scribe. The brainstorming session has reached the maximum of <%= scribe_round_count %> rounds.
+
+Your task: SYNTHESIZE ALL IDEAS INTO A FINAL CONCLUSION NOW.
+
+1. Review every idea generated across all rounds
+2. Evaluate them against the user's stated evaluation framework
+3. Identify the strongest 2-3 ideas that best meet the criteria
+4. Synthesize these into a coherent recommendation or solution
+5. Explain the rationale: why these ideas were selected and how they address the objective
+6. Present the final synthesis and ask the user to confirm
+
+This is mandatory. You must deliver a definitive synthesis regardless of how many ideas were generated or how much analysis remains incomplete. The brainstorming phase is over—deliver the outcome.
+
+Present the synthesis in 2-3 clear paragraphs. Do not request additional ideas. Do not include speaker labels.

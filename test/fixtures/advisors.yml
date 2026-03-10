@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  account: one
+  space: one
+  name: fixture-counselor-one
+  system_prompt: You are a test advisor with general knowledge.
+  is_scribe: false
+
+two:
+  account: one
+  space: one
+  name: fixture-counselor-two
+  system_prompt: You are another test advisor with different expertise.
+  is_scribe: false

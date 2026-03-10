@@ -29,19 +29,19 @@ Max ~200 lines. Keep durable, high-signal facts only.
 - Sensitive fields are encrypted at rest (`Provider.credentials`, `Advisor.system_prompt/short_description`, `Conversation.memory/draft_memory`, `Message.content/prompt_text`, `Memory.content`).
 
 ## AI stack
-- `AI::Client` is instance-based for chat/complete, with class methods for provider operations (`test_connection`, `list_models`).
+- `AI::Client` is class-based for chat session creation (`AI::Client.chat`) and provider/model operations (`test_connection`, `list_models`, `model_info`).
 - Supported providers: `openai`, `openrouter`.
-- Usage is tracked automatically in `AI::Client#track_usage` via `UsageRecord`.
-- Model interactions are recorded via RubyLLM event handlers wired in `AI::Client#register_interaction_handler`.
-- Tool framework is `AI::Tools::BaseTool` + `AI::Adapters::RubyLLMToolAdapter`.
-- Tool inventory: 22 files total (`internal`: 19, `external`: 1, `conversations`: 1, `base_tool`: 1).
-- Current wiring in `AI::ContentGenerator#advisor_tools`: non-scribe advisors get no tools; Scribe gets 20 tools; `AskAdvisorTool` exists but is not wired.
+- Canonical async runtime path is `AI::Runner` via `AIRunnerJob` (`task` + `context` + optional `handler`/`tracker`) for normal advisor responses and retries.
+- Utility runtime flows resolve the model from `AI::Contexts::SpaceContext#model`: account default model when enabled, otherwise the first enabled free model.
+- Adhoc conversation title generation now uses `GenerateConversationTitleJob -> AI.generate_text(prompt: "tasks/conversation_title", async: false)`.
+- Model interactions are recorded by `AI::Trackers::ModelInteractionTracker` callback hooks and mirrored to `messages.tool_calls`.
+- Tool framework is `AI::Tools::AbstractTool` with registry-based resolution (`AI.tool` / `AI.tools`) and direct RubyLLM tool subclasses.
 
 ## Testing conventions
 - Use `set_tenant(account)` in model/unit tests for tenant-scoped models.
 - For request/integration tests, set host explicitly when host behavior matters.
 - Stub current user via `Current.session = stub(user: user)` (not `Current.user = ...`).
-- For AI client tests, stub `AI::Client.new` then stub instance `#chat`.
+- For AI client tests, exercise `AI::Client.chat` / `AI::Client::Chat` and stub provider chat objects as needed.
 - System tests use Cuprite/Ferrum in `ApplicationSystemTestCase`; optional `CHROME_URL` for remote browser.
 
 ## Repo layout

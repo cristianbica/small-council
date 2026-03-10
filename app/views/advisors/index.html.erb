@@ -39,7 +39,7 @@
           <div>
             <h2 class="card-title text-lg"><%= @scribe.name %></h2>
             <p class="text-sm text-base-content/70">
-              The Scribe automatically moderates discussions in "Moderated" mode. 
+              The Scribe automatically moderates discussions in "Moderated" mode.
               It is automatically added to every council in this space.
             </p>
           </div>
@@ -101,7 +101,7 @@
                         </svg>
                         Edit
                       <% end %>
-                      <%= button_to space_advisor_path(@space, advisor), 
+                      <%= button_to space_advisor_path(@space, advisor),
                           method: :delete,
                           class: "btn btn-ghost btn-sm text-error",
                           data: { turbo_confirm: "Are you sure you want to delete this advisor?" } do %>
@@ -133,8 +133,8 @@
     <div>
       <p class="font-medium">How advisors work</p>
       <p class="text-sm">
-        Advisors created here are available for all councils in this space. 
-        When creating or editing a council, you'll select which advisors to include. 
+        Advisors created here are available for all councils in this space.
+        When creating or editing a council, you'll select which advisors to include.
         The Scribe is automatically added to every council and handles "Moderated" discussions.
       </p>
     </div>

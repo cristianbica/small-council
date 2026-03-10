@@ -1,0 +1,28 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  account: one
+  user: one
+  space: one
+  council: one
+  title: Test Conversation
+  roe_type: open
+  status: active
+
+consensus:
+  account: one
+  user: one
+  space: one
+  council: one
+  title: Consensus Test
+  roe_type: consensus
+  status: active
+
+brainstorming:
+  account: one
+  user: one
+  space: one
+  council: one
+  title: Brainstorming Test
+  roe_type: brainstorming
+  status: active

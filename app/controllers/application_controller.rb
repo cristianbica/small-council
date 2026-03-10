@@ -3,6 +3,7 @@ class ApplicationController < ActionController::Base
   allow_browser versions: :modern
 
   before_action :set_current_request_details
+  before_action :set_page_modal_variant
   before_action :authenticate
   before_action :set_current_tenant
   before_action :set_current_space
@@ -26,6 +27,10 @@ class ApplicationController < ActionController::Base
   def set_current_request_details
     Current.user_agent = request.user_agent
     Current.ip_address = request.ip
+  end
+
+  def set_page_modal_variant
+    request.variant = :modal if request.headers["Turbo-Frame"].to_s == "page-modal"
   end
 
   def set_current_tenant

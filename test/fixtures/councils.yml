@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  account: one
+  user: one
+  space: one
+  name: Test Council
+  description: A council for testing conversation runtimes
+
+two:
+  account: one
+  user: admin
+  space: one
+  name: Second Council
+  description: Another council for testing

@@ -13,9 +13,11 @@ Councils are groups of AI advisors that collaborate on conversations.
 ### Creating a Council
 1. Navigate to a space (or use "New Council" from dashboard)
 2. Click "New Council"
-3. Enter name and description
+3. Enter name and description, or use "Generate with AI" to open the reusable form-filler modal and draft both fields asynchronously
 4. Select advisors to include (optional during creation)
 5. Save to create the council
+
+See [Form Fillers](form-fillers.md) for the shared modal/runtime flow.
 
 ### Managing Advisors
 - Add advisors when creating or via council edit page
@@ -35,8 +37,8 @@ Councils are groups of AI advisors that collaborate on conversations.
 /spaces/:space_id/councils     # index, new, create (nested under space)
 /councils/:id                  # show, edit, update, destroy, edit_advisors, update_advisors
 /councils/:council_id/conversations # index, show, new, create
-/councils/generate_description # POST (collection)
-/councils/:id/generate_description # POST (member)
+/form_filler/new?profile=council_profile # Turbo-rendered modal for AI form fill
+/form_filler                             # queue async AI form fill request
 ```
 
 ### Models
@@ -50,6 +52,7 @@ Councils are groups of AI advisors that collaborate on conversations.
 - `CouncilsController`: Standard CRUD within space context
 - Advisor membership management happens via `edit_advisors` / `update_advisors`
 - Creator tracking: `user_id` stored on council for authorization
+- AI-assisted draft generation is now handled by `FormFillersController`, not council-specific generation routes
 
 ### Access Control
 - All account users can view all councils in their spaces

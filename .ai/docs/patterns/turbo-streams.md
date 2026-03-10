@@ -64,7 +64,7 @@ To verify broadcasts in tests, use `assert_turbo_stream` or check side effects:
 ```ruby
 test "job broadcasts update" do
   expect_turbo_stream_broadcast(conversation, count: 1) do
-    GenerateAdvisorResponseJob.perform_now(message_id: message.id)
+    AI.generate_advisor_response(advisor: message.sender, message: message, async: false)
   end
 end
 ```
@@ -90,7 +90,7 @@ Update with error styling:
 ```ruby
 def handle_error(message, error)
   message.update!(status: "error", content: "[Error: #{error}]")
-  
+
   Turbo::StreamsChannel.broadcast_replace_to(
     "conversation_#{message.conversation.id}",
     target: "message_#{message.id}",

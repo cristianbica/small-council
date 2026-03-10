@@ -73,38 +73,6 @@ class CouncilsController < ApplicationController
     redirect_to edit_advisors_council_path(@council), alert: "Could not update council advisors."
   end
 
-  def generate_description
-    concept = params[:concept]
-
-    if concept.blank?
-      render json: { error: "Please describe the council's purpose" }, status: :unprocessable_entity
-      return
-    end
-
-    # Check authorization for existing councils
-    if params[:id].present?
-      council = Current.space.councils.find(params[:id])
-      unless council.user_id == Current.user.id
-        render json: { error: "Only the creator can modify this council." }, status: :forbidden
-        return
-      end
-    end
-
-    begin
-      generator = AI::ContentGenerator.new
-      result = generator.generate_council_description(
-        name: concept,
-        purpose: concept,
-        account: Current.account
-      )
-      render json: { name: result[:name], description: result[:description] }
-    rescue AI::ContentGenerator::NoModelError => e
-      render json: { error: e.message }, status: :unprocessable_entity
-    rescue AI::ContentGenerator::GenerationError => e
-      render json: { error: e.message }, status: :unprocessable_entity
-    end
-  end
-
   private
 
   def set_space_from_params_or_current

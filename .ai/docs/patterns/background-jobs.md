@@ -8,21 +8,19 @@ Solid Queue is configured in `config/recurring.yml` and uses database tables for
 
 ## Job Structure
 
+Canonical runtime async execution uses `AIRunnerJob`:
+
 ```ruby
-class GenerateAdvisorResponseJob < ApplicationJob
+class AIRunnerJob < ApplicationJob
   queue_as :default
 
-  def perform(advisor_id:, conversation_id:, message_id:)
-    # Set tenant for multi-tenancy
-    ActsAsTenant.current_tenant = Advisor.find(advisor_id).account
-
-    # Do work...
-
-  ensure
-    ActsAsTenant.current_tenant = nil
+  def perform(task:, context:, handler: nil, tracker: nil)
+    AI::Runner.new(task: task, context: context, handler: handler, tracker: tracker).run
   end
 end
 ```
+
+Advisor response generation and retry both enqueue `AIRunnerJob` via `AI.generate_advisor_response(..., async: true)`.
 
 ## Multi-tenancy in Jobs
 
@@ -54,13 +52,23 @@ end
 
 ## Enqueuing
 
-From controllers:
+From conversation runtime classes:
 
 ```ruby
-GenerateAdvisorResponseJob.perform_later(
-  advisor_id: advisor.id,
-  conversation_id: conversation.id,
-  message_id: placeholder.id
+AI.generate_advisor_response(
+  advisor: message.sender,
+  message: message,
+  async: true
+)
+```
+
+From explicit retry in `MessagesController#retry`:
+
+```ruby
+AI.generate_advisor_response(
+  advisor: message.sender,
+  message: message,
+  async: true
 )
 ```
 
@@ -78,18 +86,9 @@ Use `assert_enqueued_with` and `perform_now`:
 
 ```ruby
 test "enqueues job on message create" do
-  assert_enqueued_with(job: GenerateAdvisorResponseJob) do
+  assert_enqueued_with(job: AIRunnerJob) do
     post conversation_messages_path, params: { message: { content: "Hi" } }
   end
-end
-
-test "updates message status" do
-  mock_response = AI::Model::Response.new(content: "Hi", usage: AI::Model::TokenUsage.new(input: 5, output: 3))
-  mock_client = mock("AI::Client")
-  mock_client.stubs(:chat).returns(mock_response)
-  AI::Client.stubs(:new).returns(mock_client)
-  GenerateAdvisorResponseJob.perform_now(advisor_id: @advisor.id, conversation_id: @conversation.id, message_id: @message.id)
-  assert @message.reload.complete?
 end
 ```
 

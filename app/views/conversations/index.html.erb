@@ -70,11 +70,7 @@
                   </span>
                   <span>·</span>
                   <span>
-                    <% if conversation.last_message_at %>
-                      Last activity <%= time_ago_in_words(conversation.last_message_at) %> ago
-                    <% else %>
-                      Created <%= time_ago_in_words(conversation.created_at) %> ago
-                    <% end %>
+                    Last activity <%= time_ago_in_words(conversation.updated_at) %> ago
                   </span>
                 </div>
               <% end %>

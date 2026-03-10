@@ -17,6 +17,7 @@ Rules:
 - [Spaces](spaces.md) - Contextual workspaces for organizing councils
 - [Councils](councils.md) - Groups of AI advisors that collaborate
 - [Advisors](advisors.md) - AI personas with configurable LLM models and tools
+- [Form Fillers](form-fillers.md) - Reusable AI-assisted form filling for advisors and councils
 - [Council Management Tools](council-management-tools.md) - Scribe-only tools for council and advisor management
 
 ## Conversation Features
@@ -27,7 +28,7 @@ Rules:
 
 ## AI Integration
 
-- [AI Integration](ai-integration.md) - AI::Client, ContentGenerator, tool system, usage tracking
+- [AI Integration](ai-integration.md) - AI::Runner, AI::Client, tool system, usage tracking
 - [Model Interactions](model-interactions.md) - Per-message LLM request/response recording and UI
 
 ## Data Layer

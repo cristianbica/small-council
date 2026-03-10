@@ -50,19 +50,19 @@ t.references :updated_by, polymorphic: true
    - Export (Markdown, JSON)
 
 3. **Tool System** (`app/libs/ai/tools/`)
-   - Tools inherit from `AI::Tools::BaseTool`
-  - `AI::Tools::Internal::QueryMemoriesTool` - Search memories (Scribe, currently)
-   - `AI::Tools::Internal::CreateMemoryTool` - Create memory entries (Scribe only)
-   - `AI::Tools::Internal::ReadMemoryTool` - Read specific memory
-   - `AI::Tools::Internal::UpdateMemoryTool` - Edit memory entry
-   - `AI::Tools::Internal::ListMemoriesTool` - List memories in space
+  - Tools inherit from `AI::Tools::AbstractTool`
+  - `AI::Tools::Memories::SearchMemoriesTool` - Search memories
+  - `AI::Tools::Memories::CreateMemoryTool` - Create memory entries
+  - `AI::Tools::Memories::FetchMemoryTool` - Read specific memory
+  - `AI::Tools::Memories::UpdateMemoryTool` - Edit memory entry
+  - `AI::Tools::Memories::ListMemoriesTool` - List memories in space
 
 4. **Available Tools**
-  - `create_memory` - Add new memory entry (Scribe)
-  - `update_memory` - Edit existing memory (Scribe)
-  - `list_memories` - List memories in current space (Scribe)
-  - `read_memory` - Read specific memory (Scribe)
-  - `query_memories` - Search memories (Scribe)
+  - `memories/create` - Add new memory entry
+  - `memories/update` - Edit existing memory
+  - `memories/list` - List memories in current space
+  - `memories/fetch` - Read specific memory
+  - `memories/search` - Search memories
 
 ## Usage
 
@@ -104,7 +104,7 @@ GET /spaces/:space_id/memories/search?q=authentication
 Agents query memories via tools (not direct method calls):
 
 ```ruby
-# In tool execution (AI::Tools::Internal::QueryMemoriesTool)
+# In tool execution (AI::Tools::Memories::SearchMemoriesTool)
 # context = { space: space, conversation: conversation, advisor: advisor }
 # params = { "query" => "JWT authentication decision", "memory_type" => "knowledge", "limit" => 3 }
 result = tool.execute(params, context)
@@ -113,7 +113,7 @@ result = tool.execute(params, context)
 
 ## Memory Context in AI
 
-The context builder (`AI::ContextBuilders::ConversationContextBuilder`) **only includes the summary memory**:
+The AI runtime context **only includes the summary memory**:
 
 ```ruby
 # In context builder — only primary summary is injected automatically

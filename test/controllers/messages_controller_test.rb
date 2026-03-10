@@ -145,7 +145,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to conversation_url(conversation)
   end
 
-  test "create fails with invalid content" do
+  test "create fails with invalid content for turbo frame requests" do
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
@@ -154,13 +154,13 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference("Message.count") do
       post conversation_messages_url(conversation), params: {
         message: { content: "" }
-      }
+      }, headers: { "Turbo-Frame" => ActionView::RecordIdentifier.dom_id(conversation, :composer) }
     end
 
     assert_response :unprocessable_entity
   end
 
-  test "create enqueues jobs for responding advisors" do
+  test "create enqueues AI runner job for responding advisors" do
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
@@ -180,17 +180,14 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
       position: 0
     )
 
-    # For consensus RoE, all advisors respond
-    conversation.update!(roe_type: :consensus)
-
-    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
+    assert_enqueued_jobs 1, only: AIRunnerJob do
       post conversation_messages_url(conversation), params: {
-        message: { content: "Hello advisor" }
+        message: { content: "Hello @#{advisor.name}" }
       }
     end
   end
 
-  test "create adds pending message for each responder" do
+  test "create adds pending message for mentioned responder" do
     sign_in_as(@user)
     set_tenant(@account)
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
@@ -210,20 +207,17 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
       position: 0
     )
 
-    # For consensus RoE, all advisors respond
-    conversation.update!(roe_type: :consensus)
-
     # 1 user message + 1 pending advisor message
     assert_difference("Message.count", 2) do
       post conversation_messages_url(conversation), params: {
-        message: { content: "Hello advisor" }
+        message: { content: "Hello @#{advisor.name}" }
       }
     end
 
     pending = conversation.messages.last
     assert_equal "pending", pending.status
     assert_equal advisor, pending.sender
-    assert_match(/thinking/, pending.content)
+    assert_equal "...", pending.content
   end
 
   # ============================================================================
@@ -410,7 +404,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
       content: "[Error: API Error: provider timeout]"
     )
 
-    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
+    assert_enqueued_jobs 1, only: AIRunnerJob do
       post retry_conversation_message_url(conversation, message)
     end
 
@@ -441,7 +435,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
       content: "[Error: Unexpected error: boom]"
     )
 
-    assert_no_enqueued_jobs only: GenerateAdvisorResponseJob do
+    assert_no_enqueued_jobs only: AIRunnerJob do
       post retry_conversation_message_url(conversation, message)
     end
 

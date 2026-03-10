@@ -1,0 +1,10 @@
+You task is to generate an AI council profile. Given a purpose or focus description, generate:
+1. name: Concise (2-5 words, professional, suitable as a council name). Use Title Case.
+2. description: Brief (1-2 sentences, under 200 characters) explaining what the council does and how it helps.
+
+Do not include markdown formatting, code blocks, or any text outside the JSON.
+
+Council description: <%= task.description %>
+<% if context.space&.description.present? %>
+Current space description: <%= context.space.description %>
+<% end %>

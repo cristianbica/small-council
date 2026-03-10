@@ -60,12 +60,12 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "posting message in consensus creates placeholder for all advisors" do
+  test "posting mentioned message in consensus creates placeholder for that advisor" do
     @conversation.update!(roe_type: :consensus)
 
     assert_difference "Message.count", 2 do # user message + placeholder
       post conversation_messages_path(@conversation), params: {
-        message: { content: "Hello advisors" }
+        message: { content: "Hello @helper-bot" }
       }
     end
 
@@ -75,7 +75,7 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
     assert_equal @advisor, placeholder.sender
     assert_equal "advisor", placeholder.role
     assert_equal "pending", placeholder.status
-    assert_match(/thinking/, placeholder.content)
+    assert_equal "...", placeholder.content
   end
 
   test "posting with @mention in open mode" do
@@ -91,17 +91,17 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
     assert_equal @advisor, placeholder.sender
   end
 
-  test "open mode without @all does not create placeholders" do
+  test "open mode with single advisor creates placeholder without explicit mention" do
     @conversation.update!(roe_type: :open)
 
-    assert_difference "Message.count", 1 do # only user message
+    assert_difference "Message.count", 2 do
       post conversation_messages_path(@conversation), params: {
         message: { content: "Hello? Anyone there?" }
       }
     end
   end
 
-  test "consensus mode creates placeholder for all advisors" do
+  test "consensus mode without mentions only stores user message" do
     advisor2 = @account.advisors.create!(
       name: "Second Advisor",
       system_prompt: "You are advisor 2",
@@ -116,14 +116,11 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
     )
     @conversation.update!(roe_type: :consensus)
 
-    assert_difference "Message.count", 3 do # user + 2 advisors
+    assert_difference "Message.count", 1 do
       post conversation_messages_path(@conversation), params: {
         message: { content: "Group discussion" }
       }
     end
-
-    placeholders = Message.last(2)
-    assert_equal 2, placeholders.count { |m| m.pending? }
   end
 
   test "changing RoE mid-conversation affects next message" do
@@ -135,8 +132,8 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
 
     @conversation.update!(roe_type: :open)
 
-    # Second message should not trigger advisor (no @mention)
-    assert_difference "Message.count", 1 do
+    # Open mode with one advisor still schedules that advisor.
+    assert_difference "Message.count", 2 do
       post conversation_messages_path(@conversation), params: {
         message: { content: "Second message" }
       }

@@ -1,155 +1,113 @@
-<%= form_with model: [space, advisor],
-    class: "space-y-6",
-    data: {
-      controller: "content-generator",
-      "content-generator-profile-value": "advisor",
-  "content-generator-url-value": generate_prompt_space_advisors_path(space)
-    } do |form| %>
+<div data-controller="form-filler" data-form-filler-url-value="<%= new_form_filler_path(profile: :advisor_profile) %>">
+  <%= form_with model: [space, advisor],
+      class: "space-y-6" do |form| %>
 
-  <% if advisor.errors.any? %>
-    <div class="alert alert-error">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <div>
-        <h3 class="font-bold"><%= pluralize(advisor.errors.count, "error") %> prohibited this advisor from being saved:</h3>
-        <ul class="mt-1 list-disc list-inside text-sm">
-          <% advisor.errors.full_messages.each do |message| %>
-            <li><%= message %></li>
-          <% end %>
-        </ul>
+    <% if advisor.errors.any? %>
+      <div class="alert alert-error">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+          <h3 class="font-bold"><%= pluralize(advisor.errors.count, "error") %> prohibited this advisor from being saved:</h3>
+          <ul class="mt-1 list-disc list-inside text-sm">
+            <% advisor.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
       </div>
+    <% end %>
+
+    <div class="form-control">
+      <%= form.label :name, class: "label" do %>
+        <span class="label-text font-medium">Name <span class="text-error">*</span></span>
+      <% end %>
+      <%= form.text_field :name,
+          class: "input input-bordered w-full #{'input-error' if advisor.errors[:name].any?}",
+          placeholder: "e.g., Strategic Consultant",
+          required: true,
+          autofocus: true,
+          data: {
+            "form-filler-target": "fillable",
+            "form-filler-attribute": "name"
+          } %>
+      <% if advisor.errors[:name].any? %>
+        <label class="label">
+          <span class="label-text-alt text-error"><%= advisor.errors[:name].first %></span>
+        </label>
+      <% end %>
+    </div>
+
+    <div class="form-control">
+      <%= form.label :short_description, class: "label" do %>
+        <span class="label-text font-medium">Short Description</span>
+      <% end %>
+      <%= form.text_field :short_description,
+          class: "input input-bordered w-full",
+          placeholder: "Brief description shown in advisor lists",
+          data: {
+            "form-filler-target": "fillable",
+            "form-filler-attribute": "short_description"
+          } %>
+      <label class="label">
+        <span class="label-text-alt text-base-content/60">Optional - a quick summary of this advisor's expertise</span>
+      </label>
+    </div>
+
+    <div class="form-control">
+      <%= form.label :system_prompt, class: "label" do %>
+        <span class="label-text font-medium">System Prompt <span class="text-error">*</span></span>
+      <% end %>
+      <p class="text-sm text-base-content/60 mb-2">
+        Describe what this advisor should do. This defines their personality, expertise, and how they respond.
+      </p>
+      <%= form.text_area :system_prompt,
+          class: "textarea textarea-bordered w-full #{'textarea-error' if advisor.errors[:system_prompt].any?}",
+          placeholder: "You are an expert strategic consultant with 20 years of experience...",
+          rows: 8,
+          required: true,
+          data: {
+            "form-filler-target": "fillable",
+            "form-filler-attribute": "system_prompt"
+          } %>
+      <% if advisor.errors[:system_prompt].any? %>
+        <label class="label">
+          <span class="label-text-alt text-error"><%= advisor.errors[:system_prompt].first %></span>
+        </label>
+      <% end %>
+
+      <div class="mt-2">
+          <%= link_to new_form_filler_path(profile: :advisor_profile),
+            class: "btn btn-outline btn-sm",
+            data: { turbo_frame: "form-filler-advisor_profile" } do %>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          Generate with AI
+        <% end %>
+      </div>
+    </div>
+
+    <div class="form-control">
+      <%= form.label :llm_model_id, class: "label" do %>
+        <span class="label-text font-medium">AI Model <span class="text-error">*</span></span>
+      <% end %>
+      <%= form.select :llm_model_id,
+          Current.account.llm_models.enabled.map { |m| [m.name, m.id] },
+          { prompt: "Select a model..." },
+          class: "select select-bordered w-full truncate #{'select-error' if advisor.errors[:llm_model].any?}",
+          required: false %>
+      <% if advisor.errors[:llm_model].any? %>
+        <label class="label">
+          <span class="label-text-alt text-error"><%= advisor.errors[:llm_model].first %></span>
+        </label>
+      <% end %>
+    </div>
+
+    <div class="card-actions justify-end mt-4">
+      <%= link_to "Cancel", space_advisors_path(space), class: "btn btn-ghost" %>
+      <%= form.submit class: "btn btn-primary" %>
     </div>
   <% end %>
-
-  <div class="form-control">
-    <%= form.label :name, class: "label" do %>
-      <span class="label-text font-medium">Name <span class="text-error">*</span></span>
-    <% end %>
-    <%= form.text_field :name,
-        class: "input input-bordered w-full #{'input-error' if advisor.errors[:name].any?}",
-        placeholder: "e.g., Strategic Consultant",
-        required: true,
-        autofocus: true,
-        data: { "content-generator-target": "nameField" } %>
-    <% if advisor.errors[:name].any? %>
-      <label class="label">
-        <span class="label-text-alt text-error"><%= advisor.errors[:name].first %></span>
-      </label>
-    <% end %>
-  </div>
-
-  <div class="form-control">
-    <%= form.label :short_description, class: "label" do %>
-      <span class="label-text font-medium">Short Description</span>
-    <% end %>
-    <%= form.text_field :short_description,
-        class: "input input-bordered w-full",
-        placeholder: "Brief description shown in advisor lists",
-        data: { "content-generator-target": "shortDescriptionField" } %>
-    <label class="label">
-      <span class="label-text-alt text-base-content/60">Optional - a quick summary of this advisor's expertise</span>
-    </label>
-  </div>
-
-  <div class="form-control">
-    <%= form.label :system_prompt, class: "label" do %>
-      <span class="label-text font-medium">System Prompt <span class="text-error">*</span></span>
-    <% end %>
-    <p class="text-sm text-base-content/60 mb-2">
-      Describe what this advisor should do. This defines their personality, expertise, and how they respond.
-    </p>
-    <%= form.text_area :system_prompt,
-        class: "textarea textarea-bordered w-full #{'textarea-error' if advisor.errors[:system_prompt].any?}",
-        placeholder: "You are an expert strategic consultant with 20 years of experience...",
-        rows: 8,
-        required: true,
-        data: { "content-generator-target": "systemPromptField" } %>
-    <% if advisor.errors[:system_prompt].any? %>
-      <label class="label">
-        <span class="label-text-alt text-error"><%= advisor.errors[:system_prompt].first %></span>
-      </label>
-    <% end %>
-
-    <div class="mt-2">
-      <button type="button"
-              class="btn btn-outline btn-sm"
-              data-action="click->content-generator#openModal">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-        Generate with AI
-      </button>
-    </div>
-  </div>
-
-  <div class="form-control">
-    <%= form.label :llm_model_id, class: "label" do %>
-      <span class="label-text font-medium">AI Model <span class="text-error">*</span></span>
-    <% end %>
-    <%= form.select :llm_model_id,
-        Current.account.llm_models.enabled.map { |m| [m.name, m.id] },
-        { prompt: "Select a model..." },
-        class: "select select-bordered w-full truncate #{'select-error' if advisor.errors[:llm_model].any?}",
-        required: false %>
-    <% if advisor.errors[:llm_model].any? %>
-      <label class="label">
-        <span class="label-text-alt text-error"><%= advisor.errors[:llm_model].first %></span>
-      </label>
-    <% end %>
-  </div>
-
-  <div class="card-actions justify-end mt-4">
-    <%= link_to "Cancel", space_advisors_path(space), class: "btn btn-ghost" %>
-    <%= form.submit class: "btn btn-primary" %>
-  </div>
-
-  <%# Modal for AI Advisor Generation %>
-  <dialog data-content-generator-target="modal"
-          class="modal"
-          data-action="click->content-generator#clickOutside">
-    <div class="modal-box">
-      <h3 class="font-bold text-lg mb-4">Generate Advisor with AI</h3>
-
-      <p class="text-sm text-base-content/70 mb-4">
-        Describe the advisor's role or expertise. The AI will suggest a name, short description, and system prompt.
-      </p>
-
-      <div class="form-control mb-4">
-        <label class="label">
-          <span class="label-text">Concept / Role Description</span>
-        </label>
-        <textarea data-content-generator-target="conceptInput"
-                  class="textarea textarea-bordered w-full"
-                  rows="3"
-                  placeholder="e.g., An expert financial advisor who helps with investment decisions and retirement planning"></textarea>
-      </div>
-
-      <div data-content-generator-target="errorMessage"
-           class="alert alert-error hidden mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span></span>
-      </div>
-
-      <div class="modal-action">
-        <button type="button"
-                class="btn btn-ghost"
-                data-action="click->content-generator#closeModal">
-          Cancel
-        </button>
-        <button type="button"
-                data-content-generator-target="generateButton"
-                data-action="click->content-generator#generate"
-                class="btn btn-primary">
-          <span data-content-generator-target="loadingIndicator" class="hidden loading loading-spinner loading-xs mr-2"></span>
-          Generate Advisor
-        </button>
-      </div>
-    </div>
-    <form method="dialog" class="modal-backdrop">
-      <button>close</button>
-    </form>
-  </dialog>
-<% end %>
+  <turbo-frame id="form-filler-advisor_profile"></turbo-frame>
+</div>

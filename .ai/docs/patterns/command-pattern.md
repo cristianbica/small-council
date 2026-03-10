@@ -1,36 +1,26 @@
 # Command Pattern
 
+Status: legacy. `CommandParser` was removed from the conversation runtime path.
+
 ## Overview
 
-The command pattern provides a structured way to handle user input that starts with `/`. Each command is a self-contained class that handles parsing, validation, and execution.
+Command classes under `app/services/commands/` remain as plain service objects, but slash-command parsing from message text is no longer part of runtime orchestration.
 
 ## Structure
 
 ```
-app/services/
-├── command_parser.rb          # Entry point - parses commands
-└── commands/
-    ├── base_command.rb        # Abstract base class
-    └── invite_command.rb      # Concrete command implementation
+app/services/commands/
+├── base_command.rb
+└── invite_command.rb
 ```
 
 ## Usage
 
-### Parsing Commands
+### Direct Command Usage
 
 ```ruby
-# In a controller or service
-command = CommandParser.parse("/invite @advisor-name")
-
-if command
-  if command.valid?
-    result = command.execute(conversation: conversation, user: current_user)
-    # result is a hash: { success: true/false, message: "..." }
-  else
-    # Handle validation errors
-    command.errors.each { |error| puts error }
-  end
-end
+command = Commands::InviteCommand.new(["@advisor-name"])
+result = command.execute(conversation: conversation, user: current_user)
 ```
 
 ### Creating a New Command
@@ -38,7 +28,7 @@ end
 1. Create a new class in `app/services/commands/`
 2. Inherit from `Commands::BaseCommand`
 3. Implement `validate` and `execute` methods
-4. Register in `CommandParser::COMMANDS`
+4. Invoke from an explicit endpoint/service (no parser registration)
 
 ```ruby
 # app/services/commands/my_command.rb
@@ -59,11 +49,7 @@ module Commands
   end
 end
 
-# app/services/command_parser.rb
-COMMANDS = {
-  "invite" => Commands::InviteCommand,
-  "mycommand" => Commands::MyCommand  # Add here
-}.freeze
+
 ```
 
 ## Design Principles

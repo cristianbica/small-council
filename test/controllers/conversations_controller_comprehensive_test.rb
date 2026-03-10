@@ -956,10 +956,8 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     get conversation_path(conv2)
     assert_response :success
 
-    # The active conversation should have the border highlight class
-    assert_select "a[href='#{conversation_path(conv2)}']" do |elements|
-      assert elements.any? { |e| e["class"].include?("border-l-4") }
-    end
+    # The active conversation item now uses a highlighted container background.
+    assert_select "div.bg-base-300 a[href='#{conversation_path(conv2)}']", minimum: 1
   end
 
   # ============================================================================

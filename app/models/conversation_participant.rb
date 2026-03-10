@@ -4,6 +4,7 @@ class ConversationParticipant < ApplicationRecord
   belongs_to :conversation
   belongs_to :advisor
 
+  # TODO: drop this pointless thing
   enum :role, {
     advisor: "advisor",
     scribe: "scribe"

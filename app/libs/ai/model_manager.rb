@@ -39,8 +39,7 @@ module AI
       )
 
       # Update with metadata from API
-      client = AI::Client.new(model: llm_model, system_prompt: "")
-      info = client.info
+      info = AI::Client.model_info(model: llm_model)
 
       if info
         # Store full RubyLLM data

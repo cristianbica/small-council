@@ -7,6 +7,14 @@
 - Keep tests close to the behavior they validate.
 - Parallelization threshold is 50: files with < 50 tests run in a single process.
 
+## Staged refactor gate
+
+For staged refactors that land broad runtime/UI changes, require all changed and new lines to be covered before closeout.
+
+- Target: `100%` coverage on changed/new lines in the staged diff.
+- Typical flow: generate changed-line map (`git diff --cached -U0`) and compare against coverage results after targeted + full-suite runs.
+- If any changed lines are uncovered, treat as a blocker until tests are added or scope is reduced.
+
 ## Test setup
 
 ```ruby

@@ -25,6 +25,11 @@ class CouncilsControllerTest < ActionDispatch::IntegrationTest
     set_tenant(@account)
     get new_space_council_url(@space)
     assert_response :success
+    assert_includes response.body, 'data-controller="form-filler"'
+    assert_includes response.body, new_form_filler_path(profile: :council_profile)
+    assert_includes response.body, 'data-form-filler-attribute="name"'
+    assert_includes response.body, 'data-form-filler-attribute="description"'
+    refute_includes response.body, 'data-controller="content-generator"'
   end
 
   test "should create council when authenticated" do
@@ -72,6 +77,8 @@ class CouncilsControllerTest < ActionDispatch::IntegrationTest
     council = @account.councils.create!(name: "Test", user: @user, space: @space)
     get edit_council_url(council)
     assert_response :success
+    assert_includes response.body, new_form_filler_path(profile: :council_profile)
+    refute_includes response.body, 'data-controller="content-generator"'
   end
 
   test "should not get edit for non-creator" do

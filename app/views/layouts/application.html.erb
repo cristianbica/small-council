@@ -6,13 +6,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Small Council">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="turbo-prefetch" content="false">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
     <%= yield :head %>
-
-    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
-    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
 
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
@@ -25,9 +23,11 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="min-h-screen bg-base-100">
+    <body class="min-h-screen bg-base-100"
+      data-controller="page-modal"
+      data-action="turbo:click@document->page-modal#beforeTurboFrameLoad"
+      >
     <%= render "layouts/navigation" %>
-
     <% if flash.any? %>
       <div class="container mx-auto px-4 py-2">
         <% flash.each do |type, message| %>
@@ -53,8 +53,10 @@
       </div>
     <% end %>
 
-    <main class="container mx-auto px-4 py-6">
+    <%= render(layout: "layouts/inner/#{@inner_layout || :default}") do %>
       <%= yield %>
-    </main>
+    <% end %>
+
+    <turbo-frame id="page-modal" class="modal"></turbo-frame>
   </body>
 </html>

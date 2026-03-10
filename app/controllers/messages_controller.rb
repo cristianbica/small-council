@@ -12,28 +12,27 @@ class MessagesController < ApplicationController
       Rails.logger.info "[MessagesController#create] Message #{@message.id} saved successfully"
 
       enqueue_adhoc_title_generation(@message)
+      AI.runtime_for_conversation(@conversation).user_posted(@message)
 
-      lifecycle = ConversationLifecycle.new(@conversation)
-      lifecycle.user_posted_message(@message)
-
-      redirect_to @conversation
+      respond_to do |format|
+        format.turbo_stream { head :no_content }
+        format.html { redirect_to @conversation }
+      end
     else
       Rails.logger.warn "[MessagesController#create] Failed to save message: #{@message.errors.full_messages.join(', ')}"
-      @messages = @conversation.messages.where.not(status: "pending").chronological.includes(:sender)
-      @new_message = @message
-      @available_advisors = available_advisors_for_invite
-      render "conversations/show", status: :unprocessable_entity
+
+      if turbo_frame_request?
+        render partial: "conversations/composer",
+               locals: { conversation: @conversation, new_message: @message },
+               status: :unprocessable_entity
+      else
+        redirect_to @conversation, alert: "Failed to create message"
+      end
     end
   end
 
   def interactions
     @interactions = @message.model_interactions.chronological
-    frame_id = "interactions-frame-#{@message.id}"
-    render partial: "messages/interactions_frame", locals: {
-      frame_id: frame_id,
-      message: @message,
-      interactions: @interactions
-    }
   end
 
   def retry
@@ -50,14 +49,14 @@ class MessagesController < ApplicationController
     Turbo::StreamsChannel.broadcast_replace_to(
       "conversation_#{@conversation.id}",
       target: "message_#{@message.id}",
-      partial: "messages/message",
+      partial: "conversations/message",
       locals: { message: @message, current_user: nil }
     )
 
-    GenerateAdvisorResponseJob.perform_later(
-      advisor_id: @message.sender_id,
-      conversation_id: @conversation.id,
-      message_id: @message.id
+    AI.generate_advisor_response(
+      advisor: @message.sender,
+      message: @message,
+      async: true
     )
 
     redirect_to @conversation, notice: "Retry started."

@@ -10,7 +10,7 @@ class Message < ApplicationRecord
 
   acts_as_tenant :account
   belongs_to :account
-  belongs_to :conversation
+  belongs_to :conversation, touch: true
   belongs_to :sender, polymorphic: true
 
   # Message threading
@@ -45,12 +45,24 @@ class Message < ApplicationRecord
   validates :content, presence: true
 
   scope :chronological, -> { order(created_at: :asc) }
+  scope :visible_in_chat, -> { where.not(status: "pending") }
   scope :root_messages, -> { where(in_reply_to_id: nil) }
   scope :solved, -> { where(pending_advisor_ids: []) }
+
+  after_create_commit -> { broadcast_chat if broadcastable_create? }
+  after_update_commit -> { broadcast_chat if broadcastable_update? }
 
   # Check if message has been solved (all pending advisors responded)
   def solved?
     pending_advisor_ids.blank? || pending_advisor_ids.empty?
+  end
+
+  def from_scribe?
+    sender_type == "Advisor" && sender.scribe?
+  end
+
+  def from_user?
+    sender_type == "User"
   end
 
   # Remove an advisor from pending list
@@ -76,6 +88,10 @@ class Message < ApplicationRecord
     in_reply_to_id.nil?
   end
 
+  def reply?
+    parent_message.present?
+  end
+
   # Get thread messages (this message + all replies recursively)
   def thread_messages
     result = [ self ]
@@ -88,5 +104,32 @@ class Message < ApplicationRecord
   # Check if content mentions @all or @everyone
   def mentions_all?
     content&.match?(ALL_MENTION_REGEX)
+  end
+
+  def mentions
+    self.class.extract_mentions(content)
+  end
+
+  private
+
+  def broadcastable_create?
+    visible_in_chat?
+  end
+
+  def broadcastable_update?
+    visible_in_chat? && (saved_change_to_status? || saved_change_to_content? || saved_change_to_prompt_text? || saved_change_to_debug_data?)
+  end
+
+  def visible_in_chat?
+    !pending?
+  end
+
+  def broadcast_chat
+    broadcast_append_later_to(
+      "conversation_#{conversation_id}",
+      target: "messages",
+      partial: "conversations/message",
+      locals: { message: self }
+    )
   end
 end

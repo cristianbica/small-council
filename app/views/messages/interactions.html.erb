@@ -1,0 +1,21 @@
+<%= turbo_stream_from "message_interactions_#{@message.id}" %>
+
+<div class="h-full flex flex-col">
+	<div class="mb-4">
+		<h3 class="font-bold text-lg">Model Interactions</h3>
+	</div>
+
+	<div class="flex-1 overflow-y-auto">
+		<div id="interactions-list-<%= @message.id %>" class="space-y-4">
+			<% if @interactions.any? %>
+				<% @interactions.each_with_index do |interaction, idx| %>
+					<%= render "messages/interaction_item", interaction: interaction, expanded: (idx == 0) %>
+				<% end %>
+			<% else %>
+				<div id="interactions-empty-<%= @message.id %>" class="text-sm text-base-content/60 py-4">
+					Waiting for model interactions...
+				</div>
+			<% end %>
+		</div>
+	</div>
+</div>

@@ -12,58 +12,41 @@ Advisors generate responses using real LLM APIs. The system supports multiple pr
 
 ```
 app/libs/ai/
-├── client.rb             # Unified wrapper: instance chat + class methods for provider/model ops
-├── content_generator.rb  # High-level intent-based generation (wraps AI::Client)
+├── runner.rb             # Executes task/context/handler/tracker graph (sync or async)
+├── client.rb             # Provider/model operations + chat entrypoint
+├── client/chat.rb        # Class-based chat session wrapper
 ├── model_manager.rb      # Model lifecycle management (enable/disable/sync)
-├── adapters/
-│   └── ruby_llm_tool_adapter.rb  # Wraps AI::Tools::BaseTool for RubyLLM
-├── context_builders/
-│   ├── base_context_builder.rb
-│   ├── conversation_context_builder.rb
-│   └── scribe_context_builder.rb
-├── concerns/             # Shared model concerns
+├── contexts/             # ConversationContext, SpaceContext
+├── tasks/                # RespondTask, TextTask
+├── handlers/             # ConversationResponseHandler, TurboFormFillerHandler
+├── runtimes/             # Open/Consensus/Brainstorming conversation sequencing
+├── trackers/             # UsageTracker, ModelInteractionTracker
 └── tools/
-    ├── base_tool.rb
-  ├── conversations/    # ask_advisor exists but is not currently wired
-    ├── external/         # browse_web
-  └── internal/         # memory + conversation + advisor/council management tools
-
-app/services/
-├── command_parser.rb     # Parse /commands and @mentions from user messages
-└── ...
+    ├── abstract_tool.rb
+    ├── advisors/
+    └── memories/
 ```
 
 ### AI::Client
 
-`AI::Client` is **instance-based**. Instantiate it with a model, tools, and system prompt, then call `.chat`.
+`AI::Client` is **class-based** for runtime chat entry and provider/model operations.
 
 ```ruby
-# Instance usage (typical for response generation)
-client = AI::Client.new(
-  model: advisor.effective_llm_model,
-  tools: [AI::Tools::Internal::QueryMemoriesTool.new],
-  system_prompt: advisor.system_prompt
-)
-response = client.chat(
-  messages: conversation.messages_for_llm,
-  context: { space: space, conversation: conversation, user: user }
-)
-# response is AI::Model::Response: content, tool_calls, usage (AI::Model::TokenUsage)
+# Chat session usage
+chat = AI::Client.chat(model: advisor.effective_llm_model)
+chat.instructions(advisor.system_prompt)
+chat.add_message(role: :user, content: "Hello")
+result = AI::Result.new
+chat.complete(result)
 
 # Provider-level class methods (for connection testing / model listing)
 AI::Client.test_connection(provider: provider)
 AI::Client.list_models(provider: provider)
+AI::Client.model_info(model: llm_model)
 ```
+Runtime interaction records are captured through `AI::Trackers::ModelInteractionTracker` callback hooks and persisted to `ModelInteraction` (plus mirrored tool traces on `messages.tool_calls`). See [Model Interactions](model-interactions.md).
 
-Usage (tokens + cost) is automatically tracked inside `#chat` via `UsageRecord.create!`.
-Model interactions (full request/response payloads) are recorded via event handlers registered in `AI::Client#register_interaction_handler` when `context[:message]` and account context are present. See [Model Interactions](model-interactions.md).
-
-`AI::Client#chat` also injects system guidance messages from context in this order:
-1. Council context (when available)
-2. Memory index context (when available)
-3. Response policy guidance (hard rules: thread-first, tools-only-when-needed, stricter for in-thread replies, no-tools when the user references above/below/previous thread context or provides substantial inline summary/context, and no `[speaker: ...]` response prefixes)
-
-`GenerateAdvisorResponseJob` also sanitizes model output before saving by removing leading `[speaker: ...]` prefixes if present.
+For runtime-owned response generation, sanitization and state persistence now live in `AI::Handlers::ConversationResponseHandler`.
 
 ### Provider#api / LlmModel#api DSL
 
@@ -72,7 +55,7 @@ Model interactions (full request/response payloads) are recorded via event handl
 provider.api.list_models     # => AI::Client.list_models(provider: provider)
 provider.api.test_connection # => AI::Client.test_connection(provider: provider)
 
-# For model-level operations use AI::ContentGenerator or AI::Client.new directly
+# For model-level operations use AI::Client.model_info
 ```
 
 ## Providers
@@ -109,35 +92,43 @@ Advisors reference an `LlmModel` instead of hardcoded provider/model strings.
 
 ## Content Generation
 
-`AI::ContentGenerator` (in `app/libs/ai/content_generator.rb`) handles high-level advisor interactions:
+Conversation replies run through `AI::Runner`:
 
-```ruby
-generator = AI::ContentGenerator.new
-result = generator.generate_advisor_response(
-  advisor: advisor,
-  conversation: conversation,
-  parent_message: message,
-  context: { account: conversation.account, message: message }
-)
-# Returns AI::Model::Response with content, usage, and tool call metadata
-```
+- `MessagesController#create` calls `AI.runtime_for_conversation(@conversation).user_posted(@message)`
+- Runtime classes create `pending` advisor placeholders and call `AI.generate_advisor_response`
+- `AI.generate_advisor_response` builds a `RespondTask` + `ConversationContext`, then runs via `AI::Runner`
+- Async runs enqueue `AIRunnerJob`
+- `AI::Handlers::ConversationResponseHandler` updates message status/content and re-enters runtime sequencing with `advisor_responded`
+
+The utility-generation path for structured form filling uses the same runner primitives:
+
+- `FormFillersController#create` calls `AI.generate_text(..., async: true)`
+- `AI.generate_text` builds a `TextTask` + `SpaceContext`
+- `AI::Runner` executes with default `UsageTracker`
+- `AI::Handlers::TurboFormFillerHandler` broadcasts the result back to the form
+
+See [Form Fillers](form-fillers.md) for the UI and request flow.
+
+Adhoc auto-title generation also uses runner primitives:
+
+- `GenerateConversationTitleJob` calls `AI.generate_text(..., async: false)`
+- Prompt: `tasks/conversation_title`
+- The job normalizes and persists the generated title when present
 
 ## Error Handling
 
-`AI::Client::APIError` and `AI::Client::RateLimitError` are raised when API calls fail. Model-level guards are handled inside `AI::ContentGenerator` (raises `AI::ContentGenerator::NoModelError` when no model is available).
+`AI::Client::APIError` and `AI::Client::RateLimitError` are raised when API calls fail.
 
 ## Background Jobs
 
-`app/jobs/generate_advisor_response_job.rb` processes AI responses asynchronously:
+`app/jobs/ai_runner_job.rb` is the canonical async entrypoint for runtime tasks:
 
-1. Fetch pending message
-2. Set tenant context for multi-tenancy
-3. Determine if scribe followup (`is_scribe_followup` param)
-4. Call `AI::ContentGenerator`
-5. Update message with response content
-6. Broadcast via Turbo Streams
+1. Receives serialized `task`, `context`, `handler`, and optional `tracker`
+2. Rehydrates and executes through `AI::Runner`
 
-Usage records are created automatically by `AI::Client#track_usage`.
+Retry and standard advisor response flows both enqueue `AIRunnerJob` through `AI.generate_advisor_response(..., async: true)`.
+
+Usage records are created automatically by `AI::Trackers::UsageTracker`.
 
 ### Error Handling
 - API errors: Message marked as error with explanation
@@ -160,14 +151,15 @@ Every API call creates a UsageRecord:
 - Calculated cost (using per-model pricing from metadata)
 - Timestamp and associations (account, conversation, message)
 
+For runner-managed flows, `AI::Trackers::UsageTracker` writes usage records after task completion.
+
 ## Current Tool Wiring
 
-`AI::ContentGenerator#advisor_tools` currently wires:
+Tool wiring is task/agent-driven:
 
-- **Non-scribe advisors:** no tools
-- **Scribe tools (20 total):** read-only tools `query_memories`, `list_memories`, `read_memory`, `browse_web`, `query_conversations`, `list_conversations`, `read_conversation`, `get_conversation_summary` plus write/admin tools `create_memory`, `update_memory`, `create_advisor`, `list_advisors`, `get_advisor`, `update_advisor`, `create_council`, `list_councils`, `get_council`, `update_council`, `assign_advisor_to_council`, `unassign_advisor_from_council`
-
-`ask_advisor_tool.rb` exists in `app/libs/ai/tools/conversations/` but is not currently included in `advisor_tools`.
+- `AI::Tasks::BaseTask#register_tools` resolves tool refs from `agent.tools`
+- `AI.tools(*refs)` resolves classes through `AI::Tools::AbstractTool::REGISTRY`
+- `AI::Agents::AdvisorAgent` currently returns `memories/*` for scribe contexts and no tools for non-scribe contexts
 
 ## Routes
 
@@ -199,7 +191,8 @@ AI::Client.stubs(:list_models).returns([{ id: "gpt-4", name: "GPT-4" }])
 - `test/services/provider_connection_tester_test.rb`
 - `test/ai/unit/client_test.rb`
 - `test/ai/unit/model_manager_test.rb`
-- `test/jobs/generate_advisor_response_job_test.rb`
+- `test/ai/runner_test.rb`
+- `test/libs/ai/tasks/respond_task_test.rb`
 
 ## Security
 

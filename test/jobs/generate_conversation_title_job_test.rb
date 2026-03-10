@@ -35,9 +35,9 @@ class GenerateConversationTitleJobTest < ActiveJob::TestCase
       content: "Can you help me design a launch plan?"
     )
 
-    mock_generator = mock("generator")
-    mock_generator.expects(:generate_conversation_title).returns("Launch Plan")
-    AI::ContentGenerator.expects(:new).returns(mock_generator)
+    result = AI::Result.new
+    result.content = "Launch Plan"
+    AI.expects(:generate_text).returns(result)
 
     GenerateConversationTitleJob.perform_now(conversation.id, first_message.id)
 
@@ -61,7 +61,7 @@ class GenerateConversationTitleJobTest < ActiveJob::TestCase
       content: "Please review this architecture"
     )
 
-    AI::ContentGenerator.expects(:new).never
+    AI.expects(:generate_text).never
 
     GenerateConversationTitleJob.perform_now(conversation.id, first_message.id)
 
@@ -90,7 +90,7 @@ class GenerateConversationTitleJobTest < ActiveJob::TestCase
       content: "Second message"
     )
 
-    AI::ContentGenerator.expects(:new).never
+    AI.expects(:generate_text).never
 
     GenerateConversationTitleJob.perform_now(conversation.id, second_message.id)
 

@@ -1,0 +1,37 @@
+<% i18n_scope = "form_fillers.profiles.#{@profile[:id]}" %>
+<turbo-frame id="<%= "form_filler_panel_#{@filler_id}" %>">
+  <h3 class="font-bold text-lg mb-4"><%= t(:modal_title, scope: i18n_scope) %></h3>
+
+  <p class="text-sm text-base-content/70 mb-4"><%= t(:helper_text, scope: i18n_scope) %></p>
+
+  <% if @error.present? %>
+    <div class="alert alert-error mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span><%= @error %></span>
+    </div>
+  <% end %>
+
+  <%= form_with url: form_filler_path, method: :post do |form| %>
+    <%= form.hidden_field :profile, value: @profile[:id] %>
+    <%= form.hidden_field :filler_id, value: @filler_id %>
+
+    <div class="form-control mb-4">
+      <%= form.label :description, class: "label" do %>
+        <span class="label-text"><%= t(:description_label, scope: i18n_scope) %></span>
+      <% end %>
+      <%= form.text_area :description,
+          value: params[:description],
+          class: "textarea textarea-bordered w-full",
+          rows: 4,
+          placeholder: t(:description_placeholder, scope: i18n_scope),
+          autofocus: true %>
+    </div>
+
+    <div class="modal-action">
+      <%= form.submit t(:submit_label, scope: i18n_scope), class: "btn btn-primary" %>
+    </div>
+  <% end %>
+
+</turbo-frame>

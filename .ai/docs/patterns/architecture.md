@@ -14,14 +14,15 @@ Multi-tenant Rails architecture with clear separation of concerns.
 ├─────────────────────────────────────────────────────────┤
 │  Services (app/services/)                                 │
 │  - Orchestrate complex operations                       │
-│  - ConversationLifecycle, ProviderConnectionTester, etc. │
+│  - ProviderConnectionTester, InlineDiff                  │
 ├─────────────────────────────────────────────────────────┤
 │  AI Lib (app/libs/ai/)                                  │
-│  - AI::Client (LLM wrapper, usage tracking)             │
-│  - AI::ContentGenerator (intent-based generation)       │
-│  - AI::ModelManager (model sync/lifecycle)              │
-│  - AI::Tools (BaseTool + current tool inventory in app/libs/ai/tools/) │
-│  - AI::ContextBuilders (conversation context assembly)  │
+│  - AI::Runner (task/context/handler/tracker execution)  │
+│  - AI::Contexts / AI::Tasks / AI::Handlers              │
+│  - AI::Runtimes::*ConversationRuntime (RoE sequencing)  │
+│  - AI::Trackers (usage + model-interaction persistence) │
+│  - AI::Client + AI::Client::Chat (transport/session)    │
+│  - AI::Tools::AbstractTool + registry-based inventory   │
 ├─────────────────────────────────────────────────────────┤
 │  Models (app/models/)                                   │
 │  - Data integrity and validation                        │
@@ -73,8 +74,8 @@ All queries automatically scoped
 
 Used for complex orchestration:
 
-- `AI::ContentGenerator` - High-level LLM API abstraction (intent-based)
-- `ConversationLifecycle` - Rules of Engagement logic and advisor orchestration
+- `AI::Runner` - Rehydrates and executes task/context/handler/tracker graphs
+- `AI::Runtimes::*ConversationRuntime` - RoE-specific advisor sequencing
 - `ProviderConnectionTester` - Validates API credentials before saving
 - `InlineDiff` - Word-level diff display for memory versions
 

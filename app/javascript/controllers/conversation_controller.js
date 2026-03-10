@@ -81,6 +81,16 @@ export default class extends Controller {
     }
   }
 
+  handleSubmitEnd(event) {
+    if (!event.detail.success) {
+      return
+    }
+
+    event.target.reset()
+    this.autoExpand()
+    this.updateCharCount()
+  }
+
   // Scroll messages container to bottom
   scrollToBottom() {
     if (this.hasMessagesContainerTarget) {

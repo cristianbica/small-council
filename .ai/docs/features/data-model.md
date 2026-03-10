@@ -115,6 +115,7 @@ Individual messages in conversations with polymorphic sender.
 - `content` — Plain text
 - `content_blocks` (jsonb array) — Structured content (thinking, code, etc.)
 - `metadata` (jsonb) — Tokens, latency, model version
+- `tool_calls` (jsonb array) — Ordered tool trace (`tool_call`/`tool_result`) persisted during runtime
 - `status` — pending, responding, complete, error, cancelled
 
 ### usage_records
@@ -141,8 +142,8 @@ Audit trail for memory edits.
 ### model_interactions
 LLM API request/response recording per message.
 - `sequence` — 0-indexed order per message
-- `request_payload` (JSONB) — model, provider, temperature, system_prompt, tools, messages
-- `response_payload` (JSONB) — content, tool_calls, tokens, model_used
+- `request_payload` (JSONB) — model/provider setup, tools, messages (shape depends on interaction type)
+- `response_payload` (JSONB) — assistant/tool payload with token/model metadata when available
 - `model_identifier` — Denormalized for quick display
 - `input_tokens`, `output_tokens` — Token counts
 - `duration_ms` — Wall-clock API latency

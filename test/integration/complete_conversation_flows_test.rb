@@ -75,7 +75,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     assert_select "h1", conversation.title
 
     # Step 3: Post message with mention in Open RoE
-    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
+    assert_enqueued_jobs 1, only: AIRunnerJob do
       post conversation_messages_path(conversation), params: {
         message: { content: "@strategic-advisor what do you think?" }
       }
@@ -83,7 +83,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     assert_redirected_to conversation_path(conversation)
 
     # Step 4: Post message without mention (no responses in Open RoE)
-    assert_no_enqueued_jobs do
+    assert_no_enqueued_jobs only: AIRunnerJob do
       post conversation_messages_path(conversation), params: {
         message: { content: "What does everyone think?" }
       }
@@ -108,9 +108,9 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     assert_equal "consensus", conversation.roe_type
 
     # In Consensus, all participants respond without mentions (including scribe)
-    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
+    assert_enqueued_jobs 1, only: AIRunnerJob do
       post conversation_messages_path(conversation), params: {
-        message: { content: "What do you all think?" }
+        message: { content: "@strategic-advisor What do you all think?" }
       }
     end
   end
@@ -132,9 +132,9 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     assert_equal "brainstorming", conversation.roe_type
 
     # In Brainstorming, all participants respond (including scribe)
-    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
+    assert_enqueued_jobs 1, only: AIRunnerJob do
       post conversation_messages_path(conversation), params: {
-        message: { content: "Brainstorm ideas for our product" }
+        message: { content: "@technical-expert Brainstorm ideas for our product" }
       }
     end
   end
@@ -180,9 +180,9 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     assert_select "h1", "Q4 Planning Meeting"
 
     # Step 3: Post message
-    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
+    assert_enqueued_jobs 1, only: AIRunnerJob do
       post conversation_messages_path(conversation), params: {
-        message: { content: "What are our priorities?" }
+        message: { content: "@strategic-advisor What are our priorities?" }
       }
     end
 
@@ -197,104 +197,6 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
       delete conversation_path(conversation)
     end
     assert_redirected_to council_conversations_path(council)
-  end
-
-  # ============================================================================
-  # SCRIBE FOLLOW-UP FLOW
-  # ============================================================================
-
-  test "scribe follow-up flow - 0 to 3 attempts" do
-    sign_in_as(@user)
-    set_tenant(@account)
-
-    council = @account.councils.create!(
-      name: "Scribe Test Council",
-      user: @user,
-      space: @space
-    )
-
-    conversation = @account.conversations.create!(
-      title: "Scribe Test",
-      user: @user,
-      council: council,
-      conversation_type: :council_meeting,
-      roe_type: :open,
-      scribe_initiated_count: 0,
-      space: @space
-    )
-    conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
-    conversation.conversation_participants.create!(advisor: @scribe, role: :scribe)
-
-    # Create a root message with pending advisor
-    message = conversation.messages.create!(
-      account: @account,
-      sender: @user,
-      role: "user",
-      content: "@strategic-advisor what do you think?",
-      pending_advisor_ids: [ @advisor1.id ]
-    )
-
-    # Simulate advisor response - should trigger scribe (count becomes 1)
-    reply = conversation.messages.create!(
-      account: @account,
-      sender: @advisor1,
-      role: "advisor",
-      content: "Here's my analysis",
-      parent_message: message,
-      status: "complete"
-    )
-
-    lifecycle = ConversationLifecycle.new(conversation)
-    assert_enqueued_with(job: GenerateAdvisorResponseJob) do
-      lifecycle.advisor_responded(reply)
-    end
-    assert_equal 1, conversation.reload.scribe_initiated_count
-  end
-
-  test "scribe follow-up stops after 3 attempts" do
-    sign_in_as(@user)
-    set_tenant(@account)
-
-    council = @account.councils.create!(
-      name: "Scribe Limit Council",
-      user: @user,
-      space: @space
-    )
-
-    conversation = @account.conversations.create!(
-      title: "Scribe Limit Test",
-      user: @user,
-      council: council,
-      conversation_type: :council_meeting,
-      roe_type: :open,
-      scribe_initiated_count: 3,
-      space: @space
-    )
-    conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
-    conversation.conversation_participants.create!(advisor: @scribe, role: :scribe)
-
-    message = conversation.messages.create!(
-      account: @account,
-      sender: @user,
-      role: "user",
-      content: "Test",
-      pending_advisor_ids: [ @advisor1.id ]
-    )
-
-    reply = conversation.messages.create!(
-      account: @account,
-      sender: @advisor1,
-      role: "advisor",
-      content: "Reply",
-      parent_message: message,
-      status: "complete"
-    )
-
-    lifecycle = ConversationLifecycle.new(conversation)
-    assert_no_enqueued_jobs do
-      lifecycle.advisor_responded(reply)
-    end
-    assert_equal 3, conversation.reload.scribe_initiated_count
   end
 
   # ============================================================================
@@ -317,7 +219,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     conversation.conversation_participants.create!(advisor: @scribe, role: :scribe)
 
     # @all includes all advisors (2 advisors)
-    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
+    assert_enqueued_jobs 1, only: AIRunnerJob do
       post conversation_messages_path(conversation), params: {
         message: { content: "@all what are your thoughts?" }
       }
@@ -340,7 +242,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     conversation.conversation_participants.create!(advisor: @scribe, role: :scribe)
 
     # @everyone includes all advisors (2 advisors)
-    assert_enqueued_jobs 1, only: GenerateAdvisorResponseJob do
+    assert_enqueued_jobs 1, only: AIRunnerJob do
       post conversation_messages_path(conversation), params: {
         message: { content: "@everyone please respond" }
       }
@@ -348,102 +250,10 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
   end
 
   # ============================================================================
-  # DEPTH LIMIT ENFORCEMENT FLOW
-  # ============================================================================
-
-  test "depth limit enforcement in Open RoE" do
-    sign_in_as(@user)
-    set_tenant(@account)
-
-    conversation = @account.conversations.create!(
-      title: "Depth Test",
-      user: @user,
-      conversation_type: :adhoc,
-      roe_type: :open,
-      scribe_initiated_count: 3,  # Disable scribe
-      space: @space
-    )
-    conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
-
-    # Root message triggers reply (depth 0 -> depth 1)
-    root_msg = conversation.messages.create!(
-      account: @account,
-      sender: @user,
-      role: "user",
-      content: "@strategic-advisor help",
-      pending_advisor_ids: [ @advisor1.id ]
-    )
-
-    # Advisor reply at depth 1
-    reply = conversation.messages.create!(
-      account: @account,
-      sender: @advisor1,
-      role: "advisor",
-      content: "Reply at depth 1",
-      parent_message: root_msg,
-      status: "complete"
-    )
-
-    # At depth 1 in Open RoE (max depth = 1), no new messages should be triggered
-    lifecycle = ConversationLifecycle.new(conversation)
-    assert_no_enqueued_jobs do
-      lifecycle.advisor_responded(reply)
-    end
-  end
-
-  test "depth limit enforcement in Consensus RoE allows depth 2" do
-    sign_in_as(@user)
-    set_tenant(@account)
-
-    conversation = @account.conversations.create!(
-      title: "Depth Test Consensus",
-      user: @user,
-      conversation_type: :adhoc,
-      roe_type: :consensus,
-      scribe_initiated_count: 3,
-      space: @space
-    )
-    conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
-    conversation.conversation_participants.create!(advisor: @advisor2, role: :advisor, position: 1)
-
-    # Messages at depth 2 should not trigger new responses
-    root_msg = conversation.messages.create!(
-      account: @account,
-      sender: @user,
-      role: "user",
-      content: "Root"
-    )
-
-    level1 = conversation.messages.create!(
-      account: @account,
-      sender: @advisor1,
-      role: "advisor",
-      content: "Level 1",
-      parent_message: root_msg,
-      pending_advisor_ids: [ @advisor2.id ]
-    )
-
-    level2 = conversation.messages.create!(
-      account: @account,
-      sender: @advisor2,
-      role: "advisor",
-      content: "Level 2",
-      parent_message: level1,
-      status: "complete"
-    )
-
-    lifecycle = ConversationLifecycle.new(conversation)
-    # At depth 2 (max depth in Consensus), no new messages
-    assert_no_enqueued_jobs do
-      lifecycle.advisor_responded(level2)
-    end
-  end
-
-  # ============================================================================
   # COMMAND EXECUTION FLOW
   # ============================================================================
 
-  test "command execution flow - invite advisor" do
+  test "slash invite text does not auto-invite advisors" do
     sign_in_as(@user)
     set_tenant(@account)
 
@@ -457,18 +267,18 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     conversation.conversation_participants.create!(advisor: @scribe, role: :scribe)
 
-    # Invite new advisor via command
-    assert_difference("ConversationParticipant.count", 1) do
+    # Slash commands are no longer parsed in the runtime path.
+    assert_no_difference("ConversationParticipant.count") do
       post conversation_messages_path(conversation), params: {
         message: { content: "/invite @technical-expert" }
       }
     end
 
     assert_redirected_to conversation_path(conversation)
-    assert_includes conversation.advisors.reload, @advisor2
+    assert_not_includes conversation.advisors.reload, @advisor2
   end
 
-  test "command execution flow - invalid command shows error" do
+  test "slash command-like text is stored as a normal user message" do
     sign_in_as(@user)
     set_tenant(@account)
 
@@ -481,16 +291,14 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
-    # Invalid command without mention
-    assert_difference("Message.where(role: :system).count", 1) do
+    assert_difference("Message.where(role: :user).count", 1) do
       post conversation_messages_path(conversation), params: {
         message: { content: "/invite" }
       }
     end
 
     assert_redirected_to conversation_path(conversation)
-    error_msg = Message.where(role: :system).last
-    assert_includes error_msg.content, "Command error"
+    assert_equal "/invite", Message.where(role: :user).last.content
   end
 
   # ============================================================================

@@ -50,7 +50,7 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
   test "posting message creates pending advisor message" do
     assert_difference "Message.count", 2 do
       post conversation_messages_path(@conversation), params: {
-        message: { content: "Hello AI advisor" }
+        message: { content: "Hello @helper-bot" }
       }
     end
 
@@ -60,94 +60,25 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
     assert_equal @advisor, placeholder.sender
     assert_equal "pending", placeholder.status
     assert_equal "advisor", placeholder.role
-    assert_match(/thinking/, placeholder.content)
+    assert_equal "...", placeholder.content
   end
 
   test "background job enqueued on message create" do
-    assert_enqueued_with(job: GenerateAdvisorResponseJob) do
+    assert_enqueued_with(job: AIRunnerJob) do
       post conversation_messages_path(@conversation), params: {
-        message: { content: "Trigger AI response" }
+        message: { content: "Trigger @helper-bot response" }
       }
     end
   end
 
-  test "usage record created after AI response" do
-    # Mock AI response with new AI system
-    token_usage = AI::Model::TokenUsage.new(input: 50, output: 25)
-    mock_response = AI::Model::Response.new(
-      content: "Here's my response!",
-      usage: token_usage
-    )
-
-    mock_generator = mock("generator")
-    mock_generator.expects(:generate_advisor_response).returns(mock_response)
-    AI::ContentGenerator.expects(:new).returns(mock_generator)
-
-    # Create pending message
-    message = @conversation.messages.create!(
-      account: @account,
-      sender: @advisor,
-      role: "system",
-      content: "Thinking...",
-      status: "pending"
-    )
-
-    # UsageRecord is created by AI::Client#track_usage on real calls.
-    # In tests, AI::ContentGenerator is mocked so AI::Client is never invoked.
-    GenerateAdvisorResponseJob.perform_now(
-      advisor_id: @advisor.id,
-      conversation_id: @conversation.id,
-      message_id: message.id
-    )
-
-    message.reload
-    assert_equal "complete", message.status
-    assert_equal "Here's my response!", message.content
-    assert_equal "advisor", message.role
-  end
-
-  test "message updated after AI response" do
-    token_usage = AI::Model::TokenUsage.new(input: 10, output: 5)
-    mock_response = AI::Model::Response.new(
-      content: "AI generated response",
-      usage: token_usage
-    )
-
-    mock_generator = mock("generator")
-    mock_generator.expects(:generate_advisor_response).returns(mock_response)
-    AI::ContentGenerator.expects(:new).returns(mock_generator)
-
-    message = @conversation.messages.create!(
-      account: @account,
-      sender: @advisor,
-      role: "system",
-      content: "Thinking...",
-      status: "pending"
-    )
-
-    GenerateAdvisorResponseJob.perform_now(
-      advisor_id: @advisor.id,
-      conversation_id: @conversation.id,
-      message_id: message.id
-    )
-
-    message.reload
-    assert_equal "complete", message.status
-    assert_equal "AI generated response", message.content
-    assert_equal "advisor", message.role
-  end
-
-  test "silence mode does not create advisor messages" do
+  test "open mode with a single advisor creates one pending advisor message" do
     # Create a conversation in Open RoE with @advisor1
     @conversation.update!(roe_type: :open)
 
-    assert_difference "Message.count", 1 do
+    assert_difference "Message.count", 2 do
       post conversation_messages_path(@conversation), params: {
         message: { content: "Hello without mentions" }
       }
     end
-
-    # Only user message, no advisor message (Open RoE requires mentions)
-    assert_equal 1, @conversation.messages.count
   end
 end

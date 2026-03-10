@@ -4,7 +4,7 @@ Users can start conversations with AI advisors in their councils.
 
 ## Overview
 
-Conversations are chat sessions tied to a specific space (and optionally a council). Each conversation has a title and can have multiple messages. Users can post messages and advisors respond based on the Rules of Engagement (RoE) mode. When advisors are triggered, placeholder "thinking..." messages appear immediately, and AI responses are generated asynchronously via background jobs.
+Conversations are chat sessions tied to a specific space (and optionally a council). Each conversation has a title and can have multiple messages. Users can post messages and advisors respond based on the Rules of Engagement (RoE) mode. User posts update the chat in place, and advisor responses are generated asynchronously via the conversation runtime.
 
 ## Usage
 
@@ -19,8 +19,8 @@ Conversations are chat sessions tied to a specific space (and optionally a counc
 1. Open a conversation from the council page or conversation list
 2. Type message in the text area at bottom
 3. Click "Post Message"
-4. Message appears in the chat area (user messages on right, others on left)
-5. AI advisors generate responses asynchronously; placeholders show "thinking..."
+4. Message appears in the chat area without a redirect (user messages on right, others on left)
+5. Advisor placeholders stay hidden while `pending`; they appear only after transitioning to `responding`
 
 ### Deleting a conversation
 1. Open the conversation list row actions (3-dots menu)
@@ -62,15 +62,15 @@ Conversations are chat sessions tied to a specific space (and optionally a counc
 
 ### Controllers
 - `ConversationsController`: index, show, new, create, update, destroy, finish, archive, invite_advisor, quick_create
-- `MessagesController`: create (enqueues AI response jobs + adhoc first-message auto-title job)
+- `MessagesController`: create (starts the conversation runtime + adhoc first-message auto-title job)
 - `ProvidersController`: manage AI provider credentials
 
 ### Services
-- `ConversationLifecycle`: Orchestrates message flow and advisor responses
-- `AI::ContentGenerator`: Calls LLM APIs via `AI::Client` instance with conversation context, including adhoc title generation
+- `AI::Runtimes::*ConversationRuntime`: orchestrate responder selection, placeholder creation, and turn sequencing (`user_posted` / `advisor_responded`)
+- `AI::Runner`: executes conversation `RespondTask` and utility `TextTask` with context/handler/tracker decomposition
 
 ### Jobs
-- `GenerateAdvisorResponseJob`: Async AI response generation, usage tracking, Turbo Stream broadcasts
+- `AIRunnerJob`: canonical async runner for task/context/handler execution
 - `GenerateConversationTitleJob`: Async title generation for adhoc conversations after the first user message
 
 ### Access Control
@@ -83,7 +83,7 @@ Conversations are chat sessions tied to a specific space (and optionally a counc
 ### Styling
 - DaisyUI card, btn, badge classes
 - Chat bubbles: user messages (primary color, right), others (neutral, left)
-- Pending messages show pulse animation and "Thinking" indicator
+- Responding and error messages update through the shared conversation stream
 - Error messages show error bubble styling
 - Inline actions (copy/debug/interactions) appear on hover/focus in the message footer
 - Conversation and council meeting chat views share the same chat UI; only adhoc conversations show the sidebar
@@ -116,37 +116,32 @@ Use `@advisor-name` in messages to trigger specific advisors:
 ### AI Response Flow
 
 1. User posts message
-2. `MessagesController` calls `ConversationLifecycle#user_posted_message`
-3. Placeholder messages are created with `pending` status for all selected responders
-4. Jobs are enqueued in turn order (one advisor at a time per parent message)
-5. Placeholder remains hidden while `pending`; when a job starts it transitions to `responding` and is appended in chat
-6. Background job:
-   - Calls `AI::ContentGenerator#generate_advisor_response`
-   - Updates placeholder with AI response and `complete` status
-   - `ConversationLifecycle#advisor_responded` enqueues the next pending advisor for that same parent message
-   - Creates `UsageRecord` (auto-tracked inside `AI::Client#chat`)
-   - Broadcasts via Turbo Streams to update UI in real-time
-7. User sees live message replacement without page refresh
+2. `MessagesController` saves the user message and calls `AI.runtime_for_conversation(@conversation).user_posted(@message)`
+3. New-runtime messages are marked for model-owned Turbo broadcasts on the conversation stream
+4. Placeholder messages are created with `pending` status for selected responders but stay hidden
+5. When a response run starts, the placeholder transitions to `responding` and is appended in chat
+6. `AI::Handlers::ConversationResponseHandler` strips optional `[speaker: ...]` prefixes, persists completed/failed state, and notifies runtime sequencing
+7. The `Message` model broadcasts the append/replace updates so the chat stays live without a redirect
 
 ### Adhoc Auto-title Flow
 
 1. User posts first message in an `adhoc` conversation
 2. `MessagesController` enqueues `GenerateConversationTitleJob` only when title is not manually locked
-3. Job calls `AI::ContentGenerator#generate_conversation_title`
+3. Job calls `AI.generate_text` with `tasks/conversation_title`
 4. On success, conversation title is updated
 5. On error/blank generation, title is left unchanged
 
 ### Error Handling
 
-- API errors: Message updated with error content and `error` status
-- Empty responses: Marked as error with appropriate message
-- All errors broadcast via Turbo Streams
+- API errors: Message updated with `API Error: ...` and `error` status
+- Empty responses: Marked as `Empty response from AI`
+- New-runtime message visibility still excludes `pending` on refresh so initial load matches live updates
 
 ### Implementation
 
 - `roe_type` stored as string enum: `open`, `consensus`, `brainstorming`; default: `open`
-- `ConversationLifecycle` service handles all RoE logic, advisor triggering, depth control
-- `AI::ContentGenerator` handles prompt building; `AI::Client` handles LLM call + usage tracking
+- Conversation runtime classes (`OpenConversationRuntime`, `ConsensusConversationRuntime`, `BrainstormingConversationRuntime`) own RoE behavior for current message posting flow
+- `AI::Tasks::RespondTask` and `AI::Client::Chat` handle chat prompt assembly and LLM execution
 - Credentials encrypted with Rails encrypted attributes
 - Turbo Streams provide real-time UI updates
 - Delete action uses `destroy!` with authorization check

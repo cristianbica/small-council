@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  account: one
+  conversation: one
+  advisor: one
+  role: participant
+
+two:
+  account: one
+  conversation: one
+  advisor: two
+  role: participant
+
+consensus_one:
+  account: one
+  conversation: consensus
+  advisor: one
+  role: participant

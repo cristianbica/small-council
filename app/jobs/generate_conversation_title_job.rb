@@ -14,19 +14,23 @@ class GenerateConversationTitleJob < ApplicationJob
 
     ActsAsTenant.current_tenant = conversation.account
 
-    title = AI::ContentGenerator.new.generate_conversation_title(
-      conversation: conversation,
-      first_message_content: first_message.content
+    result = AI.generate_text(
+      prompt: "tasks/conversation_title",
+      description: first_message.content,
+      space: conversation.space,
+      account: conversation.account,
+      async: false
     )
+    title = result&.content
     return if title.blank?
 
     title = title.to_s.squish.first(255)
     return if title.blank?
 
     Conversation.where(id: conversation.id, title_locked: false).update_all(title: title, updated_at: Time.current)
-  rescue AI::ContentGenerator::NoModelError => e
-    Rails.logger.warn "[GenerateConversationTitleJob] No model available for conversation #{conversation_id}: #{e.message}"
-  rescue AI::ContentGenerator::GenerationError => e
+  rescue AI::ResolutionError => e
+    Rails.logger.warn "[GenerateConversationTitleJob] Title generation setup failed for conversation #{conversation_id}: #{e.message}"
+  rescue AI::Client::Error => e
     Rails.logger.warn "[GenerateConversationTitleJob] Title generation failed for conversation #{conversation_id}: #{e.message}"
   rescue => e
     Rails.logger.error "[GenerateConversationTitleJob] Unexpected error for conversation #{conversation_id}: #{e.message}"

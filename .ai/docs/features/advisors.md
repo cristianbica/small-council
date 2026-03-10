@@ -18,7 +18,10 @@ AI personas with configurable LLM models and system prompts.
    - Name (display name, e.g., "Helper Bot")
    - System prompt (defines personality/behavior)
    - Select LLM model (from account's configured models)
-4. Save - advisor is available for councils
+4. Optional: use "Generate with AI" on the advisor form to open the reusable form-filler modal. Submitting a role description asynchronously fills `name`, `short_description`, and `system_prompt` when the structured result arrives.
+5. Save - advisor is available for councils
+
+See [Form Fillers](form-fillers.md) for the shared modal/runtime flow.
 
 ### System Prompts
 System prompts define advisor behavior:
@@ -46,6 +49,8 @@ Best practices:
 /spaces/:space_id/advisors/:id           # show, edit, update, destroy
 /councils/:id/edit_advisors              # edit council membership
 /councils/:id/update_advisors            # update council membership
+/form_filler/new?profile=advisor_profile # Turbo-streamed modal for AI form fill
+/form_filler                             # queue async AI form fill request
 ```
 
 Scribe membership is mandatory in every council and cannot be removed in the council membership editor.
@@ -61,6 +66,7 @@ Scribe membership is mandatory in every council and cannot be removed in the cou
 - `AdvisorsController`: CRUD within space context (`/spaces/:space_id/advisors`)
 - Name normalization + validation enforce canonical handles
 - Automatic account scoping via acts_as_tenant
+- AI-assisted draft generation is now handled by `FormFillersController`, not a dedicated advisor generation endpoint
 
 ### Access Control
 - All account users can view all advisors
@@ -81,14 +87,14 @@ Account
 
 When an advisor is triggered to respond:
 
-1. `GenerateAdvisorResponseJob` enqueues
-2. Job sets tenant context and `Current.space`
-3. `AI::ContentGenerator#generate_advisor_response` builds context and calls `AI::Client.new(model:, tools:, system_prompt:).chat(...)`
+1. `AI.generate_advisor_response(..., async: true)` enqueues `AIRunnerJob`
+2. `AI::Runner` executes `RespondTask` with `ConversationContext`
+3. `AI::Client::Chat` performs model completion
 4. API call made with:
    - System prompt as system message
    - Conversation history as context
    - User message as prompt
-5. Response saved as Message with advisor as sender; `UsageRecord` auto-created
+5. `ConversationResponseHandler` persists advisor message status/content and continues runtime sequencing
 
 ## Message Polymorphism
 
@@ -109,20 +115,12 @@ message.sender_id    # advisor.id
 
 Regular advisors currently have no tool access.
 
-Scribe has all read/admin/write tool access, including memory, conversation, advisor, and council management tools (see [Council Management Tools](council-management-tools.md)).
-
-### ask_advisor status
-
-`AI::Tools::Conversations::AskAdvisorTool` still exists in code but is not currently wired into `AI::ContentGenerator#advisor_tools`.
+Scribe gets memory-tool access through the runtime agent configuration.
 
 ### Tool Implementation
 
-Tools are implemented in `app/libs/ai/tools/internal/` and `app/libs/ai/tools/conversations/`:
-- `AI::Tools::Internal::QueryMemoriesTool` - Memory search
-- `AI::Tools::Internal::QueryConversationsTool` - Conversation search
-- `AI::Tools::Internal::ReadConversationTool` - Read conversation messages
-
-All tools inherit from `AI::Tools::BaseTool` and receive context at execution time (not construction time).
+Tools are implemented under `app/libs/ai/tools/memories/` and `app/libs/ai/tools/advisors/`.
+All tools inherit from `AI::Tools::AbstractTool` and are attached by runtime tasks.
 See [Tool System pattern](../patterns/tool-system.md) for implementation details.
 
 ## Implementation Notes

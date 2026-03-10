@@ -1,0 +1,43 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  account: one
+  conversation: one
+  sender: one (User)
+  role: user
+  content: Hello advisors, what do you think about this topic?
+  status: complete
+
+two:
+  account: one
+  conversation: one
+  sender: one (Advisor)
+  role: advisor
+  content: I have some thoughts on this matter.
+  status: complete
+  parent_message: one
+
+pending:
+  account: one
+  conversation: one
+  sender: two (Advisor)
+  role: advisor
+  content: ...
+  status: pending
+  parent_message: one
+
+consensus_user_topic:
+  account: one
+  conversation: consensus
+  sender: one (User)
+  role: user
+  content: We need to reach consensus on the project timeline.
+  status: complete
+
+consensus_round1:
+  account: one
+  conversation: consensus
+  sender: one (Advisor)
+  role: advisor
+  content: Round 1 - Please share your initial thoughts.
+  status: complete

@@ -146,10 +146,18 @@ class ConversationTest < ActiveSupport::TestCase
   end
 
   # Scope tests
-  test "recent scope orders by last_message_at descending" do
+  test "recent scope orders by updated_at descending" do
     conv1 = @account.conversations.create!(council: @council, user: @user, title: "Conv 1", last_message_at: 1.hour.ago, space: @space)
     conv2 = @account.conversations.create!(council: @council, user: @user, title: "Conv 2", last_message_at: 1.minute.ago, space: @space)
     conv3 = @account.conversations.create!(council: @council, user: @user, title: "Conv 3", last_message_at: 1.day.ago, space: @space)
+
+    conv1.touch
+    conv2.touch
+    conv3.touch
+
+    conv1.update_column(:updated_at, 2.hours.ago)
+    conv2.update_column(:updated_at, 1.minute.ago)
+    conv3.update_column(:updated_at, 1.day.ago)
 
     ordered = Conversation.recent.to_a
     assert_equal [ conv2, conv1, conv3 ], ordered

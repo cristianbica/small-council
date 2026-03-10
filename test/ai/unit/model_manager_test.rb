@@ -61,9 +61,7 @@ class AI::ModelManagerTest < ActiveSupport::TestCase
 
   # enable_model tests
   test "enable_model creates new record when model does not exist" do
-    mock_client = mock("ai_client")
-    mock_client.stubs(:info).returns(nil)
-    AI::Client.stubs(:new).returns(mock_client)
+    AI::Client.stubs(:model_info).returns(nil)
 
     assert_difference "LLMModel.count", 1 do
       result = AI::ModelManager.enable_model(@account, @provider, "new-model")
@@ -76,9 +74,7 @@ class AI::ModelManagerTest < ActiveSupport::TestCase
     existing = @provider.llm_models.create!(
       account: @account, name: "Old Name", identifier: "gpt-4", enabled: false
     )
-    mock_client = mock("ai_client")
-    mock_client.stubs(:info).returns(nil)
-    AI::Client.stubs(:new).returns(mock_client)
+    AI::Client.stubs(:model_info).returns(nil)
 
     assert_no_difference "LLMModel.count" do
       result = AI::ModelManager.enable_model(@account, @provider, "gpt-4")
@@ -88,9 +84,7 @@ class AI::ModelManagerTest < ActiveSupport::TestCase
   end
 
   test "enable_model uses model_id as name fallback when api.info is nil" do
-    mock_client = mock("ai_client")
-    mock_client.stubs(:info).returns(nil)
-    AI::Client.stubs(:new).returns(mock_client)
+    AI::Client.stubs(:model_info).returns(nil)
 
     result = AI::ModelManager.enable_model(@account, @provider, "openai/gpt-4-turbo")
     # Falls back to last part of model_id after split("/")
@@ -109,9 +103,7 @@ class AI::ModelManagerTest < ActiveSupport::TestCase
       "structured_output" => false,
       "pricing" => { "input" => 0.01, "output" => 0.03 }
     })
-    mock_client = mock("ai_client")
-    mock_client.stubs(:info).returns(mock_info)
-    AI::Client.stubs(:new).returns(mock_client)
+    AI::Client.stubs(:model_info).returns(mock_info)
 
     result = AI::ModelManager.enable_model(@account, @provider, "gpt-4-turbo-full")
     assert_equal "GPT-4 Turbo", result.name
@@ -127,9 +119,7 @@ class AI::ModelManagerTest < ActiveSupport::TestCase
       "context_window" => 4096,
       "pricing" => { "input" => 0.0, "output" => 0.0 }
     })
-    mock_client = mock("ai_client")
-    mock_client.stubs(:info).returns(mock_info)
-    AI::Client.stubs(:new).returns(mock_client)
+    AI::Client.stubs(:model_info).returns(mock_info)
 
     result = AI::ModelManager.enable_model(@account, @provider, "free-model-id")
     assert result.free
