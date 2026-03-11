@@ -51,7 +51,7 @@ Slash-command parsing is not part of the runtime path. Conversation actions (for
 - `roe_type` (open|consensus|brainstorming)
 - `council_id` nullable (only for council_meeting)
 - `scribe_initiated_count` (tracks consecutive scribe interactions)
-- `title_locked` (manual title override guard; blocks auto-title updates)
+- `title_state` (`user_generated|system_generated|agent_generating|agent_generated`)
 
 **messages**:
 - `in_reply_to_id` (self-reference for threading)
@@ -129,38 +129,25 @@ conversation.conversation_participants.create!(
 conversation.ensure_scribe_present!
 ```
 
-### Adhoc auto-title after first user message
+### Adhoc auto-title generation
 - Applies only to `adhoc` conversations
-- Triggered only for the first user message
-- Skipped when `title_locked` is true
+- Triggered when content-length and state guards pass
+- Skipped when title is user-managed (`title_state = user_generated`)
 - Generation failures keep the existing title unchanged
 
-### Inviting Advisor via Command
-User types: `/invite @technical-expert`
-
-Or via UI:
+### Inviting advisor
+Through explicit endpoint + UI action:
 ```ruby
 conversation.add_advisor(advisor)
 ```
 
-## Migration Path
+## Current invariants
 
-Existing data is migrated via `BackfillConversationData`:
-1. Sets `conversation_type = 'council_meeting'` for all existing conversations
-2. Maps old RoE types: round_robin/on_demand/moderated/silent → open, consensus → consensus
-3. Backfills `is_scribe = true` for advisors matching name pattern
-4. Creates `conversation_participants` for all council advisors + scribe
+- RoE is represented only by `roe_type` values: `open`, `consensus`, `brainstorming`.
+- Scribe follow-ups run only for active `council_meeting` conversations.
+- `pending` placeholder messages stay hidden until they become `responding`.
+- Conversation title automation is state-driven in the `Conversation` model (not a separate title job).
 
-## Removed Components
+## Runtime ownership
 
-The following old RoE services were deleted:
-- `app/services/roe.rb`
-- `app/services/roe/base_roe.rb`
-- `app/services/roe/factory.rb`
-- `app/services/roe/round_robin_roe.rb`
-- `app/services/roe/moderated_roe.rb`
-- `app/services/roe/on_demand_roe.rb`
-- `app/services/roe/silent_roe.rb`
-- `app/services/roe/consensus_roe.rb`
-
-Current RoE logic is implemented in `AI::Runtimes::*ConversationRuntime` classes.
+RoE logic and sequencing are implemented in `AI::Runtimes::*ConversationRuntime` classes.

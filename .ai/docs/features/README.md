@@ -24,6 +24,7 @@ Rules:
 
 - [Conversation System](conversation-system.md) - Architecture: RoE, participants, lifecycle
 - [Conversations](conversations.md) - UX and API reference: create, post, finish, delete
+- [Conversation Title Lifecycle](conversation-title-lifecycle.md) - Auto-title state machine and generation flow
 - [Providers](providers.md) - AI provider credentials and model configuration
 
 ## AI Integration

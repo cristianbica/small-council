@@ -2,13 +2,14 @@
 
 Max ~200 lines. Keep durable, high-signal facts only.
 
-## Commands (verified 2026-03-05)
-- Install check: `bundle check` (dependencies satisfied)
-- Targeted test: `bin/rails test test/models/conversation_test.rb` (32 runs, 0 failures)
-- Dev startup smoke: `timeout 12s bin/dev` (web + css booted; timeout sends SIGTERM)
-- Run (Rails only): `bin/rails server`
-- Full suite entrypoint: `bin/rails test`
-- Lint entrypoint: `bin/rubocop`
+## Commands (verified 2026-03-11)
+- Install check: `bundle check` (pass)
+- Install: `bundle install` (pass)
+- Build: `bin/rails assets:precompile` (pass; Tailwind/daisyUI emits known `@property` warning)
+- Test: `bin/rails test` (pass: 1195 runs, 0 failures, 0 errors, 3 skips)
+- Lint: `bin/rubocop` (fail: 1 trailing-comma offense in `app/models/conversation.rb`)
+- Dev smoke: `timeout 12s bin/dev` (blocked: existing `tmp/pids/server.pid`)
+- Run smoke: `timeout 10s bin/rails server` (blocked: existing `tmp/pids/server.pid`)
 
 ## URLs (development)
 - Sign in: http://localhost:3000/sign_in
@@ -24,6 +25,7 @@ Max ~200 lines. Keep durable, high-signal facts only.
 - Multi-tenancy is enforced with `acts_as_tenant`; `ApplicationController` sets `Current.account` and `ActsAsTenant.current_tenant`.
 - `Current.space` is restored from `session[:space_id]`, falls back to first account space, and auto-creates `General` for legacy accounts.
 - `Conversation` requires `space`; statuses are `active|resolved|archived`; types are `council_meeting|adhoc`; RoE is `open|consensus|brainstorming`.
+- Conversation auto-title is callback-driven in `Conversation` and uses `AI.run` (`conversations/title_generator` + `conversations/update_conversation` tool), guarded by `title_state` transitions.
 - Advisor names are canonical lowercase dash handles; mentions/invites must use this handle format.
 - Messages use polymorphic sender (`User`/`Advisor`) and track turn state with `pending_advisor_ids` + status (`pending|responding|complete|error|cancelled`).
 - Sensitive fields are encrypted at rest (`Provider.credentials`, `Advisor.system_prompt/short_description`, `Conversation.memory/draft_memory`, `Message.content/prompt_text`, `Memory.content`).
@@ -31,9 +33,7 @@ Max ~200 lines. Keep durable, high-signal facts only.
 ## AI stack
 - `AI::Client` is class-based for chat session creation (`AI::Client.chat`) and provider/model operations (`test_connection`, `list_models`, `model_info`).
 - Supported providers: `openai`, `openrouter`.
-- Canonical async runtime path is `AI::Runner` via `AIRunnerJob` (`task` + `context` + optional `handler`/`tracker`) for normal advisor responses and retries.
-- Utility runtime flows resolve the model from `AI::Contexts::SpaceContext#model`: account default model when enabled, otherwise the first enabled free model.
-- Adhoc conversation title generation now uses `GenerateConversationTitleJob -> AI.generate_text(prompt: "tasks/conversation_title", async: false)`.
+- Canonical async runtime path is `AI::Runner` via `AIRunnerJob` (`task` + `context` + optional `handler` or `tracker`) for normal advisor responses and retries.
 - Model interactions are recorded by `AI::Trackers::ModelInteractionTracker` callback hooks and mirrored to `messages.tool_calls`.
 - Tool framework is `AI::Tools::AbstractTool` with registry-based resolution (`AI.tool` / `AI.tools`) and direct RubyLLM tool subclasses.
 

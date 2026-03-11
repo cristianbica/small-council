@@ -48,6 +48,26 @@ Runtime interaction records are captured through `AI::Trackers::ModelInteraction
 
 For runtime-owned response generation, sanitization and state persistence now live in `AI::Handlers::ConversationResponseHandler`.
 
+## API Entry Points
+
+Defined in `app/libs/ai.rb`:
+
+- `AI.run(task:, context:, handler: nil, tracker: nil, async: false)`
+    - Generic runner entrypoint.
+    - Accepts symbolic/hash task and context definitions resolved by `AI::Runner`.
+    - Used by adhoc conversation title generation in `app/models/conversation.rb` with:
+        - task: `type: :text`, prompt `conversations/title_generator`, tool `conversations/update_conversation`
+        - context: `type: :conversation`
+        - `async: true`
+- `AI.generate_advisor_response(advisor:, message:, prompt: nil, tracker: :model_interaction, async: true)`
+    - Convenience wrapper for conversation advisor/scribe replies.
+    - Builds a `respond` task with `ConversationContext`, `ConversationResponseHandler`, and `ModelInteractionTracker` by default.
+    - Called by conversation runtimes (`app/libs/ai/runtimes/conversation_runtime.rb`) and retry flow (`app/controllers/messages_controller.rb`).
+- `AI.generate_text(description:, prompt:, schema: nil, space:, handler: nil, async: false, **args)`
+    - Convenience wrapper for utility text/structured generation.
+    - Builds a `text` task with `SpaceContext`.
+    - Called by form filler flow in `app/controllers/form_fillers_controller.rb`.
+
 ### Provider#api / LlmModel#api DSL
 
 ```ruby
@@ -109,11 +129,14 @@ The utility-generation path for structured form filling uses the same runner pri
 
 See [Form Fillers](form-fillers.md) for the UI and request flow.
 
-Adhoc auto-title generation also uses runner primitives:
+Adhoc auto-title generation is model-driven:
 
-- `GenerateConversationTitleJob` calls `AI.generate_text(..., async: false)`
-- Prompt: `tasks/conversation_title`
-- The job normalizes and persists the generated title when present
+- `Conversation` callback calls `AI.run(..., async: true)`
+- Prompt: `conversations/title_generator`
+- Tool: `conversations/update_conversation`
+- Title state transitions are persisted as `system_generated -> agent_generating -> agent_generated`
+
+See patterns: [Agents](../patterns/agents.md), [Prompts](../patterns/prompts.md), [Tasks](../patterns/tasks.md), [Tool System](../patterns/tool-system.md)
 
 ## Error Handling
 
@@ -173,16 +196,14 @@ Tool wiring is task/agent-driven:
 
 ### Mock Pattern
 
-`AI::Client` is instance-based. Stub `.new` to return a mock:
+`AI::Client` is class-based for chat creation and provider/model operations:
 
 ```ruby
-# Correct — instance-based mock
-mock_response = AI::Model::Response.new(content: "Response", usage: AI::Model::TokenUsage.new(input: 10, output: 5))
-mock_client = mock("AI::Client")
-mock_client.stubs(:chat).returns(mock_response)
-AI::Client.stubs(:new).returns(mock_client)
+# Class-based chat entry
+chat = mock("chat")
+AI::Client.stubs(:chat).returns(chat)
 
-# For provider-level class methods only:
+# Provider/model class methods:
 AI::Client.stubs(:test_connection).returns({ success: true, model: "gpt-4o-mini" })
 AI::Client.stubs(:list_models).returns([{ id: "gpt-4", name: "GPT-4" }])
 ```

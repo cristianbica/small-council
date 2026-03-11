@@ -16,7 +16,7 @@ AI-assisted form generation is a separate utility flow: `FormFillersController#c
 | Database | PostgreSQL |
 | Frontend | Hotwire/Turbo + Stimulus |
 | Styling | Tailwind CSS v4 + DaisyUI v5 |
-| Jobs | Solid Queue |
+| Jobs | Solid Queue (`AIRunnerJob`) |
 | Cache | Solid Cache |
 | Cable | Solid Cable |
 | Tests | Minitest |
@@ -42,7 +42,7 @@ app/
 ├── models/         # Tenant-scoped domain models + CurrentAttributes
 ├── services/       # ProviderConnectionTester, InlineDiff
 ├── libs/ai/        # Runner, contexts, tasks, handlers, runtimes, trackers, tools
-├── jobs/           # AIRunnerJob, GenerateConversationTitleJob
+├── jobs/           # AIRunnerJob
 ├── views/          # ERB + Turbo Streams + DaisyUI classes
 └── javascript/     # Stimulus controllers, including form_filler_controller
 
@@ -54,6 +54,7 @@ test/               # models, controllers, integration, jobs, ai unit/integratio
 ## Common commands
 
 ```bash
+bundle install
 bin/dev
 bin/rails server
 bin/rails test
