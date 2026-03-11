@@ -3,6 +3,9 @@
 
 <%# Wrapper for full-height chat in application layout context %>
 <div class="h-[calc(100vh-5rem)] flex overflow-hidden">
+  <% show_archived = ActiveModel::Type::Boolean.new.cast(params[:show_archived]) %>
+  <% archived_toggle_params = request.query_parameters.merge(show_archived: (show_archived ? nil : "1")).compact %>
+
   <% if @sidebar_conversations.present? %>
     <%# Left Sidebar: Conversation List %>
     <aside id="conversation-sidebar" class="w-80 flex-none border-r bg-base-200 overflow-y-auto overflow-x-hidden hidden lg:block" data-controller="conversation-sidebar">
@@ -21,6 +24,9 @@
         <p class="text-xs text-base-content/60">
           <%= Current.account.conversations.adhoc_conversations.count %> total conversations
         </p>
+        <div class="mt-2">
+          <%= link_to(show_archived ? "Hide archived" : "Show archived", url_for(params: archived_toggle_params), class: "btn btn-ghost btn-xs") %>
+        </div>
       </div>
 
       <ul id="conversation-list" class="w-full space-y-1 p-2">
@@ -60,6 +66,7 @@
                 </svg>
               <% end %>
             </div>
+            <%= link_to(show_archived ? "Hide archived" : "Show archived", url_for(params: archived_toggle_params), class: "btn btn-ghost btn-xs") %>
           </div>
           <ul class="w-full space-y-1 overflow-x-hidden p-1">
             <% @sidebar_conversations.each do |conv| %>

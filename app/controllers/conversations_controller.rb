@@ -10,7 +10,7 @@ class ConversationsController < ApplicationController
       render :index
     else
       # For adhoc conversations, redirect to most recent or auto-create one
-      last_conversation = Current.space.conversations.adhoc_conversations.recent.first
+      last_conversation = adhoc_conversations_scope.recent.first
       if last_conversation
         redirect_to last_conversation
       else
@@ -324,6 +324,13 @@ class ConversationsController < ApplicationController
 
   def set_sidebar_conversations
     return unless @conversation&.adhoc?
-    @sidebar_conversations = Current.space.conversations.adhoc_conversations.recent
+    @sidebar_conversations = adhoc_conversations_scope.recent
+  end
+
+  def adhoc_conversations_scope
+    scope = Current.space.conversations.adhoc_conversations
+    return scope if ActiveModel::Type::Boolean.new.cast(params[:show_archived])
+
+    scope.not_archived
   end
 end

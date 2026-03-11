@@ -52,6 +52,7 @@ class Conversation < ApplicationRecord
 
   scope :recent, -> { order(updated_at: :desc) }
   scope :active, -> { where(status: "active") }
+  scope :not_archived, -> { where.not(status: "archived") }
   scope :adhoc_conversations, -> { where(conversation_type: "adhoc") }
 
   def deletable_by?(user)

@@ -26,6 +26,7 @@ module AI
       protected
 
       def advisors_to_respond(message)
+        return conversation.advisors.non_scribes if message.mentions_all? && (message.from_user? || message.from_scribe?)
         return [] unless message.mentions.any? && (message.from_user? || message.from_scribe?)
         conversation.advisors.where(name: message.mentions)
       end

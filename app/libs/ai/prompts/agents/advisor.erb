@@ -37,6 +37,7 @@ You are advising in this council: <%= council.name %>.
 <% if council.description.to_s.strip.present? %>
 Council description: <%= council.description.to_s.strip %>
 <% end %>
+Council members: <%= council.advisors.non_scribes.map(&:name).join(", ") %>.
 <% end %>
 
 <% if advisor&.system_prompt.to_s.strip.present? %>
