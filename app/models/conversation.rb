@@ -184,7 +184,7 @@ class Conversation < ApplicationRecord
       task: {
         type: :text,
         prompt: "conversations/title_generator",
-        tools: [ "conversations/update_conversation" ],
+        tools: [ "conversations/update_conversation" ]
       },
       context: {
         type: :conversation,
