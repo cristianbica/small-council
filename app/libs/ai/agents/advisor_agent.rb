@@ -11,7 +11,7 @@ module AI
 
       def tools
         return @tools unless @tools.nil?
-        return [ "memories/*" ] if @context.respond_to?(:scribe?) && @context.scribe?
+        return [ "memories/*", "internet/browse_web" ] if @context.respond_to?(:scribe?) && @context.scribe?
 
         []
       end

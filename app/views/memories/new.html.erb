@@ -1,20 +1,18 @@
 <div class="h-[calc(100vh-8rem)] flex flex-col">
-  <!-- Header -->
-  <div>
-    <div class="flex items-center gap-2 mb-1">
-      <%= link_to "Memories", space_memories_path(@space), class: "text-sm link" %>
-      <span class="text-base-content/40">/</span>
-      <h1 class="text-3xl font-bold">New Memory</h1>
+  <!-- Header - compact -->
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <div class="flex items-center gap-2 text-sm">
+        <%= link_to "Memories", space_memories_path(@space), class: "link" %>
+        <span class="text-base-content/40">/</span>
+        <span class="font-medium">New</span>
+      </div>
     </div>
-    <p class="text-sm text-base-content/60">
-      Create a new memory in <%= @space.name %>
-    </p>
+    <%= link_to "← Back to Memories", space_memories_path(@space), class: "btn btn-ghost btn-sm" %>
   </div>
 
-  <!-- Form -->
-  <div class="card bg-base-100 shadow">
-    <div class="card-body">
-      <%= render "form", space: @space, memory: @memory %>
-    </div>
+  <!-- Form - takes remaining space -->
+  <div class="flex-1 min-h-0 card bg-base-100 shadow overflow-hidden">
+    <%= render "form", space: @space, memory: @memory %>
   </div>
 </div>

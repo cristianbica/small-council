@@ -1,4 +1,4 @@
-<%= form_with model: [@space, memory], class: "h-full flex flex-col" do |f| %>
+<%= form_with model: [@space, memory], class: "h-full min-h-0 flex flex-col overflow-hidden" do |f| %>
   <% if memory.errors.any? %>
     <div class="alert alert-error shrink-0 mb-4">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
@@ -56,7 +56,7 @@
   </div>
 
   <!-- Content section - takes remaining space -->
-  <div class="form-control flex-1 min-h-0" data-controller="markdown-editor">
+  <div class="form-control flex flex-col flex-1 min-h-0 overflow-hidden" data-controller="markdown-editor">
     <label class="label py-1 shrink-0">
       <span class="label-text text-sm">
         Content
@@ -64,19 +64,20 @@
       </span>
       <span class="label-text-alt text-base-content/60 text-xs">Markdown supported</span>
     </label>
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 h-0 min-h-0 overflow-hidden">
       <!-- Editor -->
-      <div class="h-full min-h-0">
+      <div class="h-full min-h-0 overflow-hidden">
         <%= f.text_area :content,
-            class: "textarea textarea-bordered w-full h-full font-mono text-sm resize-none #{'textarea-error' if memory.errors[:content].any?}",
+          class: "textarea textarea-bordered block w-full h-full max-h-full min-h-0 overflow-auto [field-sizing:fixed] font-mono text-sm resize-none #{'textarea-error' if memory.errors[:content].any?}",
             placeholder: "Enter the memory content here...",
             required: true,
+            rows: 1,
             data: { markdown_editor_target: "input", action: "input->markdown-editor#updatePreview" } %>
       </div>
       <!-- Preview -->
-      <div class="bg-base-200 rounded-box p-4 h-full overflow-y-auto">
+      <div class="bg-base-200 rounded-box p-4 h-full min-h-0 overflow-hidden flex flex-col">
         <div class="text-xs text-base-content/50 mb-2 uppercase tracking-wide font-semibold">Preview</div>
-        <div class="prose max-w-none prose-sm" data-markdown-editor-target="preview">
+        <div class="prose max-w-none prose-sm flex-1 min-h-0 overflow-auto" data-markdown-editor-target="preview">
         </div>
       </div>
     </div>
