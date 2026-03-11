@@ -5,7 +5,12 @@ module AI
     class AdvisorAgent < BaseAgent
       self.system_prompt = "agents/advisor"
 
+      def initialize(task: nil, context:, tools: nil, **)
+        super(task: task, context: context, tools: tools)
+      end
+
       def tools
+        return @tools unless @tools.nil?
         return [ "memories/*" ] if @context.respond_to?(:scribe?) && @context.scribe?
 
         []

@@ -366,7 +366,7 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
     assert flash[:notice].present?
   end
 
-  test "update title sets title lock" do
+  test "update title sets user_generated title_state" do
     sign_in_as(@user)
     set_tenant(@account)
 
@@ -385,7 +385,7 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to conversation_path(conversation)
     assert_equal "Updated Title", conversation.reload.title
-    assert conversation.title_locked?
+    assert_equal "user_generated", conversation.title_state
   end
 
   test "update title succeeds with only scribe participant" do
@@ -407,7 +407,7 @@ class ConversationsControllerComprehensiveTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to conversation_path(conversation)
     assert_equal "Updated Title", conversation.reload.title
-    assert conversation.title_locked?
+    assert_equal "user_generated", conversation.title_state
   end
 
   test "update redirects on failure" do

@@ -13,6 +13,7 @@ module AI
         "advisors/list" => "AI::Tools::Advisors::ListAdvisorsTool",
         "advisors/fetch" => "AI::Tools::Advisors::FetchAdvisorTool",
         "advisors/update" => "AI::Tools::Advisors::UpdateAdvisorTool",
+        "conversations/update_conversation" => "AI::Tools::Conversations::UpdateConversationTool",
         "internet/browse_web" => "AI::Tools::Internet::BrowseWebTool"
       }.freeze
 

@@ -11,7 +11,6 @@ class MessagesController < ApplicationController
     if @message.save
       Rails.logger.info "[MessagesController#create] Message #{@message.id} saved successfully"
 
-      enqueue_adhoc_title_generation(@message)
       AI.runtime_for_conversation(@conversation).user_posted(@message)
 
       respond_to do |format|
@@ -89,16 +88,6 @@ class MessagesController < ApplicationController
 
   def message_params
     params.require(:message).permit(:content)
-  end
-
-  def enqueue_adhoc_title_generation(message)
-    return unless @conversation.adhoc?
-    return if @conversation.title_locked?
-
-    user_message_count = @conversation.messages.where(role: "user", sender_type: "User").count
-    return unless user_message_count == 1
-
-    GenerateConversationTitleJob.perform_later(@conversation.id, message.id)
   end
 
   def retryable_advisor_api_error?(message)

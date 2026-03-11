@@ -47,76 +47,97 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "New message content", message.content
   end
 
-  test "create enqueues auto title job for first adhoc user message" do
+  test "create transitions adhoc system title state to agent_generating after sufficient content" do
     sign_in_as(@user)
     set_tenant(@account)
+
+    advisor = @account.advisors.create!(
+      name: "extra-advisor",
+      system_prompt: "You are extra",
+      llm_model: @llm_model,
+      space: @space
+    )
 
     conversation = @account.conversations.create!(
       user: @user,
       title: "New conversation",
       conversation_type: :adhoc,
+      title_state: :system_generated,
       roe_type: :open,
       space: @space
     )
     conversation.ensure_scribe_present!
+    conversation.conversation_participants.create!(advisor: advisor, role: :advisor, position: 1)
 
-    assert_enqueued_jobs 1, only: GenerateConversationTitleJob do
+    assert_enqueued_jobs 1, only: AIRunnerJob do
       post conversation_messages_url(conversation), params: {
-        message: { content: "Can you help me build a launch checklist for this week?" }
+        message: { content: "x" * 220 }
       }
     end
 
-    title_job = enqueued_jobs.find { |job| job[:job] == GenerateConversationTitleJob }
-    assert_not_nil title_job
-    assert_equal conversation.id, title_job[:args].first
-    assert title_job[:args].second.is_a?(Integer)
+    assert_equal "agent_generating", conversation.reload.title_state
   end
 
-  test "create does not enqueue auto title job for non-first user message" do
+  test "create does not transition title state when threshold is not met" do
     sign_in_as(@user)
     set_tenant(@account)
+
+    advisor = @account.advisors.create!(
+      name: "extra-advisor-2",
+      system_prompt: "You are extra",
+      llm_model: @llm_model,
+      space: @space
+    )
 
     conversation = @account.conversations.create!(
       user: @user,
       title: "New conversation",
       conversation_type: :adhoc,
+      title_state: :system_generated,
       roe_type: :open,
       space: @space
     )
     conversation.ensure_scribe_present!
-    conversation.messages.create!(
-      account: @account,
-      sender: @user,
-      role: "user",
-      content: "First user message"
-    )
+    conversation.conversation_participants.create!(advisor: advisor, role: :advisor, position: 1)
 
-    assert_no_enqueued_jobs only: GenerateConversationTitleJob do
+    assert_no_enqueued_jobs only: AIRunnerJob do
       post conversation_messages_url(conversation), params: {
-        message: { content: "Second user message" }
+        message: { content: "short" }
       }
     end
+
+    assert_equal "system_generated", conversation.reload.title_state
   end
 
-  test "create does not enqueue auto title job when title is locked" do
+  test "create does not transition title state when already user_generated" do
     sign_in_as(@user)
     set_tenant(@account)
+
+    advisor = @account.advisors.create!(
+      name: "extra-advisor-3",
+      system_prompt: "You are extra",
+      llm_model: @llm_model,
+      space: @space
+    )
 
     conversation = @account.conversations.create!(
       user: @user,
       title: "Manual title",
-      title_locked: true,
+      title_state: :user_generated,
       conversation_type: :adhoc,
       roe_type: :open,
       space: @space
     )
     conversation.ensure_scribe_present!
+    conversation.conversation_participants.create!(advisor: advisor, role: :advisor, position: 1)
 
-    assert_no_enqueued_jobs only: GenerateConversationTitleJob do
+    assert_no_enqueued_jobs only: AIRunnerJob do
       post conversation_messages_url(conversation), params: {
-        message: { content: "Please analyze this problem" }
+        message: { content: "x" * 220 }
       }
     end
+
+    assert_equal "user_generated", conversation.reload.title_state
   end
 
   test "create redirects to conversation" do

@@ -27,6 +27,14 @@ class ConversationTest < ActiveSupport::TestCase
       space: @space,
       llm_model: llm_model
     )
+
+    @scribe = @account.advisors.create!(
+      name: "scribe",
+      system_prompt: "You are a test scribe",
+      space: @space,
+      llm_model: llm_model,
+      is_scribe: true
+    )
   end
 
   # Validation tests
@@ -194,9 +202,122 @@ class ConversationTest < ActiveSupport::TestCase
     assert conversation.open?
   end
 
-  test "title_locked defaults to false" do
+  test "title_state defaults to user_generated" do
     conversation = create_conversation_with_advisor
-    assert_equal false, conversation.title_locked
+    assert_equal "user_generated", conversation.title_state
+  end
+
+  test "auto-title callback marks agent_generating and triggers AI.run for eligible adhoc conversation" do
+    conversation = create_conversation_with_advisor(
+      conversation_type: :adhoc,
+      title_state: :system_generated
+    )
+
+    AI.expects(:run).with do |args|
+      assert_equal :text, args.dig(:task, :type)
+      assert_equal "conversations/title_generator", args.dig(:task, :prompt)
+      assert_equal [ "conversations/update_conversation" ], args.dig(:task, :tools)
+      assert_equal true, args[:async]
+      assert_equal :conversation, args.dig(:context, :type)
+      assert_equal conversation, args.dig(:context, :conversation)
+      true
+    end.once
+
+    assert_difference("Message.count", 1) do
+      conversation.messages.create!(
+        account: @account,
+        sender: @user,
+        role: "user",
+        content: "x" * 220
+      )
+    end
+
+    assert_equal "agent_generating", conversation.reload.title_state
+  end
+
+  test "auto-title callback does not run when title_state is user_generated" do
+    conversation = create_conversation_with_advisor(
+      conversation_type: :adhoc,
+      title_state: :user_generated
+    )
+    AI.expects(:run).never
+
+    conversation.messages.create!(
+      account: @account,
+      sender: @user,
+      role: "user",
+      content: "x" * 220
+    )
+  end
+
+  test "auto-title callback does not run below content threshold" do
+    conversation = create_conversation_with_advisor(
+      conversation_type: :adhoc,
+      title_state: :system_generated
+    )
+    AI.expects(:run).never
+
+    conversation.messages.create!(
+      account: @account,
+      sender: @user,
+      role: "user",
+      content: "short"
+    )
+
+    assert_equal "system_generated", conversation.reload.title_state
+  end
+
+  test "auto-title callback does not run for non-adhoc conversations" do
+    conversation = create_conversation_with_advisor(
+      conversation_type: :council_meeting,
+      title_state: :system_generated
+    )
+    AI.expects(:run).never
+
+    conversation.messages.create!(
+      account: @account,
+      sender: @user,
+      role: "user",
+      content: "x" * 220
+    )
+  end
+
+  test "auto-title callback resets state when AI.run fails" do
+    conversation = create_conversation_with_advisor(
+      conversation_type: :adhoc,
+      title_state: :system_generated
+    )
+
+    AI.expects(:run).raises(StandardError.new("boom"))
+
+    conversation.messages.create!(
+      account: @account,
+      sender: @user,
+      role: "user",
+      content: "x" * 220
+    )
+
+    assert_equal "system_generated", conversation.reload.title_state
+  end
+
+  test "broadcast_title_update uses targets selector when title changes" do
+    conversation = create_conversation_with_advisor(title: "Old title")
+
+    Turbo::StreamsChannel.expects(:broadcast_update_to).with(
+      "conversation_#{conversation.id}",
+      targets: ".conversation-title-#{conversation.id}",
+      html: "New title"
+    ).once
+
+    conversation.update!(title: "New title")
+  end
+
+  test "broadcast_title_update does not fire when title is unchanged" do
+    conversation = create_conversation_with_advisor(title: "Stable title")
+
+    Turbo::StreamsChannel.expects(:broadcast_update_to).never
+
+    conversation.update!(updated_at: Time.current)
   end
 
   test "deletable_by? allows conversation starter" do

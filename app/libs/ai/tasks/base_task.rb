@@ -8,13 +8,14 @@ module AI
 
       attr_reader :context
 
-      def initialize(context:)
+      def initialize(context:, tools: nil)
         @context = context
+        @agent_tools = tools
       end
 
       def agent
         klass = AI.agent(self.class.agent)
-        klass.new(task: self, context: context)
+        klass.new(task: self, context: context, tools: @agent_tools)
       end
 
       def run(result, trackers: [])

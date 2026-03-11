@@ -1,0 +1,20 @@
+Generate a concise title for an AI - human conversation based on the recent messages.
+
+You MUST update the conversation title by calling the `conversations-update-conversation` tool exactly once.
+
+Rules for the title:
+- 2 to 8 words
+- clear and specific
+- no surrounding quotes
+- no trailing punctuation
+
+Conversation ID: <%= context.conversation.id %>
+
+Recent messages:
+
+<% context.conversation.messages.complete.chronological.last(5).each do |message| %>
+## Speker: <%= message.role %>
+
+<%= message.content %>
+
+<% end %>

@@ -51,6 +51,9 @@ module AI
         assert_equal "AI::Tools::Advisors::FetchAdvisorTool", registry["advisors/fetch"]
         assert_equal "AI::Tools::Advisors::UpdateAdvisorTool", registry["advisors/update"]
 
+        # Conversations
+        assert_equal "AI::Tools::Conversations::UpdateConversationTool", registry["conversations/update_conversation"]
+
         # Internet
         assert_equal "AI::Tools::Internet::BrowseWebTool", registry["internet/browse_web"]
       end

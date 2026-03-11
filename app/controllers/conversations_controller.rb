@@ -26,6 +26,7 @@ class ConversationsController < ApplicationController
       title: "New conversation #{Time.current.strftime('%b %d, %H:%M')}",
       conversation_type: :adhoc,
       roe_type: :open,
+      title_state: :system_generated,
       user: Current.user,
       space: Current.space
     )
@@ -68,7 +69,7 @@ class ConversationsController < ApplicationController
     @conversation.assign_attributes(conversation_params)
     title_updated = @conversation.will_save_change_to_title?
 
-    @conversation.title_locked = true if title_updated
+    @conversation.title_state = :user_generated if title_updated
 
     if @conversation.save
       notice = if title_updated
@@ -263,6 +264,7 @@ class ConversationsController < ApplicationController
       title: "New conversation #{Time.current.strftime('%b %d, %H:%M')}",
       user: Current.user,
       conversation_type: :adhoc,
+      title_state: :system_generated,
       roe_type: :open
     )
 

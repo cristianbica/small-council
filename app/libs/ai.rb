@@ -82,6 +82,10 @@ module AI
     end
   end
 
+  def self.run(task:, context:, handler: nil, tracker: nil, async: false)
+    Runner.run(task: task, context: context, handler: handler, tracker: tracker, async: async)
+  end
+
   def self.generate_text(description:, prompt:, schema: nil, space:, handler: nil, async: false, **args)
     Runner.run(
       task: {

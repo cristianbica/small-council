@@ -7,8 +7,8 @@ module AI
 
       attr_reader :description
 
-      def initialize(context:, prompt:, schema: nil, description: nil)
-        super(context:)
+      def initialize(context:, prompt:, schema: nil, description: nil, tools: nil)
+        super(context: context, tools: tools)
         @description = description
         @configured_prompt = prompt
         @configured_schema = schema

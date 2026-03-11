@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_10_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_10_133000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -119,6 +119,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_10_120000) do
     t.string "status", default: "active"
     t.string "title"
     t.boolean "title_locked", default: false, null: false
+    t.string "title_state", default: "user_generated", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["account_id", "last_message_at"], name: "index_conversations_on_account_id_and_last_message_at"
@@ -129,6 +130,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_10_120000) do
     t.index ["roe_type"], name: "index_conversations_on_roe_type"
     t.index ["rules_of_engagement"], name: "index_conversations_on_rules_of_engagement"
     t.index ["space_id"], name: "index_conversations_on_space_id"
+    t.index ["title_state"], name: "index_conversations_on_title_state"
     t.index ["user_id"], name: "index_conversations_on_user_id"
   end
 

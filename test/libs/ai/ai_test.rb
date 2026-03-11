@@ -67,6 +67,30 @@ module AI
       assert_equal :conversation, runner_payload.dig(:context, :type)
     end
 
+    test "run delegates to Runner.run with task/content payload" do
+      conversation = conversations(:one)
+
+      AI::Runner.expects(:run).with do |args|
+        assert_equal :text, args.dig(:task, :type)
+        assert_equal "conversations/title_generator", args.dig(:task, :prompt)
+        assert_equal [ "conversations/update_conversation" ], args.dig(:task, :tools)
+        assert_equal :conversation, args.dig(:context, :type)
+        assert_equal conversation, args.dig(:context, :conversation)
+        assert_equal true, args[:async]
+        true
+      end
+
+      AI.run(
+        task: {
+          type: :text,
+          prompt: "conversations/title_generator",
+          tools: [ "conversations/update_conversation" ]
+        },
+        context: { type: :conversation, conversation: conversation },
+        async: true
+      )
+    end
+
     test "runtime_for_conversation selects expected runtime" do
       open = OpenStruct.new(roe_type: "open")
       consensus = OpenStruct.new(roe_type: "consensus")

@@ -83,6 +83,12 @@ module AI
       assert_includes classes, AI::Tools::Advisors::UpdateAdvisorTool
     end
 
+    test "AI.tools handles conversations wildcard" do
+      classes = AI.tools("conversations/*")
+      assert_equal 1, classes.length
+      assert_includes classes, AI::Tools::Conversations::UpdateConversationTool
+    end
+
     test "AI.generate_advisor_response calls Runner with correct parameters" do
       advisor = advisors(:one)
       message = messages(:one)
@@ -116,6 +122,35 @@ module AI
       )
 
       AI.generate_advisor_response(advisor: advisor, message: message, prompt: :custom_prompt)
+    end
+
+    test "AI.run delegates to Runner with task and content payload" do
+      conversation = conversations(:one)
+
+      AI::Runner.expects(:run).with(
+        task: {
+          type: :text,
+          prompt: "conversations/title_generator",
+          tools: [ "conversations/update_conversation" ]
+        },
+        context: {
+          type: :conversation,
+          conversation: conversation
+        },
+        handler: nil,
+        tracker: nil,
+        async: true
+      )
+
+      AI.run(
+        task: {
+          type: :text,
+          prompt: "conversations/title_generator",
+          tools: [ "conversations/update_conversation" ]
+        },
+        context: { type: :conversation, conversation: conversation },
+        async: true
+      )
     end
 
     test "AI.runtime_for_conversation returns OpenConversationRuntime for open roe_type" do

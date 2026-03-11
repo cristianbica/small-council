@@ -31,12 +31,21 @@ class Conversation < ApplicationRecord
     brainstorming: "brainstorming"
   }, default: "open"
 
+  enum :title_state, {
+    user_generated: "user_generated",
+    system_generated: "system_generated",
+    agent_generating: "agent_generating",
+    agent_generated: "agent_generated"
+  }, default: "user_generated"
+
   validates :account, presence: true
   validates :space, presence: true
   validates :user, presence: true
   validates :title, presence: true
 
   before_validation :assign_space_from_council
+  after_commit :enqueue_auto_title_generation, on: :update
+  after_commit :broadcast_title_update, on: :update
 
   # Council is required for council_meeting type
   validates :council, presence: true, if: -> { council_meeting? }
@@ -146,5 +155,55 @@ class Conversation < ApplicationRecord
     mem.is_a?(String) ? JSON.parse(mem) : mem
   rescue JSON::ParserError
     {}
+  end
+
+  private
+
+  def enqueue_auto_title_generation
+    return unless adhoc?
+    return unless system_generated?
+    return unless aggregate_message_content_length > 200
+    return unless mark_title_generation_started!
+
+    request_auto_title_generation!
+  end
+
+  def aggregate_message_content_length
+    messages.select(:id, :content).sum { |message| message.content.to_s.length }
+  end
+
+  def mark_title_generation_started!
+    self.class.where(id: id, title_state: self.class.title_states[:system_generated]).update_all(
+      title_state: self.class.title_states[:agent_generating],
+      updated_at: Time.current
+    ) == 1
+  end
+
+  def request_auto_title_generation!
+    AI.run(
+      task: {
+        type: :text,
+        prompt: "conversations/title_generator",
+        tools: [ "conversations/update_conversation" ],
+      },
+      context: {
+        type: :conversation,
+        conversation: self
+      },
+      async: true
+    )
+  rescue StandardError => e
+    Rails.logger.warn("[Conversation] Failed to enqueue auto title generation for #{id}: #{e.message}")
+    update_column(:title_state, self.class.title_states[:system_generated])
+  end
+
+  def broadcast_title_update
+    return unless saved_change_to_title?
+
+    Turbo::StreamsChannel.broadcast_update_to(
+      "conversation_#{id}",
+      targets: ".conversation-title-#{id}",
+      html: ERB::Util.html_escape(title.presence || "Untitled conversation")
+    )
   end
 end

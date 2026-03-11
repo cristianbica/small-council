@@ -5,8 +5,8 @@ module AI
     class RespondTask < BaseTask
       self.agent = :advisor
 
-      def initialize(context:, prompt: nil)
-        super(context: context)
+      def initialize(context:, prompt: nil, tools: nil)
+        super(context: context, tools: tools)
         @prompt = prompt
       end
 
