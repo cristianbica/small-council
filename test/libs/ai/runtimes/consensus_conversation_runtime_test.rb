@@ -44,6 +44,21 @@ module AI
         @runtime.message_resolved(message)
       end
 
+      test "advisor_responded schedules advisors for scribe root mentions" do
+        message = messages(:consensus_round1)
+        message.stubs(:mentions_all?).returns(false)
+        message.stubs(:mentions).returns([ "fixture-counselor-one" ])
+        message.stubs(:from_scribe?).returns(true)
+        message.stubs(:from_user?).returns(false)
+
+        advisor = advisors(:one)
+        @conversation.advisors.stubs(:where).with(name: [ "fixture-counselor-one" ]).returns([ advisor ])
+
+        @runtime.expects(:schedule_advisors_responses).with([ advisor ], message)
+
+        @runtime.advisor_responded(message)
+      end
+
       test "scribe_round_count counts completed scribe root messages" do
         # Create a scribe advisor
         scribe = @account.advisors.create!(

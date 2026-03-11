@@ -6,6 +6,13 @@ module AI
       DEFAULT_SOFT_LIMIT = 5
       DEFAULT_HARD_LIMIT = 15
 
+      def advisor_responded(message)
+        advisors = advisors_to_respond(message)
+        return schedule_advisors_responses(advisors, message) if advisors.any?
+
+        super
+      end
+
       def user_posted(message)
         advisors = advisors_to_respond(message)
         return schedule_advisors_responses(advisors, message) if advisors.any?
