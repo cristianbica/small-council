@@ -28,13 +28,7 @@ class ConversationTest < ActiveSupport::TestCase
       llm_model: llm_model
     )
 
-    @scribe = @account.advisors.create!(
-      name: "scribe",
-      system_prompt: "You are a test scribe",
-      space: @space,
-      llm_model: llm_model,
-      is_scribe: true
-    )
+    @scribe = @space.scribe_advisor
   end
 
   # Validation tests

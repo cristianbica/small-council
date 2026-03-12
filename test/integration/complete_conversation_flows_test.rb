@@ -18,13 +18,8 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
       identifier: "gpt-4"
     )
 
-    @scribe = @account.advisors.create!(
-      name: "Scribe",
-      system_prompt: "You are the scribe.",
-      space: @space,
-      is_scribe: true,
-      llm_model: @llm_model
-    )
+    # Use the auto-created scribe from the space
+    @scribe = @space.scribe_advisor
 
     @advisor1 = @account.advisors.create!(
       name: "Strategic Advisor",
@@ -214,6 +209,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
       roe_type: :open,
       space: @space
     )
+
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     conversation.conversation_participants.create!(advisor: @advisor2, role: :advisor, position: 1)
     conversation.conversation_participants.create!(advisor: @scribe, role: :scribe)

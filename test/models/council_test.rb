@@ -171,10 +171,7 @@ class CouncilTest < ActiveSupport::TestCase
   end
 
   test "ensure_scribe_assigned does not add duplicate scribe" do
-    scribe = @account.advisors.create!(
-      name: "Scribe", system_prompt: "You are a scribe",
-      llm_model: @llm_model, space: @space, is_scribe: true
-    )
+    scribe = @space.scribe_advisor
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     council.council_advisors.create!(advisor: scribe)
 
@@ -185,10 +182,13 @@ class CouncilTest < ActiveSupport::TestCase
   end
 
   test "ensure_scribe_assigned adds scribe when scribe exists in space but not in council" do
-    # Destroy any auto-created scribe, then create one explicitly
+    # Ensure scribe exists in space
+    scribe = @space.scribe_advisor
+    # Remove scribe from the space to test adding it
     @space.advisors.where(is_scribe: true).destroy_all
+    # Create a new scribe
     scribe = @account.advisors.create!(
-      name: "Scribe", system_prompt: "You are a scribe",
+      name: "scribe", system_prompt: "You are a scribe",
       llm_model: @llm_model, space: @space, is_scribe: true
     )
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)

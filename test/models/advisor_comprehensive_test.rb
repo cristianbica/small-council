@@ -67,13 +67,10 @@ class AdvisorComprehensiveTest < ActiveSupport::TestCase
   end
 
   test "valid without system_prompt for scribe" do
-    advisor = @account.advisors.new(
-      name: "Scribe",
-      space: @space,
-      is_scribe: true,
-      llm_model: @llm_model
-    )
+    # Use the auto-created scribe and verify it's valid
+    advisor = @space.scribe_advisor
     assert advisor.valid?
+    assert advisor.scribe?
   end
 
   test "valid without llm_model" do

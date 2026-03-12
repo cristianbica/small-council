@@ -169,15 +169,8 @@ class AdvisorsControllerComprehensiveTest < ActionDispatch::IntegrationTest
   # ============================================================================
 
   test "index identifies scribe in the space" do
-    # Create a scribe advisor
-    scribe = @account.advisors.create!(
-      name: "Scribe",
-      system_prompt: "You document",
-      account: @account,
-      llm_model: @llm_model,
-      space: @space,
-      global: true
-    )
+    # Use the auto-created scribe
+    scribe = @space.scribe_advisor
 
     get space_advisors_url(@space)
     assert_response :success
@@ -192,15 +185,8 @@ class AdvisorsControllerComprehensiveTest < ActionDispatch::IntegrationTest
   end
 
   test "index only shows non-scribe advisors" do
-    # Create scribe and regular advisors
-    scribe = @account.advisors.create!(
-      name: "Scribe",
-      system_prompt: "Document",
-      account: @account,
-      llm_model: @llm_model,
-      space: @space,
-      global: true
-    )
+    # Use the auto-created scribe and create a regular advisor
+    scribe = @space.scribe_advisor
     regular = @account.advisors.create!(
       name: "Regular Advisor",
       system_prompt: "Help",

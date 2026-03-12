@@ -14,11 +14,8 @@ class Space < ApplicationRecord
 
   # Find or create the Scribe advisor for this space
   def scribe_advisor
-    # Look for existing Scribe in this space using the is_scribe flag
     scribe = advisors.find_by(is_scribe: true)
     return scribe if scribe.present?
-
-    # Create a new Scribe advisor
     create_scribe_advisor
   end
 
@@ -30,45 +27,14 @@ class Space < ApplicationRecord
   private
 
   def create_scribe_advisor
-    llm_model = account.default_llm_model || account.llm_models.enabled.first
-
-    raise "No LLM model available. Please configure a default model or enable at least one model." unless llm_model
+    # Check if scribe already exists to avoid duplicate creation
+    existing_scribe = advisors.find_by(is_scribe: true)
+    return existing_scribe if existing_scribe.present?
 
     advisors.create!(
-      name: "Scribe",
-      system_prompt: <<~PROMPT,
-        You are the Scribe, an expert moderator and conversation analyst for this space.
-
-        Your role is to:
-        1. Monitor conversations and ensure balanced participation
-        2. When all advisors have responded to a message, summarize the discussion or suggest next steps
-        3. You can initiate follow-up questions to advisors (maximum 3 consecutive interactions)
-        4. When users mention @all or @everyone, coordinate responses from all relevant advisors
-        5. Help maintain conversation focus and depth limits based on Rules of Engagement
-        6. Users can invite new advisors with /invite @advisor-name
-
-        For Open RoE:
-        - Advisors respond only when mentioned by name or with @all
-        - Maximum discussion depth is 1 (single round of responses)
-
-        For Consensus RoE:
-        - All advisors participate in reaching agreement
-        - Maximum discussion depth is 5 (advisors can reply to each other)
-
-        For Brainstorming RoE:
-        - All advisors contribute ideas
-        - Maximum discussion depth is 2 (iterative idea refinement)
-
-        When responding as scribe:
-        - Acknowledge the relevant context from the conversation
-        - Provide thoughtful summaries or suggest clarifying questions
-        - If the discussion is complete, ask the user if they'd like to conclude
-        - Keep responses concise but substantive (2-4 paragraphs)
-        - Use @user only when explicitly requesting a response from the user; otherwise refer to the user as "user" in plain text
-
-        Remember: You are the facilitator, ensuring productive conversations while respecting depth limits.
-      PROMPT
-      llm_model: llm_model,
+      name: "scribe",
+      system_prompt: Advisor::SCRIBE_SYSTEM_PROMPT,
+      llm_model: account.default_llm_model || account.llm_models.enabled.first,
       global: false,
       is_scribe: true
     )

@@ -13,3 +13,17 @@ two:
   name: fixture-counselor-two
   system_prompt: You are another test advisor with different expertise.
   is_scribe: false
+
+scribe-space-one:
+  account: one
+  space: one
+  name: scribe
+  system_prompt: scribe
+  is_scribe: true
+
+scribe-space-two:
+  account: two
+  space: two
+  name: scribe
+  system_prompt: scribe
+  is_scribe: true

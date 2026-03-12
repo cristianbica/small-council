@@ -62,12 +62,7 @@ module AI
         end
 
         test "execute cannot update scribe advisor" do
-          scribe = @space.advisors.create!(
-            account: @account,
-            name: "Scribe",
-            system_prompt: "Scribe prompt",
-            is_scribe: true
-          )
+          scribe = @space.scribe_advisor
           tool = UpdateAdvisorTool.new(@context)
 
           result = tool.execute(advisor_id: scribe.id, name: "NewName")

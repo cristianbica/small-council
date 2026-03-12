@@ -23,12 +23,7 @@ module AI
             system_prompt: "Prompt 2",
             is_scribe: false
           )
-          @scribe = @space.advisors.create!(
-            account: @account,
-            name: "scribe",
-            system_prompt: "Scribe prompt",
-            is_scribe: true
-          )
+          @scribe = @space.scribe_advisor
           @context = { space: @space, user: @user }
         end
 

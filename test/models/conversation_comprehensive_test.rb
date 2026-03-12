@@ -20,13 +20,10 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
       identifier: "gpt-4"
     )
 
-    @scribe = @account.advisors.create!(
-      name: "Scribe",
-      system_prompt: "You are the scribe.",
-      space: @space,
-      is_scribe: true,
-      llm_model: @llm_model
-    )
+    # Space already creates a scribe via after_create callback
+    @scribe = @space.scribe_advisor
+    # Update the scribe with the test model if needed
+    @scribe.update!(llm_model: @llm_model) unless @scribe.llm_model
 
     @advisor1 = @account.advisors.create!(
       name: "Strategic Advisor",
@@ -288,21 +285,26 @@ class ConversationComprehensiveTest < ActiveSupport::TestCase
     assert_equal initial_count, conv.conversation_participants.count
   end
 
-  test "ensure_scribe_present! does nothing when no scribe in account" do
-    account_without_scribe = Account.create!(name: "No Scribe Account", slug: "no-scribe")
-    set_tenant(account_without_scribe)
-    user2 = account_without_scribe.users.create!(email: "user2@example.com", password: "password123")
+  test "ensure_scribe_present! adds scribe when space has scribe" do
+    account_with_scribe = Account.create!(name: "Scribe Account", slug: "scribe-acct-#{Time.now.to_i}")
+    set_tenant(account_with_scribe)
+    user2 = account_with_scribe.users.create!(email: "user2@example.com", password: "password123")
 
-    conv = account_without_scribe.conversations.create!(
+    space = account_with_scribe.spaces.create!(name: "Space With Scribe")
+    conv = account_with_scribe.conversations.create!(
       title: "Test",
       user: user2,
       conversation_type: :adhoc,
-      space: account_without_scribe.spaces.create!(name: "No Scribe Space")
+      space: space
     )
+
+    # Space should have created a scribe
+    assert space.scribe_advisor.present?
 
     conv.ensure_scribe_present!
 
-    assert_not conv.has_scribe?
+    assert conv.has_scribe?
+    assert_equal space.scribe_advisor, conv.scribe_advisor
   end
 
   # ============================================================================

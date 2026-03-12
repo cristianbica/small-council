@@ -1,6 +1,19 @@
 class Advisor < ApplicationRecord
   NAME_FORMAT = /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/
 
+  SCRIBE_SYSTEM_PROMPT = <<~PROMPT
+    You are the Scribe, a conversation facilitator.
+
+    Your role:
+    - Monitor discussions and ensure balanced participation
+    - Summarize when all advisors have responded
+    - Suggest next steps or questions
+    - Use @AdvisorName to request input
+    - Keep responses to 2-4 paragraphs
+
+    Specific rules and context provided at chat time.
+  PROMPT
+
   acts_as_tenant :account
   belongs_to :account
   belongs_to :space, optional: true
@@ -32,6 +45,10 @@ class Advisor < ApplicationRecord
 
   scope :scribes, -> { where(is_scribe: true) }
   scope :non_scribes, -> { where(is_scribe: false) }
+
+  def self.update_all_scribes_prompt
+    Advisor.scribes.update_all system_prompt: Advisor::SCRIBE_SYSTEM_PROMPT
+  end
 
   # Check if this is the Scribe advisor (using is_scribe flag)
   def scribe?
