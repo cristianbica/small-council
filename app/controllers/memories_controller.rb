@@ -1,6 +1,6 @@
 class MemoriesController < ApplicationController
   before_action :set_space
-  before_action :set_memory, only: [ :show, :edit, :update, :destroy, :archive, :activate, :versions, :version, :restore_version ]
+  before_action :set_memory, only: [ :show, :edit, :update, :destroy, :archive, :activate, :versions, :version, :restore_version, :export ]
 
   # GET /spaces/:space_id/memories
   def index
@@ -51,19 +51,8 @@ class MemoriesController < ApplicationController
     @memory.updated_by = Current.user
 
     # Track what changed for the version
-    changes = []
-    changes << "title" if memory_params[:title].present? && memory_params[:title] != @memory.title
-    changes << "content" if memory_params[:content].present? && memory_params[:content] != @memory.content
-    changes << "type" if memory_params[:memory_type].present? && memory_params[:memory_type] != @memory.memory_type
 
     if @memory.update(memory_params)
-      # Create a version if content actually changed
-      if changes.any?
-        @memory.create_version!(
-          created_by: Current.user,
-          change_reason: "Manual update by user (#{changes.join(', ')})"
-        )
-      end
       redirect_to space_memory_path(@space, @memory), notice: "Memory was successfully updated."
     else
       render :edit, status: :unprocessable_entity
@@ -99,37 +88,23 @@ class MemoriesController < ApplicationController
     @search_query = params[:q]
   end
 
-  # GET /spaces/:space_id/memories/export
+  # GET /spaces/:space_id/memories/:id/export
   def export
-    @memories = @space.memories.active.ordered
-
-    respond_to do |format|
-      format.html { redirect_to space_memories_path(@space) }
-      format.md do
-        content = generate_markdown_export(@memories)
-        send_data content,
-          filename: "#{@space.name.parameterize}-memories-#{Date.current}.md",
-          type: "text/markdown",
-          disposition: "attachment"
-      end
-      format.json do
-        content = @memories.map { |m| export_memory_json(m) }
-        send_data content.to_json,
-          filename: "#{@space.name.parameterize}-memories-#{Date.current}.json",
-          type: "application/json",
-          disposition: "attachment"
-      end
-    end
+    content = @memory.content
+    send_data content,
+      filename: "#{@memory.title}.md",
+      type: "text/markdown",
+      disposition: "attachment"
   end
 
   # GET /spaces/:space_id/memories/:id/versions
   def versions
     @versions = @memory.versions.ordered
-    @current_version = @memory.latest_version
   end
 
   # GET /spaces/:space_id/memories/:id/version?version_number=X
   def version
+    @inner_layout = :fullscreen
     @version_number = params[:version_number].to_i
     @version = @memory.versions.find_by(version_number: @version_number)
 
@@ -137,23 +112,9 @@ class MemoriesController < ApplicationController
       redirect_to versions_space_memory_path(@space, @memory), alert: "Version not found."
       return
     end
-
-    # Find the previous version for comparison
-    @previous_version = @memory.versions
-                               .where("version_number < ?", @version_number)
-                               .order(version_number: :desc)
-                               .first
-
-    # Calculate diffs
-    @title_changed = @previous_version && @version.title != @previous_version.title
-    @content_changed = @previous_version && @version.content != @previous_version.content
-    @type_changed = @previous_version && @version.memory_type != @previous_version.memory_type
-
-    # Generate side-by-side diffs
-    if @previous_version
-      @title_diff = InlineDiff.side_by_side_diff(@previous_version.title, @version.title) if @title_changed
-      @content_diff = InlineDiff.side_by_side_diff(@previous_version.content, @version.content) if @content_changed
-    end
+    @next_version = @version.next_version
+    @title_diff = diff_versions(@version, @next_version, :title)
+    @content_diff = diff_versions(@version, @next_version, :content)
   end
 
   # POST /spaces/:space_id/memories/:id/restore_version
@@ -165,17 +126,16 @@ class MemoriesController < ApplicationController
       return
     end
 
-    version = @memory.versions.find_by(version_number: version_number)
-
-    unless version
+    # Check if version exists before attempting restore
+    unless @memory.version_at(version_number)
       redirect_to versions_space_memory_path(@space, @memory), alert: "Version not found."
       return
     end
 
     begin
-      version.restore_to_memory!(
-        Current.user,
-        params[:reason].presence || "Restored by user"
+      @memory.restore_version!(
+        version_number,
+        restored_by: Current.user
       )
       redirect_to space_memory_path(@space, @memory), notice: "Memory restored to version #{version_number}."
     rescue => e
@@ -198,53 +158,15 @@ class MemoriesController < ApplicationController
     params.require(:memory).permit(:title, :content, :memory_type, :status, :position, metadata: {})
   end
 
-  def generate_markdown_export(memories)
-    lines = []
-    lines << "# #{@space.name} - Memory Export"
-    lines << ""
-    lines << "Export Date: #{Date.current}"
-    lines << "Total Memories: #{memories.count}"
-    lines << ""
-    lines << "---"
-    lines << ""
+  def diff_versions(old_version, new_version, attr)
+    old_val = old_version.attribute_value(attr).to_s
+    new_val = new_version.attribute_value(attr).to_s
 
-    memories.group_by(&:memory_type).each do |type, type_memories|
-      lines << "## #{type.humanize} (#{type_memories.count})"
-      lines << ""
-
-      type_memories.each do |memory|
-        lines << "### #{memory.title}"
-        lines << ""
-        lines << "**Type:** #{memory.memory_type_display}"
-        lines << "**Status:** #{memory.status_display}"
-        lines << "**Created:** #{memory.created_at.strftime('%Y-%m-%d %H:%M')}"
-        lines << "**Updated:** #{memory.updated_at.strftime('%Y-%m-%d %H:%M')}"
-        lines << "**Source:** #{memory.source_display}" if memory.source.present?
-        lines << ""
-        lines << memory.content
-        lines << ""
-        lines << "---"
-        lines << ""
-      end
-    end
-
-    lines.join("\n")
+    diff_current(old_val, new_val)
   end
 
-  def export_memory_json(memory)
-    {
-      id: memory.id,
-      title: memory.title,
-      content: memory.content,
-      memory_type: memory.memory_type,
-      status: memory.status,
-      position: memory.position,
-      metadata: memory.metadata,
-      source_type: memory.source_type,
-      source_id: memory.source_id,
-      created_by: memory.creator_display,
-      created_at: memory.created_at.iso8601,
-      updated_at: memory.updated_at.iso8601
-    }
+  def diff_current(old_val, new_val)
+    split = Diffy::SplitDiff.new(old_val.to_s, new_val.to_s, format: :html, allow_empty_diff: false)
+    { left: split.left, right: split.right }
   end
 end

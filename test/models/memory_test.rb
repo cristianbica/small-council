@@ -255,20 +255,29 @@ class MemoryTest < ActiveSupport::TestCase
     assert_nil result
   end
 
-  test "restore_version! calls restore_to_memory! when version found" do
+  test "restore_version! restores memory to previous version state" do
     memory = @space.memories.create!(
       account: @account, title: "Restorable", content: "Original content",
       memory_type: "knowledge", status: "active"
     )
-    # Initial version is created by after_create callback
+    # Create a version by updating
+    memory.update!(content: "Updated content")
+    assert_equal 1, memory.versions.count
+
+    # Get the version (which stores the PREVIOUS state)
     version = memory.versions.first
     assert_not_nil version
 
-    # Stub the version's restore_to_memory! method
-    version.stubs(:restore_to_memory!).returns(memory)
-    memory.versions.stubs(:find_by).with(version_number: version.version_number).returns(version)
+    # Verify the version stores the original content (PREVIOUS state)
+    assert_equal "Original content", version.attribute_value(:content)
 
-    result = memory.restore_version!(version.version_number)
+    # Restore to that version
+    result = memory.restore_version!(version.version_number, restored_by: @user)
     assert_not_nil result
+
+    # Memory should now have the original content
+    memory.reload
+    assert_equal "Original content", memory.content
+    assert_equal 2, memory.versions.count
   end
 end

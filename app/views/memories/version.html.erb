@@ -12,7 +12,7 @@
         <h1 class="text-3xl font-bold">Version <%= @version.version_number %></h1>
       </div>
       <p class="text-sm text-base-content/60">
-        <%= @version.created_at.strftime('%b %d, %Y at %H:%M') %> by <%= @version.created_by_display %>
+        <%= @version.created_at.strftime('%b %d, %Y at %H:%M') %> by <%= @version.whodunnit_display %>
       </p>
     </div>
     <div class="flex gap-2">
@@ -23,162 +23,82 @@
   <!-- Version Info -->
   <div class="card bg-base-100 shadow">
     <div class="card-body">
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="card-title text-lg mb-2"><%= @version.title %></h2>
-          <div class="flex items-center gap-2 text-sm">
-            <span class="badge badge-sm"><%= @version.memory_type %></span>
-            <% if @version == @memory.latest_version %>
-              <span class="badge badge-success badge-sm">Current Version</span>
-            <% else %>
-              <span class="badge badge-ghost badge-sm">Old Version</span>
-            <% end %>
-          </div>
-        </div>
-        
-        <% if @version != @memory.latest_version %>
-          <%= button_to "Restore This Version",
-              restore_version_space_memory_path(@space, @memory, version_number: @version.version_number),
-              method: :post,
-              class: "btn btn-warning",
-              data: { turbo_confirm: "Restore memory to version #{@version.version_number}? This will create a new version." } %>
-        <% end %>
+      <div>
+        <%= button_to "Restore This Version",
+            restore_version_space_memory_path(@space, @memory, version_number: @version.version_number),
+            method: :post,
+            class: "btn btn-warning",
+            data: { turbo_confirm: "Restore memory to version #{@version.version_number}? This will create a new version." } %>
       </div>
-      
-      <% if @version.change_reason.present? %>
+      <% if @version.metadata['change_reason'].present? %>
         <div class="mt-4 p-3 bg-base-200 rounded-lg">
           <span class="text-sm font-medium">Change Reason:</span>
-          <p class="text-sm mt-1"><%= @version.change_reason %></p>
+          <p class="text-sm mt-1"><%= @version.metadata['change_reason'] %></p>
         </div>
       <% end %>
     </div>
   </div>
 
   <!-- Side-by-Side Diff -->
-  <% if @previous_version %>
-    <div class="card bg-base-100 shadow">
-      <div class="card-body">
-        <h2 class="card-title text-lg mb-4">Changes from Version <%= @previous_version.version_number %></h2>
-        
-        <!-- Side-by-Side Title Diff -->
-        <% if @title_changed %>
-          <div class="mb-6">
-            <h3 class="text-sm font-medium mb-3 text-base-content/70">Title Changes</h3>
-            <div class="side-by-side-diff">
-              <div class="diff-column diff-column-left">
-                <div class="diff-column-header">
-                  <span class="text-xs font-medium">Version <%= @previous_version.version_number %></span>
-                </div>
-                <div class="diff-column-content">
-                  <%= @title_diff[:left].html_safe %>
-                </div>
-              </div>
-              <div class="diff-column diff-column-right">
-                <div class="diff-column-header">
-                  <span class="text-xs font-medium">Version <%= @version.version_number %></span>
-                </div>
-                <div class="diff-column-content">
-                  <%= @title_diff[:right].html_safe %>
-                </div>
-              </div>
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <!-- Title Diff -->
+      <div class="mb-6">
+        <h3 class="text-sm font-medium mb-3 text-base-content/70">Title Changes</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <!-- Left: Previous Version -->
+          <div class="border rounded-lg overflow-hidden">
+            <div class="bg-base-200 px-3 py-2 text-xs font-medium border-b">
+              Version <%= @previous_version&.version_number || @version.version_number %>
+            </div>
+            <div class="p-4 bg-base-100">
+              <%= @title_diff[:left].html_safe %>
             </div>
           </div>
-        <% end %>
-
-        <!-- Side-by-Side Type Diff -->
-        <% if @type_changed %>
-          <div class="mb-6">
-            <h3 class="text-sm font-medium mb-3 text-base-content/70">Type Changes</h3>
-            <div class="side-by-side-diff">
-              <div class="diff-column diff-column-left">
-                <div class="diff-column-header">
-                  <span class="text-xs font-medium">Version <%= @previous_version.version_number %></span>
-                </div>
-                <div class="diff-column-content">
-                  <span class="badge badge-sm"><%= @previous_version.memory_type %></span>
-                </div>
-              </div>
-              <div class="diff-column diff-column-right">
-                <div class="diff-column-header">
-                  <span class="text-xs font-medium">Version <%= @version.version_number %></span>
-                </div>
-                <div class="diff-column-content">
-                  <span class="badge badge-sm badge-success"><%= @version.memory_type %></span>
-                </div>
-              </div>
+          <!-- Right: Current/This Version -->
+          <div class="border rounded-lg overflow-hidden">
+            <div class="bg-base-200 px-3 py-2 text-xs font-medium border-b">
+              <%= @next_version.nil? ? "Current" : "Version #{@version.version_number}" %>
+            </div>
+            <div class="p-4 bg-base-100">
+              <%= @title_diff[:right].html_safe %>
             </div>
           </div>
-        <% end %>
-
-        <!-- Side-by-Side Content Diff -->
-        <% if @content_changed %>
-          <div>
-            <h3 class="text-sm font-medium mb-3 text-base-content/70">Content Changes</h3>
-            <div class="text-xs text-base-content/60 mb-2 flex justify-end gap-4">
-              <span class="flex items-center gap-1">
-                <span class="inline-block w-3 h-3 bg-red-200 rounded"></span> Removed
-              </span>
-              <span class="flex items-center gap-1">
-                <span class="inline-block w-3 h-3 bg-green-200 rounded"></span> Added
-              </span>
-            </div>
-            <div class="side-by-side-diff side-by-side-diff-large">
-              <div class="diff-column diff-column-left">
-                <div class="diff-column-header">
-                  <span class="text-xs font-medium">Version <%= @previous_version.version_number %></span>
-                </div>
-                <div class="diff-column-content prose prose-sm max-w-none">
-                  <%= @content_diff[:left].html_safe %>
-                </div>
-              </div>
-              <div class="diff-column diff-column-right">
-                <div class="diff-column-header">
-                  <span class="text-xs font-medium">Version <%= @version.version_number %></span>
-                </div>
-                <div class="diff-column-content prose prose-sm max-w-none">
-                  <%= @content_diff[:right].html_safe %>
-                </div>
-              </div>
-            </div>
-          </div>
-        <% elsif !@title_changed && !@type_changed %>
-          <div class="alert alert-info">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <span>No content changes in this version (metadata only).</span>
-          </div>
-        <% end %>
+        </div>
       </div>
-    </div>
-  <% else %>
-    <!-- First Version - No Diff -->
-    <div class="card bg-base-100 shadow">
-      <div class="card-body">
-        <h2 class="card-title text-lg mb-4">Initial Version</h2>
-        <p class="text-sm text-base-content/60 mb-4">This is the first version of the memory.</p>
-        
-        <div class="prose max-w-none bg-base-200 p-4 rounded-lg">
-          <%= markdown_to_html(@version.content) %>
+
+      <!-- Content Diff -->
+      <div>
+        <h3 class="text-sm font-medium mb-3 text-base-content/70">Content Changes</h3>
+        <div class="text-xs text-base-content/60 mb-2 flex justify-end gap-4">
+          <span class="flex items-center gap-1">
+            <span class="inline-block w-3 h-3 bg-red-200 rounded"></span> Removed
+          </span>
+          <span class="flex items-center gap-1">
+            <span class="inline-block w-3 h-3 bg-green-200 rounded"></span> Added
+          </span>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <!-- Left: Previous Version -->
+          <div class="border rounded-lg overflow-hidden">
+            <div class="bg-base-200 px-3 py-2 text-xs font-medium border-b">
+              Version <%= @previous_version&.version_number || @version.version_number %>
+            </div>
+            <div class="p-4 bg-base-100 prose prose-sm max-w-none">
+              <%= @content_diff[:left].html_safe %>
+            </div>
+          </div>
+          <!-- Right: Current/This Version -->
+          <div class="border rounded-lg overflow-hidden">
+            <div class="bg-base-200 px-3 py-2 text-xs font-medium border-b">
+              <%= @next_version.nil? ? "Current" : "Version #{@version.version_number}" %>
+            </div>
+            <div class="p-4 bg-base-100 prose prose-sm max-w-none">
+              <%= @content_diff[:right].html_safe %>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  <% end %>
-
-  <!-- Navigation Between Versions -->
-  <% other_versions = @memory.versions.where.not(id: @version.id).ordered %>
-  <% if other_versions.any? %>
-    <div class="card bg-base-100 shadow">
-      <div class="card-body">
-        <h3 class="card-title text-sm mb-4">Other Versions</h3>
-        <div class="flex flex-wrap gap-2">
-          <% other_versions.each do |v| %>
-            <%= link_to "v#{v.version_number} (#{v.created_at.strftime('%b %d')})",
-                version_space_memory_path(@space, @memory, version_number: v.version_number),
-                class: "btn btn-sm #{v == @memory.latest_version ? 'btn-primary' : 'btn-outline'}" %>
-          <% end %>
-        </div>
-      </div>
-    </div>
-  <% end %>
+  </div>
 </div>

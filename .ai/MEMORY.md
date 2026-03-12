@@ -30,6 +30,12 @@ Max ~200 lines. Keep durable, high-signal facts only.
 - Messages use polymorphic sender (`User`/`Advisor`) and track turn state with `pending_advisor_ids` + status (`pending|responding|complete|error|cancelled`).
 - Sensitive fields are encrypted at rest (`Provider.credentials`, `Advisor.system_prompt/short_description`, `Conversation.memory/draft_memory`, `Message.content/prompt_text`, `Memory.content`).
 
+## Versioning
+- Versioning is handled by `Versionable` concern using `RecordVersion` model with jsonb storage.
+- Versions store PREVIOUS state via `before_commit` callback; linked by `previous_version_id`.
+- Context flows through `Current.version_whodunnit` (polymorphic, defaults to `Current.user`) and `Current.version_metadata`.
+- Enable on a model: `include Versionable` + `track_versions :attr1, :attr2`.
+
 ## AI stack
 - `AI::Client` is class-based for chat session creation (`AI::Client.chat`) and provider/model operations (`test_connection`, `list_models`, `model_info`).
 - Supported providers: `openai`, `openrouter`.

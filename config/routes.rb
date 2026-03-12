@@ -23,17 +23,17 @@ Rails.application.routes.draw do
   resources :spaces do
     resources :councils, only: [ :index, :new, :create ]
     resources :advisors
-    resources :memories do
+      resources :memories do
       member do
         post :archive
         post :activate
         get :versions
         get :version
         post :restore_version
+        get :export
       end
       collection do
         get :search
-        get :export
       end
     end
   end

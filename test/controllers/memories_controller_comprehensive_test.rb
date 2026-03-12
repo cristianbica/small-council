@@ -16,8 +16,8 @@ class MemoriesControllerComprehensiveTest < ActionDispatch::IntegrationTest
   # ============================================================================
 
   test "should get versions page" do
-    # Create a version first
-    @memory.create_version!(created_by: @user, change_reason: "Initial version")
+    # Create a version first by updating the memory
+    @memory.update!(content: "Updated content for versions test")
 
     get versions_space_memory_url(@space, @memory)
     assert_response :success
@@ -26,10 +26,7 @@ class MemoriesControllerComprehensiveTest < ActionDispatch::IntegrationTest
 
   test "should show versions in order" do
     @memory.update!(content: "First update")
-    @memory.create_version!(created_by: @user, change_reason: "First update")
-
     @memory.update!(content: "Second update")
-    @memory.create_version!(created_by: @user, change_reason: "Second update")
 
     get versions_space_memory_url(@space, @memory)
     assert_response :success
@@ -40,21 +37,19 @@ class MemoriesControllerComprehensiveTest < ActionDispatch::IntegrationTest
   # ============================================================================
 
   test "should get specific version" do
-    @memory.create_version!(created_by: @user, change_reason: "Initial version")
+    @memory.update!(title: "First Title", content: "Initial content")
     @memory.update!(title: "Updated Title", content: "Updated content")
-    version2 = @memory.create_version!(created_by: @user, change_reason: "Title and content update")
 
-    get version_space_memory_url(@space, @memory, version_number: version2.version_number)
+    get version_space_memory_url(@space, @memory, version_number: 1)
     assert_response :success
     assert_select "h1", /Version/
   end
 
   test "should show diff when viewing version with previous" do
-    @memory.create_version!(created_by: @user, change_reason: "Initial")
+    @memory.update!(content: "Initial content")
     @memory.update!(content: "New content here")
-    version2 = @memory.create_version!(created_by: @user, change_reason: "Content changed")
 
-    get version_space_memory_url(@space, @memory, version_number: version2.version_number)
+    get version_space_memory_url(@space, @memory, version_number: 2)
     assert_response :success
   end
 
@@ -65,9 +60,9 @@ class MemoriesControllerComprehensiveTest < ActionDispatch::IntegrationTest
   end
 
   test "should handle first version (no previous)" do
-    version = @memory.create_version!(created_by: @user, change_reason: "First version")
+    @memory.update!(content: "First version content")
 
-    get version_space_memory_url(@space, @memory, version_number: version.version_number)
+    get version_space_memory_url(@space, @memory, version_number: 1)
     assert_response :success
     # No diff shown since it's the first version
   end
@@ -78,10 +73,11 @@ class MemoriesControllerComprehensiveTest < ActionDispatch::IntegrationTest
 
   test "should restore to a previous version" do
     original_title = @memory.title
-    @memory.create_version!(created_by: @user, change_reason: "Initial")
+    original_content = @memory.content
+
+    @memory.update!(content: "Initial version for restore test")
 
     @memory.update!(title: "Changed Title")
-    version2 = @memory.create_version!(created_by: @user, change_reason: "Title changed")
 
     post restore_version_space_memory_url(@space, @memory, version_number: 1)
 
@@ -89,13 +85,14 @@ class MemoriesControllerComprehensiveTest < ActionDispatch::IntegrationTest
     assert_match(/restored to version 1/, flash[:notice])
 
     @memory.reload
+    # Version 1 stored the ORIGINAL state (before first update)
     assert_equal original_title, @memory.title
+    assert_equal original_content, @memory.content
   end
 
   test "should restore version with custom reason" do
-    @memory.create_version!(created_by: @user, change_reason: "Initial")
+    @memory.update!(content: "Initial content")
     @memory.update!(content: "New content")
-    @memory.create_version!(created_by: @user, change_reason: "Content changed")
 
     post restore_version_space_memory_url(@space, @memory, version_number: 1, reason: "Rolled back due to error")
 
@@ -115,122 +112,43 @@ class MemoriesControllerComprehensiveTest < ActionDispatch::IntegrationTest
   end
 
   test "should handle restore errors gracefully" do
-    @memory.create_version!(created_by: @user, change_reason: "Initial")
+    @memory.update!(content: "Initial content for error test")
 
-    # Force an error by stubbing the restore method
-    MemoryVersion.any_instance.stubs(:restore_to_memory!).raises(StandardError.new("Database error"))
-
-    post restore_version_space_memory_url(@space, @memory, version_number: 1)
+    # Request a non-existent version number
+    post restore_version_space_memory_url(@space, @memory, version_number: 999)
 
     assert_redirected_to versions_space_memory_path(@space, @memory)
-    assert_match(/Failed to restore/, flash[:alert])
+    assert_equal "Version not found.", flash[:alert]
   end
 
   # ============================================================================
   # Export Tests
   # ============================================================================
 
-  test "should export memories as markdown" do
-    # Create multiple memories
-    @space.memories.create!(
-      account: @account,
-      title: "Knowledge Memory",
-      content: "Knowledge content here",
-      memory_type: "knowledge",
-      status: "active",
-      position: 2
-    )
-
-    get export_space_memories_url(@space, format: :md)
+  test "should export single memory as markdown" do
+    get export_space_memory_url(@space, @memory)
 
     assert_response :success
+    assert_equal @memory.content, response.body
+    assert_match(/#{@memory.title}\.md/, response.headers["Content-Disposition"])
     assert_equal "text/markdown", response.media_type
-    assert_match(/# #{@space.name}/, response.body)
-    assert_match(/#{@memory.title}/, response.body)
-    assert_match(/filename.*memories.*\.md/, response.headers["Content-Disposition"])
   end
 
-  test "should export memories as json" do
-    @space.memories.create!(
-      account: @account,
-      title: "Another Memory",
-      content: "More content",
-      memory_type: "knowledge",
-      status: "active",
-      position: 2
-    )
-
-    get export_space_memories_url(@space, format: :json)
-
-    assert_response :success
-    assert_equal "application/json", response.media_type
-
-    json = JSON.parse(response.body)
-    assert json.is_a?(Array)
-    assert json.length >= 1
-    assert json.first["title"].present?
-    assert json.first["memory_type"].present?
-    assert_match(/filename.*memories.*\.json/, response.headers["Content-Disposition"])
-  end
-
-  test "should redirect to index when exporting with html format" do
-    get export_space_memories_url(@space)
-    assert_redirected_to space_memories_path(@space)
-  end
-
-  test "should group memories by type in markdown export" do
-    @space.memories.create!(
-      account: @account,
-      title: "Knowledge Memory",
-      content: "Knowledge content",
-      memory_type: "knowledge",
-      status: "active",
-      position: 2
-    )
-    @space.memories.create!(
+  test "should export memory from different memory type" do
+    summary_memory = @space.memories.create!(
       account: @account,
       title: "Summary Memory",
-      content: "Summary content",
+      content: "This is a summary",
       memory_type: "summary",
       status: "active",
-      position: 3
+      position: 2
     )
 
-    get export_space_memories_url(@space, format: :md)
+    get export_space_memory_url(@space, summary_memory)
 
     assert_response :success
-    assert_match(/## Knowledge/, response.body)
-    assert_match(/## Summary/, response.body)
-  end
-
-  test "should include all memory fields in json export" do
-    @space.memories.create!(
-      account: @account,
-      title: "Complete Memory",
-      content: "Complete content",
-      memory_type: "knowledge",
-      status: "active",
-      position: 5,
-      metadata: { key: "value" },
-      source_type: "Conversation",
-      source_id: 123
-    )
-
-    get export_space_memories_url(@space, format: :json)
-
-    assert_response :success
-    json = JSON.parse(response.body)
-    memory = json.find { |m| m["title"] == "Complete Memory" }
-    assert memory["id"].present?
-    assert memory["title"].present?
-    assert memory["content"].present?
-    assert memory["memory_type"].present?
-    assert memory["status"].present?
-    assert memory["position"].present?
-    assert memory["metadata"].present?
-    assert memory["created_by"].present?
-    assert memory["created_at"].present?
-    assert memory["updated_at"].present?
+    assert_equal summary_memory.content, response.body
+    assert_match(/Summary Memory\.md/, response.headers["Content-Disposition"])
   end
 
   # ============================================================================
@@ -323,7 +241,7 @@ class MemoriesControllerComprehensiveTest < ActionDispatch::IntegrationTest
   test "should create version when title changes" do
     @memory.update!(content: "Initial content for versioning")
 
-    assert_difference "MemoryVersion.count", 1 do
+    assert_difference "RecordVersion.count", 1 do
       patch space_memory_url(@space, @memory), params: {
         memory: {
           title: "New Title for Version Test"
@@ -331,14 +249,12 @@ class MemoriesControllerComprehensiveTest < ActionDispatch::IntegrationTest
       }
     end
 
-    version = MemoryVersion.last
-    assert_equal @user, version.created_by
-    assert version.change_reason.include?("Manual update")
-    assert version.change_reason.include?("title")
+    version = RecordVersion.last
+    assert_equal @user, version.whodunnit
   end
 
   test "should create version when content changes" do
-    assert_difference "MemoryVersion.count", 1 do
+    assert_difference "RecordVersion.count", 1 do
       patch space_memory_url(@space, @memory), params: {
         memory: {
           content: "Updated content for version test"
@@ -346,66 +262,52 @@ class MemoriesControllerComprehensiveTest < ActionDispatch::IntegrationTest
       }
     end
 
-    version = MemoryVersion.last
-    assert version.change_reason.include?("content")
-  end
-
-  test "should create version when type changes" do
-    assert_difference "MemoryVersion.count", 1 do
-      patch space_memory_url(@space, @memory), params: {
-        memory: {
-          memory_type: "summary"
-        }
-      }
-    end
-
-    version = MemoryVersion.last
-    assert version.change_reason.include?("type")
+    version = RecordVersion.last
+    assert_equal @user, version.whodunnit
   end
 
   test "should create version with multiple changes" do
-    assert_difference "MemoryVersion.count", 1 do
+    assert_difference "RecordVersion.count", 1 do
       patch space_memory_url(@space, @memory), params: {
         memory: {
           title: "New Title",
-          content: "New content",
-          memory_type: "summary"
+          content: "New content"
         }
       }
     end
 
-    version = MemoryVersion.last
-    assert version.change_reason.include?("title")
-    assert version.change_reason.include?("content")
-    assert version.change_reason.include?("type")
+    version = RecordVersion.last
+    assert_equal @user, version.whodunnit
   end
 
   test "should not create version when no changes made" do
     # First update to establish baseline
     @memory.update!(content: "Stable content")
-    @memory.create_version!(created_by: @user, change_reason: "Initial")
+
+    version_count_before = @memory.versions.count
 
     # Update with same values
-    assert_no_difference "MemoryVersion.count" do
-      patch space_memory_url(@space, @memory), params: {
-        memory: {
-          title: @memory.title,
-          content: @memory.content
-        }
+    patch space_memory_url(@space, @memory), params: {
+      memory: {
+        title: @memory.title,
+        content: @memory.content
       }
-    end
+    }
+
+    assert_equal version_count_before, @memory.versions.count
   end
 
   test "should not create version when update fails" do
-    assert_no_difference "MemoryVersion.count" do
-      patch space_memory_url(@space, @memory), params: {
-        memory: {
-          title: ""  # Invalid - title is required
-        }
+    version_count_before = RecordVersion.count
+
+    patch space_memory_url(@space, @memory), params: {
+      memory: {
+        title: ""  # Invalid - title is required
       }
-    end
+    }
 
     assert_response :unprocessable_entity
+    assert_equal version_count_before, RecordVersion.count
   end
 
   # ============================================================================
@@ -479,24 +381,35 @@ class MemoriesControllerComprehensiveTest < ActionDispatch::IntegrationTest
         position: 1
       )
     end
+    # Create a version by updating the memory
     ActsAsTenant.without_tenant do
-      other_memory.create_version!(created_by: @user, change_reason: "Initial")
+      other_memory.update!(content: "Updated content for version")
     end
 
     post restore_version_space_memory_url(other_space, other_memory, version_number: 1)
     assert_response :not_found
   end
 
-  test "cannot export memories from different space" do
+  test "cannot export memory from different space" do
     other_account = ActsAsTenant.without_tenant do
       Account.create!(name: "Other Export Account", slug: "other-export-test")
     end
     other_space = ActsAsTenant.without_tenant do
       other_account.spaces.create!(name: "Other Export Space")
     end
+    other_memory = ActsAsTenant.without_tenant do
+      other_space.memories.create!(
+        account: other_account,
+        title: "Other Memory",
+        content: "Other content",
+        memory_type: "knowledge",
+        status: "active",
+        position: 1
+      )
+    end
 
     # This should fail with not found since the space doesn't belong to current account
-    get export_space_memories_url(other_space, format: :md)
+    get export_space_memory_url(other_space, other_memory)
     assert_response :not_found
   end
 
@@ -505,7 +418,7 @@ class MemoriesControllerComprehensiveTest < ActionDispatch::IntegrationTest
   # ============================================================================
 
   test "show handles memory with versions" do
-    @memory.create_version!(created_by: @user, change_reason: "Initial version")
+    @memory.update!(content: "Updated content for show test")
 
     get space_memory_url(@space, @memory)
     assert_response :success

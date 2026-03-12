@@ -53,15 +53,15 @@
                     </span>
                   </td>
                   <td>
-                    <span class="text-sm"><%= version.created_by_display %></span>
+                    <span class="text-sm"><%= version.whodunnit_display %></span>
                   </td>
                   <td>
-                    <span class="text-sm text-base-content/70 truncate max-w-xs block" title="<%= version.change_reason %>">
-                      <%= version.change_reason || "No reason provided" %>
+                    <span class="text-sm text-base-content/70 truncate max-w-xs block" title="<%= version.metadata['change_reason'] %>">
+                      <%= version.metadata['change_reason'] || "No reason provided" %>
                     </span>
                   </td>
                   <td class="text-right">
-                    <%= link_to "View Diff", version_space_memory_path(@space, @memory, version_number: version.version_number), 
+                    <%= link_to "View Diff", version_space_memory_path(@space, @memory, version_number: version.version_number),
                         class: "btn btn-sm btn-ghost" %>
                   </td>
                 </tr>

@@ -33,16 +33,13 @@ module AI
           return { success: false, error: "No fields to update" } if update_attrs.empty?
 
           update_attrs[:updated_by] = updater
-
-          memory.create_version!(created_by: updater, change_reason: change_reason)
           memory.update!(update_attrs)
 
           {
             success: true,
             memory_id: memory.id,
             title: memory.title,
-            message: "Memory updated successfully",
-            version_created: true
+            message: "Memory updated successfully"
           }
         rescue ActiveRecord::RecordInvalid => e
           { success: false, error: "Failed to update memory: #{e.message}" }

@@ -51,13 +51,14 @@ module AI
           assert_equal "New content", @memory.content
         end
 
-        test "execute creates version record" do
+        test "execute updates memory successfully" do
           tool = UpdateMemoryTool.new(@context)
 
           result = tool.execute(memory_id: @memory.id, title: "New Title")
 
           assert result[:success]
-          assert result[:version_created]
+          assert_equal "New Title", result[:title]
+          assert_equal "Memory updated successfully", result[:message]
         end
 
         test "execute raises ArgumentError for missing memory_id" do

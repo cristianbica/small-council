@@ -13,30 +13,50 @@ module AI
           @messages = messages
           @model = model
           @tools = tools
+          @before_message_callbacks = []
+          @after_message_callbacks = []
+          @before_tool_call_callbacks = []
+          @after_tool_call_callbacks = []
+          @pending_tool_call = nil
         end
 
-        def on_end_message(&block)
-          @on_end_message = block
+        def before_message(&block)
+          @before_message_callbacks << block
+          self
         end
 
-        def on_tool_call(&block)
-          @on_tool_call = block
+        def after_message(&block)
+          @after_message_callbacks << block
+          self
         end
 
-        def on_tool_result(&block)
-          @on_tool_result = block
+        def before_tool_call(&block)
+          @before_tool_call_callbacks << block
+          self
         end
 
-        def trigger_end_message(response)
-          @on_end_message&.call(response)
+        def after_tool_call(&block)
+          @after_tool_call_callbacks << block
+          self
         end
 
-        def trigger_tool_call(tool_call)
-          @on_tool_call&.call(tool_call)
+        def trigger_before_message
+          @before_message_callbacks.each(&:call)
         end
 
-        def trigger_tool_result(result)
-          @on_tool_result&.call(result)
+        def trigger_after_message(response)
+          @after_message_callbacks.each { |cb| cb.call(response) }
+        end
+
+        def trigger_before_tool_call(tool_call)
+          @pending_tool_call = tool_call
+          @before_tool_call_callbacks.each { |cb| cb.call(tool_call) }
+        end
+
+        def trigger_after_tool_result(result)
+          tool_call = @pending_tool_call
+          @pending_tool_call = nil
+          @after_tool_call_callbacks.each { |cb| cb.call(tool_call, result) } if tool_call
         end
       end
 
@@ -64,10 +84,10 @@ module AI
 
         assert_difference "ModelInteraction.count", 2 do
           tracker.register(chat)
-          chat.trigger_end_message(response)
-          chat.trigger_tool_call(OpenStruct.new(name: "lookup", id: "call_1", arguments: { q: "x" }))
-          chat.trigger_tool_result({ ok: true })
-          tracker.track(nil)
+          chat.trigger_before_message
+          chat.trigger_after_message(response)
+          chat.trigger_before_tool_call(OpenStruct.new(name: "lookup", id: "call_1", arguments: { q: "x" }))
+          chat.trigger_after_tool_result({ ok: true })
         end
 
         records = ModelInteraction.where(message: @message).order(:sequence)
@@ -90,7 +110,8 @@ module AI
 
         assert_no_difference "ModelInteraction.count" do
           tracker.register(chat)
-          chat.trigger_end_message(OpenStruct.new(role: :assistant, content: "x"))
+          chat.trigger_before_message
+          chat.trigger_after_message(OpenStruct.new(role: :assistant, content: "x"))
         end
       end
 
@@ -101,7 +122,8 @@ module AI
 
         assert_no_difference "ModelInteraction.count" do
           tracker.register(chat)
-          chat.trigger_end_message(response)
+          chat.trigger_before_message
+          chat.trigger_after_message(response)
         end
       end
 
@@ -113,7 +135,8 @@ module AI
 
         assert_difference "ModelInteraction.count", 1 do
           tracker.register(chat)
-          chat.trigger_end_message(response)
+          chat.trigger_before_message
+          chat.trigger_after_message(response)
         end
 
         payload = ModelInteraction.order(:id).last.request_payload
@@ -127,7 +150,7 @@ module AI
 
         assert_no_difference "ModelInteraction.count" do
           tracker.register(chat)
-          chat.trigger_tool_result("orphan")
+          chat.trigger_after_tool_result("orphan")
         end
       end
 
@@ -220,21 +243,21 @@ module AI
         Rails.logger.expects(:error).with(regexp_matches(/Failed to record chat/))
 
         tracker.register(chat)
-        chat.trigger_end_message(response)
+        chat.trigger_before_message
+        chat.trigger_after_message(response)
       end
 
-      test "record_tool_result logs and clears pending tool on interaction failure" do
+      test "record_tool_result logs on interaction failure" do
         tracker = ModelInteractionTracker.new(context: @context)
         chat = FakeChat.new(messages: [], model: OpenStruct.new(id: "gpt", provider: "openai"))
 
         tracker.register(chat)
-        chat.trigger_tool_call(OpenStruct.new(name: "lookup", id: "tool_1", arguments: { q: "x" }))
+        chat.trigger_before_tool_call(OpenStruct.new(name: "lookup", id: "tool_1", arguments: { q: "x" }))
 
         tracker.stubs(:create_interaction!).raises(StandardError.new("write fail"))
         Rails.logger.expects(:error).with(regexp_matches(/Failed to record tool/))
 
-        chat.trigger_tool_result({ ok: true })
-        assert_nil tracker.instance_variable_get(:@pending_tool_call)
+        chat.trigger_after_tool_result({ ok: true })
       end
 
       test "persist_tool_trace logs when message update fails" do
@@ -260,6 +283,15 @@ module AI
       test "recordable supports account lookup through space" do
         tracker = ModelInteractionTracker.new(context: { message: @message, space: OpenStruct.new(account: @account) })
         assert tracker.send(:recordable?)
+      end
+
+      test "track method persists tool trace for backward compatibility" do
+        tracker = ModelInteractionTracker.new(context: @context)
+
+        # track() should persist tool trace and not raise
+        # It may return a value from persist_tool_trace!, we just care it doesn't error
+        assert_nothing_raised { tracker.track(nil) }
+        assert_nothing_raised { tracker.track(OpenStruct.new(response: nil)) }
       end
     end
   end

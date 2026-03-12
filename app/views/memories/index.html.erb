@@ -9,9 +9,6 @@
     </div>
     <div class="flex gap-2">
       <%= link_to "← Back to Space", space_councils_path(@space), class: "btn btn-ghost btn-sm" %>
-      <%= link_to "Export", export_space_memories_path(@space, format: :md),
-          class: "btn btn-ghost btn-sm",
-          title: "Export memories as Markdown" %>
       <%= link_to "+ New Memory", new_space_memory_path(@space), class: "btn btn-primary btn-sm" %>
     </div>
   </div>

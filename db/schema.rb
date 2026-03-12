@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_10_133000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_11_155518) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -218,26 +218,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_10_133000) do
     t.index ["updated_by_type", "updated_by_id"], name: "index_memories_on_updated_by"
   end
 
-  create_table "memory_versions", force: :cascade do |t|
-    t.bigint "account_id", null: false
-    t.text "change_reason"
-    t.text "content", null: false
-    t.datetime "created_at", null: false
-    t.bigint "created_by_id"
-    t.string "created_by_type"
-    t.bigint "memory_id", null: false
-    t.string "memory_type", null: false
-    t.jsonb "metadata", default: {}
-    t.string "title", null: false
-    t.datetime "updated_at", null: false
-    t.integer "version_number", null: false
-    t.index ["account_id"], name: "index_memory_versions_on_account_id"
-    t.index ["created_by_type", "created_by_id"], name: "index_memory_versions_on_created_by"
-    t.index ["memory_id", "created_at"], name: "index_memory_versions_on_memory_id_and_created_at"
-    t.index ["memory_id", "version_number"], name: "index_memory_versions_on_memory_id_and_version_number", unique: true
-    t.index ["memory_id"], name: "index_memory_versions_on_memory_id"
-  end
-
   create_table "messages", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.text "content"
@@ -297,6 +277,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_10_133000) do
     t.index ["account_id", "name"], name: "index_providers_on_account_id_and_name", unique: true
     t.index ["account_id"], name: "index_providers_on_account_id"
     t.index ["credentials"], name: "index_providers_on_credentials", using: :gin
+  end
+
+  create_table "record_versions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.jsonb "object_data", default: {}, null: false
+    t.bigint "previous_version_id"
+    t.datetime "updated_at", null: false
+    t.integer "version_number", null: false
+    t.bigint "versionable_id", null: false
+    t.string "versionable_type", null: false
+    t.bigint "whodunnit_id"
+    t.string "whodunnit_type"
+    t.index ["previous_version_id"], name: "index_record_versions_on_previous_version_id"
+    t.index ["versionable_type", "versionable_id", "created_at"], name: "idx_on_versionable_type_versionable_id_created_at_b71d87905f"
+    t.index ["versionable_type", "versionable_id", "version_number"], name: "index_record_versions_unique", unique: true
+    t.index ["versionable_type", "versionable_id"], name: "index_record_versions_on_versionable"
+    t.index ["whodunnit_type", "whodunnit_id"], name: "index_record_versions_on_whodunnit"
   end
 
   create_table "scribe_chat_messages", force: :cascade do |t|
@@ -382,8 +380,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_10_133000) do
   add_foreign_key "llm_models", "providers"
   add_foreign_key "memories", "accounts"
   add_foreign_key "memories", "spaces"
-  add_foreign_key "memory_versions", "accounts"
-  add_foreign_key "memory_versions", "memories"
   add_foreign_key "messages", "accounts"
   add_foreign_key "messages", "conversations"
   add_foreign_key "messages", "messages", column: "in_reply_to_id"

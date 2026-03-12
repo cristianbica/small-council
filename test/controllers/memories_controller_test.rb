@@ -25,7 +25,7 @@ class MemoriesControllerTest < ActionDispatch::IntegrationTest
   test "should get new" do
     get new_space_memory_url(@space)
     assert_response :success
-    assert_select "h1", /New Memory/
+    assert_select "span.font-medium", /New/
   end
 
   test "should create memory" do

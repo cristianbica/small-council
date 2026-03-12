@@ -11,25 +11,26 @@ module AI
         @task = task
         @context = context
         @started_at = nil
-        @pending_tool_call = nil
         @tool_trace = []
       end
 
       def register(chat)
         return unless recordable?
 
-        start_timing
+        chat.before_message do
+          start_timing
+        end
 
-        chat.on_end_message do |response|
+        chat.after_message do |response|
           record_chat(chat: chat, response: response)
         end
 
-        chat.on_tool_call do |tool_call|
+        chat.before_tool_call do |tool_call|
           record_tool_call(tool_call)
         end
 
-        chat.on_tool_result do |result|
-          record_tool_result(result)
+        chat.after_tool_call do |tool_call, result|
+          record_tool_result(tool_call, result)
         end
       end
 
@@ -63,12 +64,7 @@ module AI
       end
 
       def record_tool_call(tool_call)
-        @pending_tool_call = {
-          name: tool_call.name,
-          id: tool_call.id,
-          arguments: tool_call.arguments,
-          started_at: Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        }
+        tool_call.started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
         @tool_trace << {
           type: "tool_call",
@@ -79,25 +75,21 @@ module AI
         persist_tool_trace!
       end
 
-      def record_tool_result(result)
+      def record_tool_result(tool_call, result)
         return unless recordable?
-        return unless @pending_tool_call
 
-        tool_data = @pending_tool_call
-        @pending_tool_call = nil
-
-        elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - tool_data[:started_at]
+        elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - tool_call.started_at
         duration_ms = (elapsed * 1000).round(1)
 
         create_interaction!(
           interaction_type: "tool",
           request_payload: {
-            tool_name: tool_data[:name],
-            tool_call_id: tool_data[:id],
-            arguments: tool_data[:arguments]
+            tool_name: tool_call.name,
+            tool_call_id: tool_call.id,
+            arguments: tool_call.arguments
           },
           response_payload: {
-            tool_name: tool_data[:name],
+            tool_name: tool_call.name,
             result: result.to_s
           },
           model_identifier: nil,
@@ -108,8 +100,8 @@ module AI
 
         @tool_trace << {
           type: "tool_result",
-          tool_call_id: tool_data[:id],
-          tool_name: tool_data[:name],
+          tool_call_id: tool_call.id,
+          tool_name: tool_call.name,
           result: normalize_payload(result)
         }
         persist_tool_trace!

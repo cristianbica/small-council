@@ -11,6 +11,7 @@ module AI
       def initialize
         @added_messages = []
         @tools = []
+        @handlers = {}
       end
 
       def with_tools(tool)
@@ -23,6 +24,22 @@ module AI
 
       def with_schema(schema)
         @schema = schema
+      end
+
+      def on_new_message(&block)
+        @handlers[:on_new_message] = block
+      end
+
+      def on_end_message(&block)
+        @handlers[:on_end_message] = block
+      end
+
+      def on_tool_call(&block)
+        @handlers[:on_tool_call] = block
+      end
+
+      def on_tool_result(&block)
+        @handlers[:on_tool_result] = block
       end
 
       def complete
@@ -72,7 +89,7 @@ module AI
       assert_equal 2, provider.chat_instance.added_messages.size
       assert_equal :system, provider.chat_instance.added_messages.first[:role]
       assert_equal :user, provider.chat_instance.added_messages.last[:role]
-      assert_same provider.chat_instance, tracker.registered_on
+      assert_same chat, tracker.registered_on
     end
   end
 end

@@ -8,6 +8,8 @@ class ApplicationController < ActionController::Base
   before_action :set_current_tenant
   before_action :set_current_space
 
+  around_action :set_version_context
+
   helper_method :authenticated?
 
   private
@@ -52,5 +54,17 @@ class ApplicationController < ActionController::Base
   def available_advisors_for_invite
     return [] unless @conversation&.active? && Current.space
     Current.space.non_scribe_advisors.where.not(id: @conversation.advisor_ids)
+  end
+
+  def set_version_context
+    Current.version_whodunnit = Current.user
+    Current.version_metadata = {
+      controller: controller_name,
+      action: action_name
+    }
+    yield
+  ensure
+    Current.version_whodunnit = nil
+    Current.version_metadata = nil
   end
 end

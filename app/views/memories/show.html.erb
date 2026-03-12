@@ -19,6 +19,9 @@
     </div>
     <div class="flex gap-2">
       <%= link_to "← Back", space_memories_path(@space), class: "btn btn-ghost btn-sm" %>
+      <%= link_to "Export", export_space_memory_path(@space, @memory),
+          class: "btn btn-ghost btn-sm",
+          title: "Export memory as Markdown" %>
       <%= link_to "Edit", edit_space_memory_path(@space, @memory), class: "btn btn-primary btn-sm" %>
     </div>
   </div>
@@ -58,7 +61,7 @@
   </div>
 
   <!-- Version History -->
-  <% if @memory.versions.count > 1 %>
+  <% if @memory.versions.count >= 1 %>
     <div class="card bg-base-100 shadow border-l-4 border-info">
       <div class="card-body">
         <h3 class="card-title text-sm mb-2">Version History</h3>

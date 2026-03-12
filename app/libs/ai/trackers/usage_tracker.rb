@@ -10,8 +10,17 @@ module AI
         @context = context
       end
 
+      def register(chat)
+        # No callback registration - uses track(result) instead
+      end
+
       def track(result)
-        response = result.response
+        track_response(result.response)
+      end
+
+      private
+
+      def track_response(response)
         return unless response&.input_tokens && response&.output_tokens
 
         account = context_value(:account) || context_value(:space)&.account
@@ -36,8 +45,6 @@ module AI
       rescue => e
         Rails.logger.error "[AI::Trackers::UsageTracker] Failed to track usage: #{e.message}"
       end
-
-      private
 
       def context_value(key)
         return context.public_send(key) if context.respond_to?(key)

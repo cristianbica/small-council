@@ -73,7 +73,10 @@ module AI
     end
 
     def build_trackers(value)
-      trackers = [ AI::Trackers::UsageTracker.new(task:, context:) ]
+      trackers = [
+        AI::Trackers::UsageTracker.new(task:, context:),
+        AI::Trackers::VersionsTracker.new(task:, context:)
+      ]
       return trackers if value.nil?
 
       trackers << build_tracker(value)

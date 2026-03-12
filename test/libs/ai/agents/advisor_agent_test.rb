@@ -13,10 +13,10 @@ module AI
         assert_equal [ "conversations/update_conversation" ], agent.tools
       end
 
-      test "defaults scribe tools to memories wildcard" do
+      test "defaults scribe tools to memories and internet wildcards" do
         agent = AdvisorAgent.new(context: ContextStub.new(true))
 
-        assert_equal [ "memories/*" ], agent.tools
+        assert_equal [ "memories/*", "internet/browse_web" ], agent.tools
       end
 
       test "defaults to no tools for non-scribe context" do
