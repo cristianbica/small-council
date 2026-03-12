@@ -217,21 +217,10 @@ module AI
         assert_equal "fallback-value", tracker.send(:normalize_payload, bad_value)
       end
 
-      test "context_value supports method key string key and fallback index access" do
-        tracker = ModelInteractionTracker.new(context: OpenStruct.new(message: @message, account: @account))
+      test "context supports hash access with symbol keys" do
+        tracker = ModelInteractionTracker.new(context: { message: @message, account: @account })
         assert_equal @message.id, tracker.send(:message_id)
-
-        hash_tracker = ModelInteractionTracker.new(context: { "message" => @message, "account" => @account })
-        assert_equal @account.id, hash_tracker.send(:account_id)
-
-        message = @message
-        index_only = Object.new
-        index_only.define_singleton_method(:[]) do |key|
-          return message if key == :message || key == "message"
-          nil
-        end
-        tracker_with_index_only = ModelInteractionTracker.new(context: index_only)
-        assert_equal @message.id, tracker_with_index_only.send(:message_id)
+        assert_equal @account.id, tracker.send(:account_id)
       end
 
       test "record_chat logs and continues when interaction creation fails" do

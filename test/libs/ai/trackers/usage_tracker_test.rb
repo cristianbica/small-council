@@ -151,22 +151,6 @@ module AI
         assert_equal @message, UsageRecord.order(:id).last.message
       end
 
-      test "context_value returns nil for unsupported context objects" do
-        tracker = UsageTracker.new(context: Object.new)
-
-        assert_nil tracker.send(:context_value, :account)
-      end
-
-      test "context_value prefers public reader before [] access" do
-        tracker_context = Object.new
-        tracker_context.define_singleton_method(:account) { :reader_value }
-        tracker_context.define_singleton_method(:[]) { :index_value }
-
-        tracker = UsageTracker.new(context: tracker_context)
-
-        assert_equal :reader_value, tracker.send(:context_value, :account)
-      end
-
       test "track method creates usage record from result" do
         provider = OpenStruct.new(provider_type: "openai")
         model = OpenStruct.new(provider: provider, identifier: "gpt-4o", input_price: 10, output_price: 20)

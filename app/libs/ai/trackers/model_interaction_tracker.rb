@@ -64,7 +64,8 @@ module AI
       end
 
       def record_tool_call(tool_call)
-        tool_call.started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        @tool_start_times ||= {}
+        @tool_start_times[tool_call.id] = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
         @tool_trace << {
           type: "tool_call",
@@ -78,7 +79,11 @@ module AI
       def record_tool_result(tool_call, result)
         return unless recordable?
 
-        elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - tool_call.started_at
+        @tool_start_times ||= {}
+        start_time = @tool_start_times.delete(tool_call.id)
+        return unless start_time
+
+        elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
         duration_ms = (elapsed * 1000).round(1)
 
         create_interaction!(
@@ -114,11 +119,11 @@ module AI
       end
 
       def message_id
-        context_value(:message)&.id
+        context[:message]&.id
       end
 
       def account_id
-        (context_value(:account) || context_value(:space)&.account)&.id
+        (context[:account] || context[:space]&.account)&.id
       end
 
       def create_interaction!(interaction_type:, request_payload:, response_payload:,
@@ -222,16 +227,6 @@ module AI
         formatted
       end
 
-      def context_value(key)
-        return context.public_send(key) if context.respond_to?(key)
-        return context[key] if context.respond_to?(:[]) && context.respond_to?(:key?) && context.key?(key)
-        return context[key.to_s] if context.respond_to?(:[]) && context.respond_to?(:key?) && context.key?(key.to_s)
-        return context[key] if context.respond_to?(:[])
-        return context[key.to_s] if context.respond_to?(:[])
-
-        nil
-      end
-
       def normalize_payload(value)
         return value.as_json if value.respond_to?(:as_json)
 
@@ -241,7 +236,7 @@ module AI
       end
 
       def persist_tool_trace!
-        message = context_value(:message)
+        message = context[:message]
         return unless message.respond_to?(:update_column)
 
         message.update_column(:tool_calls, @tool_trace)
