@@ -15,7 +15,7 @@ module AI
 
       def user_posted(message)
         advisors = advisors_to_respond(message)
-        return schedule_advisors_responses(advisors, message) if advisors.any?
+        return schedule_advisors_responses(advisors, message) if advisors.any? && !advisors.all(&:scribe?)
 
         request_scribe_response(prompt: :consensus_moderator)
       end

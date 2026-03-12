@@ -9,6 +9,9 @@ module MarkdownHelper
       render: {
         hardbreaks: false,
         unsafe: false
+      },
+      extension: {
+        table: true
       }
     }).html_safe
   end

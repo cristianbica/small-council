@@ -47,6 +47,15 @@
             <span class="label-text">Free only</span>
           </label>
 
+          <!-- NEW: Enabled Only Toggle -->
+          <label class="label cursor-pointer gap-2">
+            <input type="checkbox"
+                   data-model-filter-target="enabledToggle"
+                   data-action="change->model-filter#filter"
+                   class="checkbox checkbox-primary" />
+            <span class="label-text">Enabled only</span>
+          </label>
+
           <button data-action="click->model-filter#reset" class="btn btn-ghost btn-sm">
             Reset
           </button>
@@ -69,6 +78,7 @@
                      data-model-name="<%= model_info.name %>"
                      data-model-id="<%= model_info.model_id %>"
                      data-model-free="<%= llm_model&.free || false %>"
+                     data-model-enabled="<%= llm_model&.enabled || false %>"
                      class="flex items-center justify-between p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors">
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-3 flex-wrap">
@@ -131,7 +141,7 @@
         </div>
         <h3 class="text-lg font-semibold">No models match your filters</h3>
         <p class="text-base-content/70 mt-2 max-w-md">
-          Try adjusting your search term or unchecking "Free only" to see more models.
+          Try adjusting your search term or unchecking filters to see more models.
         </p>
         <button data-action="click->model-filter#reset" class="btn btn-primary mt-4">
           Clear Filters

@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["model", "searchInput", "freeToggle", "noResults"]
+  static targets = ["model", "searchInput", "freeToggle", "enabledToggle", "noResults"]
   static values = {
     totalCount: Number
   }
@@ -12,6 +12,7 @@ export default class extends Controller {
       modelCount: this.modelTargets?.length,
       hasSearchInput: this.hasSearchInputTarget,
       hasFreeToggle: this.hasFreeToggleTarget,
+      hasEnabledToggle: this.hasEnabledToggleTarget,
       hasNoResults: this.hasNoResultsTarget
     })
     
@@ -25,11 +26,13 @@ export default class extends Controller {
     console.log("Filter called", {
       searchInput: this.hasSearchInputTarget ? this.searchInputTarget?.value : "no target",
       freeToggle: this.hasFreeToggleTarget ? this.freeToggleTarget?.checked : "no target",
+      enabledToggle: this.hasEnabledToggleTarget ? this.enabledToggleTarget?.checked : "no target",
       modelCount: this.hasModelTarget ? this.modelTargets.length : 0
     })
-    
+
     const searchTerm = (this.searchInputTarget?.value || "").toLowerCase()
     const showFreeOnly = this.freeToggleTarget?.checked || false
+    const showEnabledOnly = this.enabledToggleTarget?.checked || false
     let visibleCount = 0
 
     if (!this.hasModelTarget) {
@@ -41,6 +44,7 @@ export default class extends Controller {
       const name = (model.dataset.modelName || "").toLowerCase()
       const id = (model.dataset.modelId || "").toLowerCase()
       const isFree = model.dataset.modelFree === "true"
+      const isEnabled = model.dataset.modelEnabled === "true"
 
       // Check text match
       const textMatch = name.includes(searchTerm) || id.includes(searchTerm)
@@ -48,8 +52,11 @@ export default class extends Controller {
       // Check free filter
       const freeMatch = !showFreeOnly || isFree
 
-      // Show/hide based on both filters
-      if (textMatch && freeMatch) {
+      // Check enabled filter
+      const enabledMatch = !showEnabledOnly || isEnabled
+
+      // Show/hide based on all filters
+      if (textMatch && freeMatch && enabledMatch) {
         model.classList.remove("hidden")
         visibleCount++
       } else {
@@ -79,6 +86,9 @@ export default class extends Controller {
     }
     if (this.hasFreeToggleTarget) {
       this.freeToggleTarget.checked = false
+    }
+    if (this.hasEnabledToggleTarget) {
+      this.enabledToggleTarget.checked = false
     }
     this.filter()
   }

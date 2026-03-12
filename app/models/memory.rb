@@ -36,7 +36,7 @@ class Memory < ApplicationRecord
   scope :summary_type, -> { where(memory_type: "summary") }
   scope :conversation_notes, -> { where(memory_type: "conversation_notes") }
   scope :knowledge, -> { where(memory_type: "knowledge") }
-  scope :ordered, -> { order(position: :asc, created_at: :desc) }
+  scope :ordered, -> { order(id: :desc) }
   scope :recent, -> { order(updated_at: :desc) }
 
   # Search scope
