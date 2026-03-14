@@ -769,6 +769,69 @@ class MessageTest < ActiveSupport::TestCase
     assert_not_includes conv2_result, conv1_msg2
   end
 
+  # Previous message tests
+  test "previous_message returns message immediately before current" do
+    msg1 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "First message"
+    )
+    msg2 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Second message"
+    )
+    msg3 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Third message"
+    )
+
+    assert_equal msg2, msg3.previous_message
+    assert_equal msg1, msg2.previous_message
+    assert_nil msg1.previous_message
+  end
+
+  test "previous_message returns nil for first message in conversation" do
+    msg = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Only message"
+    )
+
+    assert_nil msg.previous_message
+  end
+
+  test "previous_message works with compaction messages" do
+    msg1 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Before compaction"
+    )
+    compaction = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "system",
+      content: "Compaction summary",
+      message_type: "compaction",
+      status: "complete"
+    )
+    msg2 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "After compaction"
+    )
+
+    assert_equal compaction, msg2.previous_message
+    assert_equal msg1, compaction.previous_message
+  end
+
   # Retry functionality tests
   test "retry! returns false for non-error messages" do
     complete_msg = @account.messages.create!(

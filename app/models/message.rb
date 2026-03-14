@@ -76,6 +76,10 @@ class Message < ApplicationRecord
     sender_type == "User"
   end
 
+  def previous_message
+    conversation.messages.where(id: ...id).last
+  end
+
   # Remove an advisor from pending list
   def resolve_for_advisor!(advisor_id)
     current_pending = pending_advisor_ids || []

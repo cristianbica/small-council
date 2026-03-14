@@ -11,6 +11,7 @@ module AI
         set_tenant(@account)
         @conversation = conversations(:one)
         @advisor = advisors(:one)
+        @user = users(:one)
         @context = AI::Contexts::ConversationContext.new(
           conversation: @conversation,
           advisor: @advisor
@@ -178,6 +179,190 @@ module AI
         message.define_singleton_method(:tool_calls) { raise "boom" }
 
         assert_equal [], task.send(:build_tool_trace_messages, message)
+      end
+
+      test "conversation_messages handles compaction as previous message" do
+        # Create a compaction message
+        compaction = @account.messages.create!(
+          conversation: @conversation,
+          sender: @advisor,
+          role: "advisor",
+          content: "Compaction summary",
+          message_type: "compaction",
+          status: "complete"
+        )
+
+        # Create the current message responding to the compaction
+        current_message = @account.messages.create!(
+          conversation: @conversation,
+          sender: @user,
+          role: "user",
+          content: "What should we do next?"
+        )
+
+        context = AI::Contexts::ConversationContext.new(
+          conversation: @conversation,
+          advisor: @advisor,
+          message: current_message
+        )
+        task = RespondTask.new(context: context)
+
+        # Should not raise an error
+        messages = task.send(:conversation_messages)
+        assert_kind_of Array, messages
+      end
+
+      test "conversation_messages excludes current message when previous is compaction" do
+        # Create pre-compaction message
+        pre_msg = @account.messages.create!(
+          conversation: @conversation,
+          sender: @user,
+          role: "user",
+          content: "Before compaction"
+        )
+
+        # Create compaction message
+        compaction = @account.messages.create!(
+          conversation: @conversation,
+          sender: @advisor,
+          role: "advisor",
+          content: "Compaction summary",
+          message_type: "compaction",
+          status: "complete"
+        )
+
+        # Create current message
+        current_message = @account.messages.create!(
+          conversation: @conversation,
+          sender: @user,
+          role: "user",
+          content: "After compaction"
+        )
+
+        context = AI::Contexts::ConversationContext.new(
+          conversation: @conversation,
+          advisor: @advisor,
+          message: current_message
+        )
+        task = RespondTask.new(context: context)
+
+        messages = task.send(:conversation_messages)
+
+        # The current message should be excluded from context
+        current_content = "[speaker: User] After compaction"
+        assert_not messages.any? { |m| m[:content] == current_content }
+      end
+
+      test "scribe responding after second compaction sees correct context" do
+        scribe = @conversation.space.scribe_advisor
+        advisor1 = advisors(:one)
+        advisor2 = advisors(:two)
+        # Simulate the user's flow:
+        # 1. User message
+        user_msg1 = @account.messages.create!(
+          conversation: @conversation,
+          sender: @user,
+          role: "user",
+          content: "Help me with a decision"
+        )
+
+        # 2. Scribe message (round 1)
+        scribe_round1 = @account.messages.create!(
+          conversation: @conversation,
+          sender: scribe,
+          role: "advisor",
+          parent_message: user_msg1,
+          content: "Let me gather information. @advisor1 @advisor2 please share your thoughts"
+        )
+
+        # 3. First compaction
+        compaction1 = @account.messages.create!(
+          conversation: @conversation,
+          sender: scribe,
+          role: "advisor",
+          content: "Summary of initial discussion",
+          message_type: "compaction",
+          status: "complete"
+        )
+
+        # 4. User message (follow-up)
+        user_msg2 = @account.messages.create!(
+          conversation: @conversation,
+          sender: @user,
+          role: "user",
+          content: "What are the trade-offs?"
+        )
+
+        # 5. Scribe message requesting advisors (round 2)
+        scribe_request = @account.messages.create!(
+          conversation: @conversation,
+          sender: scribe,
+          role: "advisor",
+          parent_message: user_msg2,
+          content: "@advisor1 @advisor2 please analyze the trade-offs"
+        )
+
+        # 6. Advisor 1 responds
+        advisor1_response = @account.messages.create!(
+          conversation: @conversation,
+          sender: advisor1,
+          role: "advisor",
+          parent_message: scribe_request,
+          content: "Here are the cost trade-offs..."
+        )
+
+        # 7. Advisor 2 responds
+        advisor2_response = @account.messages.create!(
+          conversation: @conversation,
+          sender: advisor2,
+          role: "advisor",
+          parent_message: scribe_request,
+          content: "Here are the timeline trade-offs..."
+        )
+
+        # 8. Second compaction (after round 2)
+        compaction2 = @account.messages.create!(
+          conversation: @conversation,
+          sender: scribe,
+          role: "advisor",
+          content: "Summary of trade-off analysis from advisors",
+          message_type: "compaction",
+          status: "complete"
+        )
+
+        # 9. Scribe responds to scribe_request being resolved (round 3)
+        # This is the critical test - the scribe is moderating round 3
+        scribe_round3 = @account.messages.create!(
+          conversation: @conversation,
+          sender: @advisor,
+          role: "advisor",
+          content: "..."
+        )
+
+        # Create context for the scribe responding in round 3
+        context = AI::Contexts::ConversationContext.new(
+          conversation: @conversation,
+          advisor: scribe,
+          message: scribe_round3
+        )
+        task = RespondTask.new(context: context)
+
+        messages = task.send(:conversation_messages)
+        message_contents = messages.map { |m| m[:content] }
+
+        # Should include messages from after first compaction
+        assert message_contents.any? { |c| c.include?("What are the trade-offs?") },
+          "Should include user message after first compaction"
+        assert message_contents.any? { |c| c.include?("analyze the trade-offs") },
+          "Should include scribe request"
+        assert message_contents.any? { |c| c.include?("cost trade-offs") },
+          "Should include advisor 1 response"
+        assert message_contents.any? { |c| c.include?("timeline trade-offs") },
+          "Should include advisor 2 response"
+
+        # Should NOT include the compaction that just happened (compaction2)
+        assert_not message_contents.any? { |c| c.include?("Summary of trade-off analysis") },
+          "Should NOT include the second compaction message itself"
       end
     end
   end
