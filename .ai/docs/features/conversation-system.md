@@ -82,6 +82,14 @@ Runtime `advisor_responded` resolves parent pending list and schedules next advi
 [Parent solved?] ──Yes──→ Scribe follow-up for active council meetings only
 ```
 
+## Conversation compaction
+
+- Compaction is represented as a scribe-authored `Message` with `message_type = compaction`.
+- Active compactions use normal message status transitions (`pending` → `responding`) and block new posts/retries via `Conversation#chat_blocked?`.
+- Pending/responding compactions render as a temporary `Compacting...` chat item; failed compactions stay visible with an error message.
+- Successful compactions store the durable summary in `messages.content` and then disappear from normal chat because `Message.visible_in_chat` hides completed compaction messages.
+- `open` mode compacts only after settled turns under pressure; `consensus` and `brainstorming` compact only at scribe round boundaries under the same pressure gate.
+
 ## Services
 
 ### Runtime classes
@@ -145,7 +153,8 @@ conversation.add_advisor(advisor)
 
 - RoE is represented only by `roe_type` values: `open`, `consensus`, `brainstorming`.
 - Scribe follow-ups run only for active `council_meeting` conversations.
-- `pending` placeholder messages stay hidden until they become `responding`.
+- Normal `pending` placeholder messages stay hidden until they become `responding`; compaction is the explicit exception and remains visible while `pending` or `responding`.
+- Completed compaction messages stay persisted but hidden from normal chat rendering.
 - Conversation title automation is state-driven in the `Conversation` model (not a separate title job).
 
 ## Runtime ownership

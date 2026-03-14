@@ -9,10 +9,8 @@ export default class extends Controller {
   connect() {
     console.log("[ConversationController] Connected")
     this.scrollToBottom()
-    this.autoExpand()
     this.isAtBottom = true
     this.updateScrollPosition()
-    this.updateCharCount()
 
     // Bind scroll event listener
     if (this.hasMessagesContainerTarget) {
@@ -24,6 +22,11 @@ export default class extends Controller {
     if (this.hasMessagesContainerTarget) {
       this.messagesContainerTarget.removeEventListener("scroll", () => this.updateScrollPosition())
     }
+  }
+
+  textareaTargetConnected() {
+    this.autoExpand()
+    this.updateCharCount()
   }
 
   // Auto-expand textarea as user types

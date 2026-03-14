@@ -11,7 +11,7 @@
 /* Typography styles for prose class (markdown rendering) */
 .prose {
   color: var(--tw-prose-body);
-  max-width: 65ch;
+  /* max-width: 65ch; */
 }
 
 .prose h1 {
@@ -132,6 +132,62 @@
 .prose img {
   margin-top: 2em;
   margin-bottom: 2em;
+}
+
+/* Table styles for markdown tables */
+.prose table {
+  width: 100%;
+  table-layout: auto;
+  text-align: left;
+  margin-top: 2em;
+  margin-bottom: 2em;
+  font-size: 0.875em;
+  line-height: 1.7142857;
+  border-collapse: collapse;
+}
+
+.prose thead {
+  border-bottom: 1px solid var(--tw-prose-th-borders);
+}
+
+.prose th {
+  font-weight: 600;
+  vertical-align: bottom;
+  padding-right: 0.5714286em;
+  padding-bottom: 0.5714286em;
+  padding-left: 0.5714286em;
+  color: var(--tw-prose-headings);
+}
+
+.prose th:first-child {
+  padding-left: 0;
+}
+
+.prose th:last-child {
+  padding-right: 0;
+}
+
+.prose tbody tr {
+  border-bottom: 1px solid var(--tw-prose-td-borders);
+}
+
+.prose tbody tr:last-child {
+  border-bottom: none;
+}
+
+.prose td {
+  vertical-align: top;
+  padding-right: 0.5714286em;
+  padding-bottom: 0.5714286em;
+  padding-left: 0.5714286em;
+}
+
+.prose td:first-child {
+  padding-left: 0;
+}
+
+.prose td:last-child {
+  padding-right: 0;
 }
 
 /* DaisyUI theme variable mappings for prose */

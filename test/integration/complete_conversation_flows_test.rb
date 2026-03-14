@@ -22,14 +22,14 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     @scribe = @space.scribe_advisor
 
     @advisor1 = @account.advisors.create!(
-      name: "Strategic Advisor",
+      name: "strategic-advisor",
       system_prompt: "You are strategic.",
       space: @space,
       llm_model: @llm_model
     )
 
     @advisor2 = @account.advisors.create!(
-      name: "Technical Expert",
+      name: "technical-expert",
       system_prompt: "You are technical.",
       space: @space,
       llm_model: @llm_model

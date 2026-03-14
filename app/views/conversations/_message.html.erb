@@ -11,7 +11,11 @@
   <% alignment = is_current_user ? "chat-end" : "chat-start" %>
   <% bubble_class = is_current_user ? "bg-primary text-primary-content" : "bg-base-200 text-base-content" %>
   <% avatar_class = is_advisor ? "bg-primary text-primary-content" : "bg-neutral text-neutral-content" %>
-  <% displayed_content = (sender_is_advisor && is_loading) ? "..." : message.content %>
+  <% displayed_content = if sender_is_advisor && is_loading
+                           message.compaction? ? message_display_content(message) : "..."
+                         else
+                           message_display_content(message)
+                         end %>
 
   <div class="chat <%= alignment %> group" id="message_<%= message.id %>">
     <div class="chat-image avatar">

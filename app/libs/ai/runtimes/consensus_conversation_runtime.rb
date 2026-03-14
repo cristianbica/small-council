@@ -15,13 +15,16 @@ module AI
 
       def user_posted(message)
         advisors = advisors_to_respond(message)
-        return schedule_advisors_responses(advisors, message) if advisors.any? && !advisors.all(&:scribe?)
+        return schedule_advisors_responses(advisors, message) if advisors.any? && !advisors.all?(&:scribe?)
 
         request_scribe_response(prompt: :consensus_moderator)
       end
 
       def message_resolved(message)
+        return handle_compaction_complete(message) if message.compaction?
         return unless message.from_scribe?
+
+        return request_message_compaction(message) if compaction_required?
 
         if scribe_round_count >= DEFAULT_HARD_LIMIT
           request_scribe_response(prompt: :force_conclusion)
@@ -33,6 +36,9 @@ module AI
       protected
 
       def advisors_to_respond(message)
+        # Compaction messages are summaries, never requests for responses
+        return [] if message.compaction?
+
         return conversation.advisors.non_scribes if message.mentions_all? && (message.from_user? || message.from_scribe?)
         return [] unless message.mentions.any? && (message.from_user? || message.from_scribe?)
         conversation.advisors.where(name: message.mentions)

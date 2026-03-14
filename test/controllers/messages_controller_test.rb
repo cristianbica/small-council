@@ -429,20 +429,20 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
       post retry_conversation_message_url(conversation, message)
     end
 
-    assert_redirected_to conversation_url(conversation)
+    assert_response :no_content
     message.reload
     assert_equal "responding", message.status
     assert_match(/.../, message.content)
   end
 
-  test "retry rejects non-api errors" do
+  test "retry accepts any advisor error messages" do
     sign_in_as(@user)
     set_tenant(@account)
 
     council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     conversation = @account.conversations.create!(council: council, user: @user, title: "Retry Test", space: @space)
     advisor = @account.advisors.create!(
-      name: "Retry Advisor",
+      name: "retry-advisor",
       system_prompt: "You are a test advisor",
       llm_model: @llm_model,
       space: @space
@@ -456,13 +456,13 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
       content: "[Error: Unexpected error: boom]"
     )
 
-    assert_no_enqueued_jobs only: AIRunnerJob do
+    assert_enqueued_with(job: AIRunnerJob) do
       post retry_conversation_message_url(conversation, message)
     end
 
-    assert_redirected_to conversation_url(conversation)
+    assert_response :no_content
     message.reload
-    assert_equal "error", message.status
+    assert_equal "responding", message.status
   end
 
   test "conversation UI shows retry action for advisor API error message" do

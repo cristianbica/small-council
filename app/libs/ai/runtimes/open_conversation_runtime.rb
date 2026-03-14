@@ -10,6 +10,9 @@ module AI
 
       protected
       def advisors_to_respond(message)
+        # Compaction messages are summaries, never requests for responses
+        return [] if message.compaction?
+
         return conversation.advisors.non_scribes if message.mentions_all?
         return conversation.advisors if conversation.advisors.size == 1
 

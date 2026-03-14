@@ -37,22 +37,6 @@ module AI
         assert_includes result, custom_prompt_content
       end
 
-      test "thinking_placeholder? returns true for pending messages with ..." do
-        task = RespondTask.new(context: @context)
-
-        message = messages(:pending)
-
-        assert task.send(:thinking_placeholder?, message)
-      end
-
-      test "thinking_placeholder? returns false for complete messages" do
-        task = RespondTask.new(context: @context)
-
-        message = messages(:one)
-
-        refute task.send(:thinking_placeholder?, message)
-      end
-
       test "build_tool_trace_messages includes only tool_result entries" do
         message = messages(:two)
         message.update!(tool_calls: [

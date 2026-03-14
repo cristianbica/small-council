@@ -19,11 +19,11 @@ class RulesOfEngagementFlowTest < ActionDispatch::IntegrationTest
       identifier: "gpt-4"
     )
 
-    # Create a space and council with an advisor
+    # Create a space and council with an advisor - using canonical name format
     @space = @account.spaces.first || @account.spaces.create!(name: "General")
     @council = @account.councils.create!(name: "Test Council", user: @user, space: @space)
     @advisor = @account.advisors.create!(
-      name: "Helper Bot",
+      name: "helper-bot",
       system_prompt: "You are a helper bot",
       llm_model: @llm_model,
       space: @space

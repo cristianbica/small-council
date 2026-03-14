@@ -540,4 +540,318 @@ class MessageTest < ActiveSupport::TestCase
     msg = @account.messages.new(content: "Hello @advisor")
     assert_not msg.mentions_all?
   end
+
+  # Message Type Enum Tests
+  test "message_type defaults to chat" do
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Test"
+    )
+    assert_equal "chat", message.message_type
+    assert message.chat?
+  end
+
+  test "can set message_type to compaction" do
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "system",
+      content: "Compacted summary",
+      message_type: "compaction"
+    )
+    assert message.compaction?
+  end
+
+  test "since_last_compaction returns all messages when no compaction exists" do
+    msg1 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "First message"
+    )
+    msg2 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Second message"
+    )
+
+    result = @conversation.messages.since_last_compaction.to_a
+    assert_includes result, msg1
+    assert_includes result, msg2
+  end
+
+  test "since_last_compaction returns messages from compaction onward" do
+    msg1 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Before compaction"
+    )
+    compaction_msg = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "system",
+      content: "Compacted state",
+      message_type: "compaction",
+      status: "complete"
+    )
+    msg2 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "After compaction"
+    )
+
+    result = @conversation.messages.since_last_compaction
+    assert_not_includes result, msg1
+    assert_includes result, compaction_msg
+    assert_includes result, msg2
+  end
+
+  test "since_last_compaction only considers compactions from same conversation" do
+    other_conversation = @account.conversations.create!(
+      council: @council,
+      user: @user,
+      title: "Other Conversation",
+      space: @space
+    )
+
+    # Create compaction in other conversation
+    other_compaction = @account.messages.create!(
+      conversation: other_conversation,
+      sender: @user,
+      role: "system",
+      content: "Other conversation compaction",
+      message_type: "compaction",
+      status: "complete"
+    )
+
+    # Create messages in this conversation
+    msg1 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "First message in this conversation"
+    )
+    msg2 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Second message in this conversation"
+    )
+
+    # Query from this conversation's perspective
+    result = @conversation.messages.since_last_compaction
+    # Should return all messages since there's no compaction in THIS conversation
+    assert_includes result, msg1
+    assert_includes result, msg2
+    assert_not_includes result, other_compaction
+  end
+
+  test "since_last_compaction uses most recent compaction" do
+    msg1 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Before first compaction"
+    )
+    compaction1 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "system",
+      content: "First compaction",
+      message_type: "compaction",
+      status: "complete"
+    )
+    msg2 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Between compactions"
+    )
+    compaction2 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "system",
+      content: "Second compaction",
+      message_type: "compaction",
+      status: "complete"
+    )
+    msg3 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "After second compaction"
+    )
+
+    result = @conversation.messages.since_last_compaction
+    assert_not_includes result, msg1
+    assert_not_includes result, compaction1
+    assert_not_includes result, msg2
+    assert_includes result, compaction2
+    assert_includes result, msg3
+  end
+
+  test "since_last_compaction with multiple conversations each with compactions isolates correctly" do
+    # Create a second conversation in the same space
+    conversation2 = @account.conversations.create!(
+      council: @council,
+      user: @user,
+      title: "Second Conversation",
+      space: @space
+    )
+
+    # First conversation: msg -> compaction -> msg
+    conv1_msg1 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Conv1 before compaction"
+    )
+    conv1_compaction = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "system",
+      content: "Conv1 compaction",
+      message_type: "compaction",
+      status: "complete"
+    )
+    conv1_msg2 = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Conv1 after compaction"
+    )
+
+    # Second conversation: msg -> compaction -> msg
+    conv2_msg1 = @account.messages.create!(
+      conversation: conversation2,
+      sender: @user,
+      role: "user",
+      content: "Conv2 before compaction"
+    )
+    conv2_compaction = @account.messages.create!(
+      conversation: conversation2,
+      sender: @user,
+      role: "system",
+      content: "Conv2 compaction",
+      message_type: "compaction",
+      status: "complete"
+    )
+    conv2_msg2 = @account.messages.create!(
+      conversation: conversation2,
+      sender: @user,
+      role: "user",
+      content: "Conv2 after compaction"
+    )
+
+    # Verify conversation 1 only sees its own compaction boundary
+    conv1_result = @conversation.messages.since_last_compaction
+    assert_not_includes conv1_result, conv1_msg1
+    assert_includes conv1_result, conv1_compaction
+    assert_includes conv1_result, conv1_msg2
+    # Should NOT include conversation 2's messages
+    assert_not_includes conv1_result, conv2_msg1
+    assert_not_includes conv1_result, conv2_compaction
+    assert_not_includes conv1_result, conv2_msg2
+
+    # Verify conversation 2 only sees its own compaction boundary
+    conv2_result = conversation2.messages.since_last_compaction
+    assert_not_includes conv2_result, conv2_msg1
+    assert_includes conv2_result, conv2_compaction
+    assert_includes conv2_result, conv2_msg2
+    # Should NOT include conversation 1's messages
+    assert_not_includes conv2_result, conv1_msg1
+    assert_not_includes conv2_result, conv1_compaction
+    assert_not_includes conv2_result, conv1_msg2
+  end
+
+  # Retry functionality tests
+  test "retry! returns false for non-error messages" do
+    complete_msg = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Complete message",
+      status: "complete"
+    )
+
+    assert_not complete_msg.retry!
+  end
+
+  test "retry! returns false for non-advisor messages" do
+    error_msg = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Error message",
+      status: "error"
+    )
+
+    assert_not error_msg.retry!
+  end
+
+  test "retry! updates status and triggers AI call for errored advisor messages" do
+    advisor = @account.advisors.first
+    parent = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Parent message",
+      pending_advisor_ids: []
+    )
+
+    error_msg = @account.messages.create!(
+      conversation: @conversation,
+      sender: advisor,
+      role: "advisor",
+      parent_message: parent,
+      content: "Error: API failed",
+      status: "error",
+      debug_data: { error_at: "2024-01-01" }
+    )
+
+    # Mock the AI call
+    AI.expects(:generate_advisor_response).with(
+      advisor: advisor,
+      message: error_msg,
+      async: true
+    )
+
+    assert error_msg.retry!
+
+    # Verify status updated
+    assert_equal "responding", error_msg.reload.status
+    assert_equal "...", error_msg.content
+  end
+
+  test "retry! re-adds to parent pending list" do
+    advisor = @account.advisors.first
+    parent = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Parent message",
+      pending_advisor_ids: []
+    )
+
+    error_msg = @account.messages.create!(
+      conversation: @conversation,
+      sender: advisor,
+      role: "advisor",
+      parent_message: parent,
+      content: "Error: API failed",
+      status: "error"
+    )
+
+    AI.stubs(:generate_advisor_response)
+
+    error_msg.retry!
+
+    # Verify parent has advisor in pending again
+    assert_includes parent.reload.pending_advisor_ids, advisor.id.to_s
+  end
 end

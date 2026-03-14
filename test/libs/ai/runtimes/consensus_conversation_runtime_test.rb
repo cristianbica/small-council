@@ -84,6 +84,80 @@ module AI
 
         assert_equal initial_count + 3, count
       end
+
+      test "message_resolved requests compaction when from scribe and over threshold" do
+        message = messages(:consensus_round1)
+        message.stubs(:from_scribe?).returns(true)
+        message.stubs(:compaction?).returns(false)
+
+        # Create many messages to exceed threshold
+        10.times do
+          @conversation.messages.create!(
+            account: @account,
+            sender: @conversation.user,
+            role: "user",
+            content: "x" * 3000,
+            status: "complete"
+          )
+        end
+
+        @runtime.expects(:request_message_compaction).once
+
+        @runtime.message_resolved(message)
+      end
+
+      test "message_resolved continues to force_conclusion when under threshold but at hard limit" do
+        message = messages(:consensus_round1)
+        message.stubs(:from_scribe?).returns(true)
+        message.stubs(:compaction?).returns(false)
+        @runtime.stubs(:scribe_round_count).returns(15)
+        @runtime.stubs(:compaction_required?).returns(false)
+
+        @runtime.expects(:request_message_compaction).never
+        @runtime.expects(:request_scribe_response).with(prompt: :force_conclusion)
+
+        @runtime.message_resolved(message)
+      end
+
+      test "compaction message triggers handle_compaction_complete instead of normal flow" do
+        scribe = advisors(:'scribe-space-one')
+        message = messages(:consensus_user_topic)
+
+        compaction_msg = @conversation.messages.create!(
+          account: @account,
+          sender: scribe,
+          role: "advisor",
+          content: "Compacted",
+          status: "complete",
+          message_type: "compaction",
+          metadata: { compaction_for_message_id: message.id }
+        )
+
+        @runtime.expects(:handle_compaction_complete).with(compaction_msg)
+
+        @runtime.message_resolved(compaction_msg)
+      end
+
+      test "compaction messages do not trigger advisor responses through advisors_to_respond" do
+        # Ensure scribe is present
+        @conversation.ensure_scribe_present!
+        scribe = @conversation.scribe_advisor
+
+        # Create a compaction message with @mentions in content
+        compaction_msg = @conversation.messages.create!(
+          account: @account,
+          sender: scribe,
+          role: "advisor",
+          content: "Summary of input from @fixture-counselor-one and @fixture-counselor-two",
+          status: "complete",
+          message_type: "compaction"
+        )
+
+        # Verify advisors_to_respond returns empty for compaction messages
+        # even if they contain @mentions
+        result = @runtime.send(:advisors_to_respond, compaction_msg)
+        assert_empty result, "Compaction messages should not trigger any advisor responses"
+      end
     end
   end
 end

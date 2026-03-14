@@ -35,30 +35,12 @@ class MessagesController < ApplicationController
   end
 
   def retry
-    unless retryable_advisor_api_error?(@message)
+    unless @message.error? && @message.sender.is_a?(Advisor)
       redirect_to @conversation, alert: "This message cannot be retried."
       return
     end
-
-    @message.update!(
-      status: "responding",
-      content: "..."
-    )
-
-    Turbo::StreamsChannel.broadcast_replace_to(
-      "conversation_#{@conversation.id}",
-      target: "message_#{@message.id}",
-      partial: "conversations/message",
-      locals: { message: @message, current_user: nil }
-    )
-
-    AI.generate_advisor_response(
-      advisor: @message.sender,
-      message: @message,
-      async: true
-    )
-
-    redirect_to @conversation, notice: "Retry started."
+    @message.retry!
+    head :no_content
   end
 
   private

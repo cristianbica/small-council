@@ -21,7 +21,10 @@ module AI
       end
 
       def message_resolved(message)
+        return handle_compaction_complete(message) if message.compaction?
         return unless message.from_scribe?
+
+        return request_message_compaction(message) if compaction_required?
 
         if scribe_round_count >= DEFAULT_HARD_LIMIT
           request_scribe_response(prompt: :force_synthesis)
@@ -33,6 +36,9 @@ module AI
       protected
 
       def advisors_to_respond(message)
+        # Compaction messages are summaries, never requests for responses
+        return [] if message.compaction?
+
         return conversation.advisors.non_scribes if message.mentions_all? && (message.from_user? || message.from_scribe?)
         return [] unless message.mentions.any? && (message.from_user? || message.from_scribe?)
         conversation.advisors.where(name: message.mentions)

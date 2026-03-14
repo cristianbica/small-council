@@ -28,6 +28,7 @@ Max ~200 lines. Keep durable, high-signal facts only.
 - Conversation auto-title is callback-driven in `Conversation` and uses `AI.run` (`conversations/title_generator` + `conversations/update_conversation` tool), guarded by `title_state` transitions.
 - Advisor names are canonical lowercase dash handles; mentions/invites must use this handle format.
 - Messages use polymorphic sender (`User`/`Advisor`) and track turn state with `pending_advisor_ids` + status (`pending|responding|complete|error|cancelled`).
+- `Message.message_type` distinguishes normal chat (`chat`) from conversation compaction (`compaction`); `Conversation#chat_blocked?` is derived from active compaction messages.
 - Sensitive fields are encrypted at rest (`Provider.credentials`, `Advisor.system_prompt/short_description`, `Conversation.memory/draft_memory`, `Message.content/prompt_text`, `Memory.content`).
 
 ## Versioning

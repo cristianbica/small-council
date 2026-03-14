@@ -9,6 +9,7 @@ Main API methods in `app/libs/ai.rb`:
 - `AI.run(task:, context:, handler: nil, tracker: nil, async: false)`
 - `AI.generate_advisor_response(...)` -> wraps a `respond` task in conversation context.
 - `AI.generate_text(...)` -> wraps a `text` task in space context.
+- `AI.compact_conversation(...)` -> wraps a `text` task in conversation context for compaction.
 
 ## Task Types
 
@@ -17,7 +18,7 @@ Main API methods in `app/libs/ai.rb`:
   - Used for advisor/scribe chat replies.
 - `AI::Tasks::TextTask` (`app/libs/ai/tasks/text_task.rb`)
   - Agent: `:text_writer`
-  - Used for utility generation (form filling, title generation, etc.).
+  - Used for utility generation (form filling, title generation, compaction, etc.).
 
 Both inherit from `AI::Tasks::BaseTask`.
 
@@ -59,6 +60,7 @@ For `async: true`, execution is delegated to `AIRunnerJob` (`app/jobs/ai_runner_
 - `AI::Handlers::ConversationResponseHandler`
   - Updates message status/content.
   - Re-enters conversation sequencing with `runtime.advisor_responded(message)`.
+  - Branches for compaction messages to persist compacted text/error and call `runtime.compaction_finished(message)`.
 - `AI::Handlers::TurboFormFillerHandler`
   - Broadcasts success/error to Turbo Streams target.
 

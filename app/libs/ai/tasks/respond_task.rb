@@ -45,9 +45,11 @@ module AI
       end
 
       def conversation_messages
-        context.conversation.messages.complete.chronological.flat_map do |message|
+        context.conversation.messages.complete.since_last_compaction.chronological.flat_map do |message|
           # Skip replies from advisors to the message we're responding to, so this response won't be biased
           next [] if message.in_reply_to_id.present? && message.in_reply_to_id == context.message&.id
+
+          next [] if context.advisor.non_scribe? && message.from_non_scribe_advisor? && !message.mentions?(context.advisor)
 
           build_messages(message)
         end
@@ -57,9 +59,9 @@ module AI
         sender_name = sender_display_name(message.sender)
         messages = []
 
-        if message.role.to_s == "advisor"
-          messages.concat(build_tool_trace_messages(message))
-        end
+        # if message.role.to_s == "advisor"
+        #   messages.concat(build_tool_trace_messages(message))
+        # end
 
         messages << {
           role: normalized_role(message.role),
@@ -79,10 +81,6 @@ module AI
         return sender.name if sender.respond_to?(:name)
 
         sender.to_s
-      end
-
-      def thinking_placeholder?(message)
-        message.pending? && message.content.to_s.strip == "..."
       end
 
       def outbound_message_content(content, sender_name, role)

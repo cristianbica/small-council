@@ -20,15 +20,21 @@ class Message < ApplicationRecord
   has_one :usage_record, dependent: :destroy
   has_many :model_interactions, dependent: :destroy
 
-  # Encrypt message content and prompt at rest
   encrypts :content
   encrypts :prompt_text
+
+  store_accessor :debug_data, :retry_count
 
   enum :role, {
     user: "user",
     advisor: "advisor",
     system: "system"
   }
+
+  enum :message_type, {
+    chat: "chat",
+    compaction: "compaction"
+  }, default: "chat"
 
   enum :status, {
     pending: "pending",
@@ -48,6 +54,7 @@ class Message < ApplicationRecord
   scope :visible_in_chat, -> { where.not(status: "pending") }
   scope :root_messages, -> { where(in_reply_to_id: nil) }
   scope :solved, -> { where(pending_advisor_ids: []) }
+  scope :since_last_compaction, -> { where(id: complete.compaction.last&.id.to_i..) }
 
   after_create_commit -> { broadcast_chat if broadcastable_create? }
   after_update_commit -> { broadcast_chat if broadcastable_update? }
@@ -61,6 +68,10 @@ class Message < ApplicationRecord
     sender_type == "Advisor" && sender.scribe?
   end
 
+  def from_non_scribe_advisor?
+    sender_type == "Advisor" && !sender.scribe?
+  end
+
   def from_user?
     sender_type == "User"
   end
@@ -70,6 +81,28 @@ class Message < ApplicationRecord
     current_pending = pending_advisor_ids || []
     updated_pending = current_pending.reject { |id| id.to_s == advisor_id.to_s }
     update!(pending_advisor_ids: updated_pending)
+  end
+
+  def retry_count
+    super.to_i
+  end
+
+  def retry!(reset_retry_count: true)
+    return false unless error?
+    return false unless sender.is_a?(Advisor)
+
+    self.retry_count = 0 if reset_retry_count
+    update!(status: "responding", content: "...")
+    add_to_parent_message
+    AI.generate_advisor_response(advisor: sender, message: self, async: true)
+    true
+  end
+
+  def add_to_parent_message
+    return unless parent_message
+    current_pending = parent_message.pending_advisor_ids || []
+    return if current_pending.include?(sender_id.to_s)
+    parent_message.update!(pending_advisor_ids: current_pending + [ sender_id.to_s ])
   end
 
   # Calculate the depth of this message in the reply chain
@@ -108,6 +141,11 @@ class Message < ApplicationRecord
 
   def mentions
     self.class.extract_mentions(content)
+  end
+
+  def mentions?(advisor)
+    advisor = advisor.name if advisor.is_a?(Advisor)
+    mentions_all? || mentions.include?(advisor.to_s.downcase)
   end
 
   private

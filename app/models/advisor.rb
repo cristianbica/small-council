@@ -57,6 +57,10 @@ class Advisor < ApplicationRecord
     is_scribe
   end
 
+  def non_scribe?
+    !is_scribe
+  end
+
   def display_name
     name
   end

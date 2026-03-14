@@ -18,10 +18,10 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
       identifier: "gpt-4"
     )
 
-    # Setup advisor with model
+    # Setup advisor with model - using canonical name format (lowercase with hyphens)
     @space = @account.spaces.first || @account.spaces.create!(name: "General")
     @advisor = @account.advisors.create!(
-      name: "Helper Bot",
+      name: "helper-bot",
       system_prompt: "You are a helpful assistant.",
       llm_model: @llm_model,
       space: @space
@@ -43,6 +43,9 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
       role: :advisor,
       position: 0
     )
+
+    # Ensure scribe is present (needed for runtime)
+    @conversation.ensure_scribe_present!
 
     sign_in_as(@user)
   end
@@ -71,11 +74,12 @@ class AiResponseFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "open mode with a single advisor creates one pending advisor message" do
-    # Create a conversation in Open RoE with @advisor1
+  test "open mode without mentions with multiple advisors creates only user message" do
+    # After ensure_scribe_present!, conversation has 2 advisors (helper-bot + scribe)
     @conversation.update!(roe_type: :open)
 
-    assert_difference "Message.count", 2 do
+    # In open mode without mentions, when there are multiple advisors, no responses are triggered
+    assert_difference "Message.count", 1 do
       post conversation_messages_path(@conversation), params: {
         message: { content: "Hello without mentions" }
       }

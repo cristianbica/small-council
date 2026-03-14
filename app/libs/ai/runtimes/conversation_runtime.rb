@@ -14,6 +14,7 @@ module AI
       end
 
       def advisor_responded(message)
+        return handle_compaction_complete(message) if message.compaction?
         return unless message.reply?
 
         message.parent_message.resolve_for_advisor!(message.sender_id)
@@ -21,6 +22,7 @@ module AI
       end
 
       def message_resolved(message)
+        request_message_compaction(message) if message.from_scribe? && compaction_required?
       end
 
       protected
@@ -77,6 +79,37 @@ module AI
           prompt: prompt.present? ? "conversations/#{prompt}" : nil,
           async: true
         )
+      end
+
+      COMPACTION_THRESHOLD = 25_000
+
+      def compaction_required?
+        current_context_length = @conversation.messages.since_last_compaction.pluck(:content).join.length
+        Rails.logger.info("\n\n########################### Current context length: #{current_context_length}\n\n")
+        current_context_length > COMPACTION_THRESHOLD
+      end
+
+      def request_message_compaction(message)
+        compaction_message = @conversation.messages.create!(
+          account: @conversation.account,
+          sender: @conversation.scribe_advisor,
+          role: "advisor",
+          content: "...",
+          message_type: "compaction",
+          status: "pending",
+          metadata: { compaction_for_message_id: message.id }
+        )
+        AI.compact_conversation(message: compaction_message, tracker: :model_interaction, async: true)
+      end
+
+      def handle_compaction_complete(message)
+        return unless message.complete?
+
+        original_message_id = message.metadata["compaction_for_message_id"]
+        original_message = @conversation.messages.find_by(id: original_message_id)
+        return unless original_message
+
+        message_resolved(original_message)
       end
     end
   end

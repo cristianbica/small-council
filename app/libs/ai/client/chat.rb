@@ -70,6 +70,12 @@ class AI::Client::Chat
     @trackers.each { |tracker| tracker.register(self) }
     wire_rubyllm_events(chat)
     result.response = chat.complete
+  rescue StandardError => e
+    # Log detailed error information for debugging provider issues
+    Rails.logger.error("[AI Client] Provider error: #{e.class} - #{e.message}")
+    Rails.logger.error("[AI Client] Model: #{model.identifier}, Messages count: #{messages.count}")
+    Rails.logger.error("[AI Client] Backtrace: #{e.backtrace.first(5).join("; ")}")
+    raise
   end
 
   private

@@ -29,6 +29,7 @@ Within this file, role sections override `Global` on conflict.
 - MUST NOT invent facts, outputs, or verification results.
 - MUST NOT bypass required workflow gates.
 - MUST NOT perform writing git operations (e.g., `git stash`, `git commit`, `git restore`) unless the user explicitly requests them.
+- MUST NOT edit this file (`.ai/RULES.md`) without explicit user approval
 
 ## Conductor
 
@@ -54,3 +55,5 @@ Within this file, role sections override `Global` on conflict.
 
 - MUST execute phases explicitly in order: discovery, plan check, implement, verify, closeout.
 - MUST NOT delegate work to subagents in Forger mode.
+- MUST operate READ-ONLY (MUST NOT modify code) when prompted with words like "check", "verify", "review", "validate", "analyze", "inspect", "examine", "look at", "see", "tell me"
+- MUST as for explicit permission to modify code whe uncertain

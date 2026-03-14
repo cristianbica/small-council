@@ -67,6 +67,9 @@ Defined in `app/libs/ai.rb`:
     - Convenience wrapper for utility text/structured generation.
     - Builds a `text` task with `SpaceContext`.
     - Called by form filler flow in `app/controllers/form_fillers_controller.rb`.
+- `AI.compact_conversation(conversation:, message:, async: true)`
+    - Thin wrapper for conversation compaction.
+    - Uses the `text` task with agent `text_writer`, prompt `agents/conversation_compactor`, `ConversationContext`, and `ConversationResponseHandler`.
 
 ### Provider#api / LlmModel#api DSL
 
@@ -126,6 +129,13 @@ The utility-generation path for structured form filling uses the same runner pri
 - `AI.generate_text` builds a `TextTask` + `SpaceContext`
 - `AI::Runner` executes with default `UsageTracker`
 - `AI::Handlers::TurboFormFillerHandler` broadcasts the result back to the form
+
+Conversation compaction uses the same text-task path:
+
+- runtimes create a scribe compaction placeholder message and call `AI.compact_conversation`
+- `AI::Tasks::TextTask` marks that message `responding`
+- `AI::Handlers::ConversationResponseHandler` stores the compacted text or visible failure on the same message row
+- round-based runtimes may resume a deferred scribe prompt after compaction finishes
 
 See [Form Fillers](form-fillers.md) for the UI and request flow.
 

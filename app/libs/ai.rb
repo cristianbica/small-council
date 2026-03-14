@@ -123,6 +123,24 @@ module AI
     )
   end
 
+  def self.compact_conversation(message:, tracker: :model_interaction, async: true)
+    AI::Runner.run(
+      task: {
+        type: :text,
+        prompt: "agents/conversation_compactor"
+      },
+      context: {
+        type: :conversation,
+        conversation: message.conversation,
+        advisor: message.sender,
+        message: message
+      },
+      handler: :conversation_response,
+      tracker: tracker,
+      async: async
+    )
+  end
+
   def self.runtime_for_conversation(conversation)
     case conversation.roe_type
     when "open"

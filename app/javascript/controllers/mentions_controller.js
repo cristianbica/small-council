@@ -7,7 +7,7 @@ export default class extends Controller {
     advisors: Array
   }
 
-  connect() {
+  inputTargetConnected() {
     console.log('Advisors data:', this.advisorsValue)
 
     const values = this.advisorsValue.map(advisor => ({

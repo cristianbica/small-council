@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_11_155518) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_12_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -226,6 +226,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_11_155518) do
     t.datetime "created_at", null: false
     t.jsonb "debug_data", default: {}
     t.bigint "in_reply_to_id"
+    t.string "message_type", default: "chat", null: false
     t.jsonb "metadata", default: {}
     t.jsonb "pending_advisor_ids", default: []
     t.text "prompt_text"
@@ -240,6 +241,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_11_155518) do
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
     t.index ["debug_data"], name: "index_messages_on_debug_data", using: :gin
     t.index ["in_reply_to_id"], name: "index_messages_on_in_reply_to_id"
+    t.index ["message_type"], name: "index_messages_on_message_type"
     t.index ["metadata"], name: "index_messages_on_metadata", using: :gin
     t.index ["pending_advisor_ids"], name: "index_messages_on_pending_advisor_ids", using: :gin
     t.index ["sender_type", "sender_id"], name: "index_messages_on_sender"
