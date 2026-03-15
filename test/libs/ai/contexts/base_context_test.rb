@@ -25,6 +25,12 @@ module AI
         assert_nil context[:unknown]
       end
 
+      test "[] looks up string keys with symbol access" do
+        context = ConcreteContext.new("key" => "value")
+
+        assert_equal "value", context[:key]
+      end
+
       test "key? supports symbol and string keys" do
         context = ConcreteContext.new(foo: 1, "bar" => 2)
 

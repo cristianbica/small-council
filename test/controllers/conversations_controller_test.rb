@@ -103,6 +103,24 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_select "button", text: "Delete", minimum: 1
   end
 
+  test "show adhoc displays archived conversation if show_archived is given" do
+    sign_in_as(@user)
+    set_tenant(@account)
+
+    conversation = @account.conversations.create!(
+      user: @user,
+      title: "Archived Adhoc Conversation",
+      conversation_type: :adhoc,
+      status: :archived,
+      space: @space
+    )
+
+    get conversation_url(conversation, params: { show_archived: true })
+
+    assert_response :success
+    assert_select "h1", text: conversation.title
+  end
+
   test "show adhoc hides actions when user cannot delete conversation" do
     sign_in_as(@user)
     set_tenant(@account)

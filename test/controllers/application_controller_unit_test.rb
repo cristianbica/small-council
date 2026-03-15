@@ -66,39 +66,4 @@ class ApplicationControllerUnitTest < ActiveSupport::TestCase
     assert_equal "General", Current.space.name
     assert_equal 1, fresh_account.reload.spaces.count
   end
-
-  test "available_advisors_for_invite returns non-scribe advisors not already in conversation" do
-    Current.account = @account
-    Current.space = spaces(:one)
-
-    conversation = conversations(:one)
-
-    candidate = @account.advisors.create!(
-      name: "invite-candidate",
-      system_prompt: "candidate",
-      space: Current.space,
-      llm_model: advisors(:one).llm_model,
-      is_scribe: false
-    )
-
-    @controller.instance_variable_set(:@conversation, conversation)
-
-    result = @controller.send(:available_advisors_for_invite)
-
-    assert_includes result, candidate
-    conversation.advisors.each do |advisor|
-      assert_not_includes result, advisor
-    end
-  end
-
-  test "available_advisors_for_invite returns empty when conversation inactive" do
-    Current.account = @account
-    Current.space = spaces(:one)
-
-    conversation = conversations(:one)
-    conversation.update!(status: "archived")
-    @controller.instance_variable_set(:@conversation, conversation)
-
-    assert_equal [], @controller.send(:available_advisors_for_invite)
-  end
 end

@@ -74,6 +74,29 @@ module AI
           assert_equal false, result[:success]
           assert_equal "content is required", result[:error]
         end
+
+        test "execute returns error for nil title" do
+          tool = CreateMemoryTool.new(@context)
+
+          result = tool.execute(title: nil, content: "Content")
+
+          assert_equal false, result[:success]
+          assert_equal "title is required", result[:error]
+        end
+
+        test "execute returns error for nil content" do
+          tool = CreateMemoryTool.new(@context)
+
+          result = tool.execute(title: "Title", content: nil)
+
+          assert_equal false, result[:success]
+          assert_equal "content is required", result[:error]
+        end
+
+        test "tool name is present" do
+          tool = CreateMemoryTool.new(@context)
+          assert tool.name.present?
+        end
       end
     end
   end

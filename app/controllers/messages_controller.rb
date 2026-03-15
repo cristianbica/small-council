@@ -71,11 +71,4 @@ class MessagesController < ApplicationController
   def message_params
     params.require(:message).permit(:content)
   end
-
-  def retryable_advisor_api_error?(message)
-    return false unless message.sender.is_a?(Advisor)
-    return false unless message.error?
-
-    message.content.to_s.include?("API Error:") || message.content.to_s.match?(/Empty response from AI/)
-  end
 end

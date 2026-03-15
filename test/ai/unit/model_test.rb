@@ -170,6 +170,12 @@ module AI
         msg = Message.new(role: "assistant", content: "", tool_calls: [ { name: "test" } ])
         assert_equal({ role: "assistant", content: "", tool_calls: [ { name: "test" } ] }, msg.to_h)
       end
+
+      test "initialize stores tool_calls" do
+        tool_calls_data = [ { name: "search", arguments: { query: "test" } } ]
+        msg = Message.new(role: "assistant", content: "Using tool", tool_calls: tool_calls_data)
+        assert_equal tool_calls_data, msg.tool_calls
+      end
     end
   end
 end

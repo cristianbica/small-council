@@ -97,6 +97,11 @@ module AI
           assert_equal false, result[:success]
           assert result[:error].include?("Failed to update")
         end
+
+        test "tool name is present" do
+          tool = UpdateMemoryTool.new(@context)
+          assert tool.name.present?
+        end
       end
     end
   end

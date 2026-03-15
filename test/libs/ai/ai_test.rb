@@ -14,13 +14,65 @@ module AI
       assert_equal AI::Schemas::AdvisorProfileSchema, AI.schema(:advisor_profile)
     end
 
-    test "returns passed class references unchanged" do
+    test "returns passed class references unchanged for all resolvers" do
       assert_equal AI::Contexts::ConversationContext, AI.context(AI::Contexts::ConversationContext)
       assert_equal AI::Tasks::RespondTask, AI.task(AI::Tasks::RespondTask)
       assert_equal AI::Agents::AdvisorAgent, AI.agent(AI::Agents::AdvisorAgent)
       assert_equal AI::Handlers::ConversationResponseHandler, AI.handler(AI::Handlers::ConversationResponseHandler)
       assert_equal AI::Trackers::UsageTracker, AI.tracker(AI::Trackers::UsageTracker)
       assert_equal AI::Schemas::AdvisorProfileSchema, AI.schema(AI::Schemas::AdvisorProfileSchema)
+      assert_equal AI::Tools::Memories::CreateMemoryTool, AI.tool(AI::Tools::Memories::CreateMemoryTool)
+    end
+
+    test "resolvers raise ResolutionError for invalid string types" do
+      assert_raises(AI::ResolutionError) { AI.context("invalid_type") }
+      assert_raises(AI::ResolutionError) { AI.task("invalid_type") }
+      assert_raises(AI::ResolutionError) { AI.agent("invalid_type") }
+      assert_raises(AI::ResolutionError) { AI.handler("invalid_type") }
+      assert_raises(AI::ResolutionError) { AI.tracker("invalid_type") }
+      assert_raises(AI::ResolutionError) { AI.schema("invalid_type") }
+    end
+
+    test "tool raises ResolutionError for unknown tool reference" do
+      assert_raises(AI::ResolutionError) { AI.tool("unknown/tool") }
+    end
+
+    test "tools supports multiple wildcard patterns" do
+      result = AI.tools("memories/*", "advisors/*")
+      assert result.include?(AI::Tools::Memories::CreateMemoryTool)
+      assert result.include?(AI::Tools::Advisors::ListAdvisorsTool)
+    end
+
+    test "prompt raises ResolutionError for non-existent prompt file" do
+      assert_raises(AI::ResolutionError) { AI.prompt("nonexistent/prompt") }
+    end
+
+    test "tools returns empty array when no matching tools" do
+      result = AI.tools("nonexistent/*")
+      assert_empty result
+    end
+
+    test "tools returns specific tool when exact match" do
+      result = AI.tools("memories/create")
+      assert_includes result, AI::Tools::Memories::CreateMemoryTool
+    end
+
+    test "compact_conversation delegates to runner with correct parameters" do
+      message = messages(:one)
+
+      AI::Runner.expects(:run).with do |args|
+        assert_equal :text, args.dig(:task, :type)
+        assert_equal "agents/conversation_compactor", args.dig(:task, :prompt)
+        assert_equal :conversation, args.dig(:context, :type)
+        assert_equal message.conversation, args.dig(:context, :conversation)
+        assert_equal message.sender, args.dig(:context, :advisor)
+        assert_equal message, args.dig(:context, :message)
+        assert_equal :model_interaction, args[:tracker]
+        assert_equal true, args[:async]
+        true
+      end
+
+      AI.compact_conversation(message: message)
     end
 
     test "raises resolution error for unknown references" do
@@ -40,6 +92,11 @@ module AI
       result = AI.tools("memories/*")
       assert result.include?(AI::Tools::Memories::CreateMemoryTool)
       assert result.include?(AI::Tools::Memories::ListMemoriesTool)
+    end
+
+    test "tool returns class reference unchanged" do
+      tool_class = AI::Tools::Memories::CreateMemoryTool
+      assert_equal tool_class, AI.tool(tool_class)
     end
 
     test "prompt renders erb with locals" do
@@ -65,6 +122,80 @@ module AI
       AI.generate_advisor_response(advisor: advisor, message: message, prompt: "p", async: true)
       assert_equal :respond, runner_payload.dig(:task, :type)
       assert_equal :conversation, runner_payload.dig(:context, :type)
+    end
+
+    test "generate_text passes schema parameter" do
+      runner_payload = {}
+      AI::Runner.expects(:run).once.with do |args|
+        runner_payload = args
+        true
+      end
+
+      space = spaces(:one)
+      AI.generate_text(description: "test", prompt: "prompt", schema: :advisor_profile, space: space)
+
+      assert_equal :advisor_profile, runner_payload.dig(:task, :schema)
+    end
+
+    test "generate_text passes handler parameter" do
+      runner_payload = {}
+      AI::Runner.expects(:run).once.with do |args|
+        runner_payload = args
+        true
+      end
+
+      space = spaces(:one)
+      AI.generate_text(description: "test", prompt: "prompt", space: space, handler: :custom_handler)
+
+      assert_equal :custom_handler, runner_payload[:handler]
+    end
+
+    test "generate_advisor_response uses default tracker" do
+      runner_payload = {}
+      AI::Runner.expects(:run).once.with do |args|
+        runner_payload = args
+        true
+      end
+
+      message = messages(:one)
+      advisor = advisors(:one)
+      AI.generate_advisor_response(advisor: advisor, message: message)
+
+      assert_equal :model_interaction, runner_payload[:tracker]
+    end
+
+    test "generate_advisor_response passes custom tracker" do
+      runner_payload = {}
+      AI::Runner.expects(:run).once.with do |args|
+        runner_payload = args
+        true
+      end
+
+      message = messages(:one)
+      advisor = advisors(:one)
+      AI.generate_advisor_response(advisor: advisor, message: message, tracker: :usage)
+
+      assert_equal :usage, runner_payload[:tracker]
+    end
+
+    test "run passes all parameters to Runner" do
+      conversation = conversations(:one)
+
+      AI::Runner.expects(:run).with(
+        task: { type: :test },
+        context: { type: :conversation },
+        handler: :test_handler,
+        tracker: :test_tracker,
+        async: true
+      )
+
+      AI.run(
+        task: { type: :test },
+        context: { type: :conversation },
+        handler: :test_handler,
+        tracker: :test_tracker,
+        async: true
+      )
     end
 
     test "run delegates to Runner.run with task/content payload" do

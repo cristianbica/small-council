@@ -917,4 +917,262 @@ class MessageTest < ActiveSupport::TestCase
     # Verify parent has advisor in pending again
     assert_includes parent.reload.pending_advisor_ids, advisor.id.to_s
   end
+
+  # Missing coverage tests
+  test "extract_mentions finds all @mentions in text" do
+    text = "Hello @advisor1 and @advisor-two, please help @advisor-three"
+    mentions = Message.extract_mentions(text)
+    assert_equal [ "advisor1", "advisor-two", "advisor-three" ], mentions
+  end
+
+  test "extract_mentions returns empty array for blank text" do
+    assert_empty Message.extract_mentions(nil)
+    assert_empty Message.extract_mentions("")
+    assert_empty Message.extract_mentions("   ")
+  end
+
+  test "extract_mentions ignores invalid mention formats" do
+    text = "@valid but not @-invalid or @ or @"
+    mentions = Message.extract_mentions(text)
+    assert_equal [ "valid" ], mentions
+  end
+
+  test "from_scribe? returns true when sender is scribe advisor" do
+    scribe = @account.advisors.create!(
+      name: "test-scribe-#{SecureRandom.hex(4)}",
+      space: @space,
+      system_prompt: "You are scribe",
+      is_scribe: true
+    )
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: scribe,
+      role: "advisor",
+      content: "Scribe message"
+    )
+    assert message.from_scribe?
+  end
+
+  test "from_scribe? returns false when sender is regular advisor" do
+    regular_advisor = @account.advisors.create!(
+      name: "test-regular-#{SecureRandom.hex(4)}",
+      space: @space,
+      system_prompt: "You are advisor"
+    )
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: regular_advisor,
+      role: "advisor",
+      content: "Regular message"
+    )
+    assert_not message.from_scribe?
+  end
+
+  test "from_scribe? returns false when sender is user" do
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "User message"
+    )
+    assert_not message.from_scribe?
+  end
+
+  test "from_non_scribe_advisor? returns true for regular advisor" do
+    regular_advisor = @account.advisors.create!(
+      name: "test-regular-#{SecureRandom.hex(4)}",
+      space: @space,
+      system_prompt: "You are advisor"
+    )
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: regular_advisor,
+      role: "advisor",
+      content: "Regular message"
+    )
+    assert message.from_non_scribe_advisor?
+  end
+
+  test "from_non_scribe_advisor? returns false for scribe" do
+    scribe = @account.advisors.create!(
+      name: "test-scribe-#{SecureRandom.hex(4)}",
+      space: @space,
+      system_prompt: "You are scribe",
+      is_scribe: true
+    )
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: scribe,
+      role: "advisor",
+      content: "Scribe message"
+    )
+    assert_not message.from_non_scribe_advisor?
+  end
+
+  test "from_user? returns true when sender is user" do
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "User message"
+    )
+    assert message.from_user?
+  end
+
+  test "from_user? returns false when sender is advisor" do
+    advisor = @account.advisors.create!(
+      name: "test-advisor-#{SecureRandom.hex(4)}",
+      space: @space,
+      system_prompt: "You are advisor"
+    )
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: advisor,
+      role: "advisor",
+      content: "Advisor message"
+    )
+    assert_not message.from_user?
+  end
+
+  test "retry_count returns integer from debug_data" do
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Test",
+      debug_data: { "retry_count" => 3 }
+    )
+    assert_equal 3, message.retry_count
+  end
+
+  test "retry_count returns 0 when not set" do
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Test"
+    )
+    assert_equal 0, message.retry_count
+  end
+
+  test "add_to_parent_message adds sender to pending list" do
+    parent = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Parent message",
+      pending_advisor_ids: []
+    )
+    advisor = @account.advisors.create!(
+      name: "test-advisor-#{SecureRandom.hex(4)}",
+      space: @space,
+      system_prompt: "You are advisor"
+    )
+    child = @account.messages.create!(
+      conversation: @conversation,
+      sender: advisor,
+      role: "advisor",
+      parent_message: parent,
+      content: "Child message"
+    )
+
+    child.add_to_parent_message
+
+    assert_includes parent.reload.pending_advisor_ids, advisor.id.to_s
+  end
+
+  test "add_to_parent_message does not duplicate pending advisor" do
+    parent = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Parent message",
+      pending_advisor_ids: []
+    )
+    advisor = @account.advisors.create!(
+      name: "test-advisor-#{SecureRandom.hex(4)}",
+      space: @space,
+      system_prompt: "You are advisor"
+    )
+    child = @account.messages.create!(
+      conversation: @conversation,
+      sender: advisor,
+      role: "advisor",
+      parent_message: parent,
+      content: "Child message"
+    )
+
+    child.add_to_parent_message
+    child.add_to_parent_message  # Call twice
+
+    assert_equal 1, parent.reload.pending_advisor_ids.count(advisor.id.to_s)
+  end
+
+  test "visible_in_chat? returns false for pending messages" do
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Pending",
+      status: "pending"
+    )
+    assert_not message.send(:visible_in_chat?)
+  end
+
+  test "visible_in_chat? returns true for complete messages" do
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Complete",
+      status: "complete"
+    )
+    assert message.send(:visible_in_chat?)
+  end
+
+  test "broadcastable_create? returns true for visible messages" do
+    message = @account.messages.new(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Test"
+    )
+    message.status = "complete"
+    assert message.send(:broadcastable_create?)
+  end
+
+  test "broadcastable_create? returns false for pending messages" do
+    message = @account.messages.new(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Test"
+    )
+    message.status = "pending"
+    assert_not message.send(:broadcastable_create?)
+  end
+
+  test "broadcastable_update? returns true when status changes to visible" do
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Test",
+      status: "pending"
+    )
+    message.status = "complete"
+    assert message.send(:broadcastable_update?)
+  end
+
+  test "broadcastable_update? returns true when content changes" do
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Original",
+      status: "complete"
+    )
+    message.content = "Updated"
+    assert message.send(:broadcastable_update?)
+  end
 end
