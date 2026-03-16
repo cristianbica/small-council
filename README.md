@@ -154,3 +154,7 @@ test/             Unit, integration, job, AI, and system tests
 ## Contributing
 
 Contributions are welcome. Because the project is also an ongoing experiment in AI-assisted software development, contributions should ideally follow the same direction and be produced with AI-assisted workflows, with appropriate human review before submission.
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
