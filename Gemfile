@@ -98,6 +98,6 @@ end
 gem "tailwindcss-rails", "~> 4.4"
 
 # Markdown rendering (GitHub Flavored Markdown)
-gem "commonmarker", "~> 2.0"
+gem "commonmarker", "~> 2.7"
 
 gem "debride", "~> 1.15"
