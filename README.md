@@ -147,7 +147,7 @@ app/
 
 config/           Rails configuration, routes, environments
 db/               Schema, migrations, and seeds
-test/             Unit, integration, job, AI, and system tests
+test/             Unit, integration, job, and AI tests
 .ai/docs/         Maintainer-oriented architecture and feature docs
 ```
 

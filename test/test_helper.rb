@@ -23,15 +23,6 @@ require_relative "../config/environment"
 require "rails/test_help"
 require "mocha/minitest"
 
-if ENV["CI"] || ENV["CHROME_URL"]
-  net = Socket.ip_address_list.detect(&:ipv4_private?)
-  ip = net.nil? ? "127.0.0.1" : net.ip_address
-  Capybara.server_host = ip
-  Capybara.always_include_port = true
-end
-Capybara.server = :puma, { Silent: true }
-Capybara.reuse_server = false
-
 class ActiveSupport::TestCase
   parallelize(workers: :number_of_processors)
 
