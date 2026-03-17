@@ -1,0 +1,141 @@
+{
+  "ignored_warnings": [
+    {
+      "warning_type": "Cross-Site Scripting",
+      "warning_code": 2,
+      "fingerprint": "58afef486292e41d273a42d968223591bfff9e3624839694bcdc30aba6ed725b",
+      "check_name": "CrossSiteScripting",
+      "message": "Unescaped model attribute",
+      "file": "app/views/memories/version.html.erb",
+      "line": 88,
+      "link": "https://brakemanscanner.org/docs/warning_types/cross_site_scripting",
+      "code": "diff_versions(Current.account.spaces.find(params[:space_id]).memories.find(params[:id]).versions.find_by(:version_number => params[:version_number].to_i), Current.account.spaces.find(params[:space_id]).memories.find(params[:id]).versions.find_by(:version_number => params[:version_number].to_i).next_version, :content)[:left]",
+      "render_path": [
+        {
+          "type": "controller",
+          "class": "MemoriesController",
+          "method": "version",
+          "line": 118,
+          "file": "app/controllers/memories_controller.rb",
+          "rendered": {
+            "name": "memories/version",
+            "file": "app/views/memories/version.html.erb"
+          }
+        }
+      ],
+      "location": {
+        "type": "template",
+        "template": "memories/version"
+      },
+      "user_input": "Current.account.spaces",
+      "confidence": "Weak",
+      "cwe_id": [
+        79
+      ],
+      "note": ""
+    },
+    {
+      "warning_type": "Cross-Site Scripting",
+      "warning_code": 2,
+      "fingerprint": "703d93bb1e2fcae6b449289b511914ea868e8a8d38c23eea22ec27ba1a254662",
+      "check_name": "CrossSiteScripting",
+      "message": "Unescaped model attribute",
+      "file": "app/views/memories/version.html.erb",
+      "line": 64,
+      "link": "https://brakemanscanner.org/docs/warning_types/cross_site_scripting",
+      "code": "diff_versions(Current.account.spaces.find(params[:space_id]).memories.find(params[:id]).versions.find_by(:version_number => params[:version_number].to_i), Current.account.spaces.find(params[:space_id]).memories.find(params[:id]).versions.find_by(:version_number => params[:version_number].to_i).next_version, :title)[:right]",
+      "render_path": [
+        {
+          "type": "controller",
+          "class": "MemoriesController",
+          "method": "version",
+          "line": 118,
+          "file": "app/controllers/memories_controller.rb",
+          "rendered": {
+            "name": "memories/version",
+            "file": "app/views/memories/version.html.erb"
+          }
+        }
+      ],
+      "location": {
+        "type": "template",
+        "template": "memories/version"
+      },
+      "user_input": "Current.account.spaces",
+      "confidence": "Weak",
+      "cwe_id": [
+        79
+      ],
+      "note": ""
+    },
+    {
+      "warning_type": "Cross-Site Scripting",
+      "warning_code": 2,
+      "fingerprint": "9ed90de394b6370d093825bd53758e30a7fea2386a694f7ebd0c1fba8636cbd3",
+      "check_name": "CrossSiteScripting",
+      "message": "Unescaped model attribute",
+      "file": "app/views/memories/version.html.erb",
+      "line": 55,
+      "link": "https://brakemanscanner.org/docs/warning_types/cross_site_scripting",
+      "code": "diff_versions(Current.account.spaces.find(params[:space_id]).memories.find(params[:id]).versions.find_by(:version_number => params[:version_number].to_i), Current.account.spaces.find(params[:space_id]).memories.find(params[:id]).versions.find_by(:version_number => params[:version_number].to_i).next_version, :title)[:left]",
+      "render_path": [
+        {
+          "type": "controller",
+          "class": "MemoriesController",
+          "method": "version",
+          "line": 118,
+          "file": "app/controllers/memories_controller.rb",
+          "rendered": {
+            "name": "memories/version",
+            "file": "app/views/memories/version.html.erb"
+          }
+        }
+      ],
+      "location": {
+        "type": "template",
+        "template": "memories/version"
+      },
+      "user_input": "Current.account.spaces",
+      "confidence": "Weak",
+      "cwe_id": [
+        79
+      ],
+      "note": ""
+    },
+    {
+      "warning_type": "Cross-Site Scripting",
+      "warning_code": 2,
+      "fingerprint": "a77133099589a9ab2c8daad946d9d67f9ccf2e6e3e2061b09a28edb652fc9b5f",
+      "check_name": "CrossSiteScripting",
+      "message": "Unescaped model attribute",
+      "file": "app/views/memories/version.html.erb",
+      "line": 97,
+      "link": "https://brakemanscanner.org/docs/warning_types/cross_site_scripting",
+      "code": "diff_versions(Current.account.spaces.find(params[:space_id]).memories.find(params[:id]).versions.find_by(:version_number => params[:version_number].to_i), Current.account.spaces.find(params[:space_id]).memories.find(params[:id]).versions.find_by(:version_number => params[:version_number].to_i).next_version, :content)[:right]",
+      "render_path": [
+        {
+          "type": "controller",
+          "class": "MemoriesController",
+          "method": "version",
+          "line": 118,
+          "file": "app/controllers/memories_controller.rb",
+          "rendered": {
+            "name": "memories/version",
+            "file": "app/views/memories/version.html.erb"
+          }
+        }
+      ],
+      "location": {
+        "type": "template",
+        "template": "memories/version"
+      },
+      "user_input": "Current.account.spaces",
+      "confidence": "Weak",
+      "cwe_id": [
+        79
+      ],
+      "note": ""
+    }
+  ],
+  "brakeman_version": "8.0.4"
+}
