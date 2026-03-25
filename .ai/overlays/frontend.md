@@ -1,24 +1,24 @@
 # Overlay: frontend
 
 Purpose:
-- Deliver polished, consistent frontend experiences.
-- Default to Tailwind CSS, DaisyUI, and Stimulus JS.
+- Keep the web app view layer clear, predictable, and maintainable.
+- Reduce friction in templates, styling, rendering, and browser-side interaction code.
 
 When to apply:
-- UI work, layout changes, component styling, and interaction polish.
-- Any task where user-facing visuals or behavior are central.
+- HTML/template, CSS, browser-side JavaScript, and interaction-layer changes.
+- UI behavior work inside server-rendered or hybrid web applications.
 
 Output focus:
-- Clear visual hierarchy and accessible UI states.
-- Tailwind utilities + DaisyUI components for consistency.
-- Stimulus JS for lightweight, progressive enhancements.
+- Clear rendering structure and interaction behavior.
+- Consistent separation between presentation and non-view concerns.
+- Maintainable browser-side logic with minimal UI complexity.
 
 Decision prompts:
-- Which DaisyUI component maps to the intent?
-- Can Tailwind utilities simplify structure and spacing?
-- Is Stimulus sufficient for this interaction?
+- Is this concern truly part of the view layer?
+- Does the rendering structure stay easy to understand?
+- Is browser-side behavior doing only what the UI needs?
 
 Quality checks:
-- Responsive, readable layouts across breakpoints.
-- Loading/empty/error states are intentional and styled.
-- Interactions feel predictable with minimal guidance.
+- Templates and browser-side code stay readable.
+- Styling and interaction logic do not obscure intent.
+- View-layer changes do not quietly pull in unrelated business logic.
