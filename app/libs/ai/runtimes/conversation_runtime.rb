@@ -81,12 +81,30 @@ module AI
         )
       end
 
-      COMPACTION_THRESHOLD = 25_000
-
       def compaction_required?
+        chars_per_token_estimate = 4.0
+        fixed_prompt_overhead_tokens = 300
+        context_budget_ratio = 0.70
+        fallback_context_window = 8_192
+
+        involved_advisors = Array(@conversation.all_participant_advisors).compact
+        context_windows = involved_advisors.filter_map do |advisor|
+          advisor.effective_llm_model&.context_window&.to_i
+        end.select(&:positive?)
+
+        weakest_context_window = context_windows.min || fallback_context_window
+        trigger_limit_tokens = (weakest_context_window * context_budget_ratio).floor
+
         current_context_length = @conversation.messages.since_last_compaction.pluck(:content).join.length
-        Rails.logger.info("\n\n########################### Current context length: #{current_context_length}\n\n")
-        current_context_length > COMPACTION_THRESHOLD
+        estimated_history_tokens = (current_context_length / chars_per_token_estimate).ceil
+        estimated_prompt_tokens = estimated_history_tokens + fixed_prompt_overhead_tokens
+
+        Rails.logger.info(
+          "[Compaction] chars=#{current_context_length} estimated_tokens=#{estimated_prompt_tokens} " \
+          "weakest_context_window=#{weakest_context_window} trigger_limit=#{trigger_limit_tokens}"
+        )
+
+        estimated_prompt_tokens >= trigger_limit_tokens
       end
 
       def request_message_compaction(message)
