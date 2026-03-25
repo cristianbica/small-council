@@ -1,7 +1,19 @@
 <%= turbo_stream_from "conversation_#{conversation.id}" %>
 
+<%
+  slash_commands = [
+    { name: "advisors", description: "Open advisors list" },
+    { name: "invite", description: "Add advisor" },
+    { name: "kick", description: "Remove advisor" },
+    { name: "memories", description: "List memories" },
+    { name: "memory", description: "Open memory by id" },
+    { name: "attach", description: "Attach memory by id" }
+  ]
+%>
+
 <div class="chat-main flex flex-col h-full" data-controller="conversation mentions"
-      data-mentions-advisors-value='<%= mentionable_advisors.to_json %>'>
+      data-mentions-advisors-value='<%= mentionable_advisors.to_json %>'
+      data-mentions-commands-value='<%= slash_commands.to_json %>'>
 
   <header class="flex-none px-6 py-4 border-b border-base-200 bg-base-100">
     <div class="flex items-center justify-between">
@@ -56,30 +68,7 @@
       </div>
     </div>
 
-    <div class="flex items-center gap-2 mt-3 flex-wrap">
-      <% if conversation.scribe_advisor %>
-        <% scribe = conversation.scribe_advisor %>
-        <div class="badge badge-primary badge-sm gap-1">
-          <div class="avatar placeholder">
-            <div class="bg-primary text-primary-content rounded-full w-4 h-4 flex items-center justify-center text-[8px]">
-              <%= scribe.name.first.upcase %>
-            </div>
-          </div>
-          <%= scribe.name %>
-        </div>
-      <% end %>
-
-      <% conversation.participant_advisors.each do |advisor| %>
-        <div class="badge badge-ghost badge-sm gap-1">
-          <div class="avatar placeholder">
-            <div class="bg-neutral text-neutral-content rounded-full w-4 h-4 flex items-center justify-center text-[8px]">
-              <%= advisor.name.first.upcase %>
-            </div>
-          </div>
-          <%= advisor.name %>
-        </div>
-      <% end %>
-    </div>
+    <%= render "conversations/participant_badges", conversation: conversation %>
 
     <% if conversation.resolved? %>
       <div class="alert alert-success mt-3 py-2">

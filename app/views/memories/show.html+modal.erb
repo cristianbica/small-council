@@ -1,0 +1,18 @@
+<div class="space-y-4">
+  <div>
+    <div class="flex items-center gap-2 mb-1">
+      <span class="badge badge-ghost badge-sm"><%= @memory.id %></span>
+      <h2 class="text-2xl font-bold"><%= @memory.title %></h2>
+    </div>
+    <div class="text-sm text-base-content/60">
+      <span class="badge <%= memory_type_badge_class(@memory.memory_type) %> badge-sm">
+        <%= @memory.memory_type_display %>
+      </span>
+      <span class="ml-2">Updated <%= time_ago_in_words(@memory.updated_at) %> ago</span>
+    </div>
+  </div>
+
+  <div class="prose max-w-none markdown-body max-h-[70vh] overflow-y-auto pr-1">
+    <%= markdown_to_html(@memory.content) %>
+  </div>
+</div>

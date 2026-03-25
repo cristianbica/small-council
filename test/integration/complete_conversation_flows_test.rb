@@ -249,7 +249,7 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
   # COMMAND EXECUTION FLOW
   # ============================================================================
 
-  test "slash invite text does not auto-invite advisors" do
+  test "slash invite command adds advisor without creating user chat message" do
     sign_in_as(@user)
     set_tenant(@account)
 
@@ -263,18 +263,21 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
     conversation.conversation_participants.create!(advisor: @scribe, role: :scribe)
 
-    # Slash commands are no longer parsed in the runtime path.
-    assert_no_difference("ConversationParticipant.count") do
-      post conversation_messages_path(conversation), params: {
-        message: { content: "/invite @technical-expert" }
-      }
+    assert_no_enqueued_jobs only: AIRunnerJob do
+      assert_no_difference("Message.where(role: :user, message_type: :chat).count") do
+        assert_difference("ConversationParticipant.count", 1) do
+          post conversation_messages_path(conversation), params: {
+            message: { content: "/invite technical-expert" }
+          }
+        end
+      end
     end
 
     assert_redirected_to conversation_path(conversation)
-    assert_not_includes conversation.advisors.reload, @advisor2
+    assert_includes conversation.advisors.reload, @advisor2
   end
 
-  test "slash command-like text is stored as a normal user message" do
+  test "invalid slash command does not create user message" do
     sign_in_as(@user)
     set_tenant(@account)
 
@@ -287,14 +290,14 @@ class CompleteConversationFlowsTest < ActionDispatch::IntegrationTest
     )
     conversation.conversation_participants.create!(advisor: @advisor1, role: :advisor, position: 0)
 
-    assert_difference("Message.where(role: :user).count", 1) do
+    assert_no_difference("Message.where(role: :user).count") do
       post conversation_messages_path(conversation), params: {
         message: { content: "/invite" }
       }
     end
 
     assert_redirected_to conversation_path(conversation)
-    assert_equal "/invite", Message.where(role: :user).last.content
+    assert_match(/Usage: \/invite advisor-name/, flash[:alert])
   end
 
   # ============================================================================

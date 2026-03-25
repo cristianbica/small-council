@@ -29,6 +29,8 @@ Max ~200 lines. Keep durable, high-signal facts only.
 - Advisor names are canonical lowercase dash handles; mentions/invites must use this handle format.
 - Messages use polymorphic sender (`User`/`Advisor`) and track turn state with `pending_advisor_ids` + status (`pending|responding|complete|error|cancelled`).
 - `Message.message_type` distinguishes normal chat (`chat`) from conversation compaction (`compaction`); `Conversation#chat_blocked?` is derived from active compaction messages.
+- Slash command handlers live under `app/libs/ai/commands/` and are dispatched in the message create flow via `AI::Commands::CommandRouter`.
+- `Message.message_type` also includes `info` and `memory_attachment`; `Message.visible_in_context` excludes `info` but includes `memory_attachment`.
 - Sensitive fields are encrypted at rest (`Provider.credentials`, `Advisor.system_prompt/short_description`, `Conversation.memory/draft_memory`, `Message.content/prompt_text`, `Memory.content`).
 
 ## Versioning

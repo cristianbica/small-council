@@ -12,7 +12,7 @@ Conversation ID: <%= context.conversation.id %>
 
 Recent messages:
 
-<% context.conversation.messages.complete.chronological.last(5).each do |message| %>
+<% context.conversation.messages.complete.visible_in_context.chronological.last(5).each do |message| %>
 ## Speker: <%= message.role %>
 
 <%= message.content %>

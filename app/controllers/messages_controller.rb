@@ -6,6 +6,9 @@ class MessagesController < ApplicationController
   def create
     Rails.logger.info "[MessagesController#create] User #{Current.user.id} posting message to conversation #{@conversation.id}"
 
+    command_result = execute_slash_command
+    return respond_to_command(command_result) if command_result.present?
+
     @message = build_user_message
 
     if @message.save
@@ -44,6 +47,131 @@ class MessagesController < ApplicationController
   end
 
   private
+
+  def execute_slash_command
+    AI::Commands::CommandRouter.execute(
+      content: message_params[:content],
+      conversation: @conversation,
+      user: Current.user
+    )
+  end
+
+  def respond_to_command(result)
+    return respond_to_command_error(result) unless result[:success]
+
+    if result[:action] == "advisors"
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "page-modal",
+            partial: "conversations/advisors_modal_frame",
+            locals: {
+              conversation: @conversation,
+              advisors: result[:advisors]
+            }
+          )
+        end
+
+        format.html { redirect_with_command_result(result) }
+      end
+      return
+    end
+
+    if result[:action] == "memories"
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "page-modal",
+            partial: "conversations/memories_modal_frame",
+            locals: {
+              conversation: @conversation,
+              memories: result[:memories]
+            }
+          )
+        end
+
+        format.html { redirect_with_command_result(result) }
+      end
+      return
+    end
+
+    if result[:action] == "memory"
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "page-modal",
+            partial: "conversations/memory_modal_frame",
+            locals: {
+              memory: result[:memory]
+            }
+          )
+        end
+
+        format.html { redirect_with_command_result(result) }
+      end
+      return
+    end
+
+    respond_to do |format|
+      format.turbo_stream do
+        @conversation.reload
+        render turbo_stream: [
+          turbo_stream.replace(
+            "conversation-participants",
+            partial: "conversations/participant_badges",
+            locals: { conversation: @conversation }
+          ),
+          turbo_stream.replace(
+            view_context.dom_id(@conversation, :composer),
+            partial: "conversations/composer",
+            locals: { conversation: @conversation, new_message: Message.new }
+          )
+        ]
+      end
+
+      format.html { redirect_with_command_result(result) }
+    end
+  end
+
+  def respond_to_command_error(result)
+    errored_message = Message.new(content: message_params[:content])
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          view_context.dom_id(@conversation, :composer),
+          partial: "conversations/composer",
+          locals: {
+            conversation: @conversation,
+            new_message: errored_message,
+            command_error: result[:message]
+          }
+        ), status: :unprocessable_entity
+      end
+
+      format.html do
+        if turbo_frame_request?
+          render partial: "conversations/composer",
+                 locals: {
+                   conversation: @conversation,
+                   new_message: errored_message,
+                   command_error: result[:message]
+                 },
+                 status: :unprocessable_entity
+        else
+          redirect_to @conversation, alert: result[:message]
+        end
+      end
+    end
+  end
+
+  def redirect_with_command_result(result)
+    if result[:success]
+      redirect_to @conversation, notice: result[:message]
+    else
+      redirect_to @conversation, alert: result[:message]
+    end
+  end
 
   def build_user_message
     @conversation.messages.new(message_params).tap do |msg|

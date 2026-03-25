@@ -33,7 +33,9 @@ class Message < ApplicationRecord
 
   enum :message_type, {
     chat: "chat",
-    compaction: "compaction"
+    compaction: "compaction",
+    info: "info",
+    memory_attachment: "memory_attachment"
   }, default: "chat"
 
   enum :status, {
@@ -52,9 +54,10 @@ class Message < ApplicationRecord
 
   scope :chronological, -> { order(created_at: :asc) }
   scope :visible_in_chat, -> { where.not(status: "pending") }
+  scope :visible_in_context, -> { where.not(message_type: "info") }
   scope :root_messages, -> { where(in_reply_to_id: nil) }
   scope :solved, -> { where(pending_advisor_ids: []) }
-  scope :since_last_compaction, -> { where(id: complete.compaction.last&.id.to_i..) }
+  scope :since_last_compaction, -> { visible_in_context.where(id: complete.compaction.last&.id.to_i..) }
 
   after_create_commit -> { broadcast_chat if broadcastable_create? }
   after_update_commit -> { broadcast_chat if broadcastable_update? }

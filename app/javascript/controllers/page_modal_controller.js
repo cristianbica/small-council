@@ -14,8 +14,8 @@ export default class extends Controller {
 
   modalDialogTargetConnected(dialog) {
     const modalBox = dialog.querySelector(".modal-box")
-    modalBox.className = "modal-box"
     if (modalBox && this.pageModalSize && PAGE_MODAL_SIZES[this.pageModalSize]) {
+      modalBox.className = "modal-box"
       const sizeClasses = PAGE_MODAL_SIZES[this.pageModalSize].split(" ")
       modalBox.classList.add(...sizeClasses)
     }

@@ -1,9 +1,25 @@
 <%= turbo_frame_tag dom_id(conversation, :composer) do %>
   <div class="input-area flex-none px-6 py-4 border-t border-base-200 bg-base-100">
     <div class="max-w-4xl mx-auto">
+      <% command_error = local_assigns[:command_error] %>
+
+      <% if command_error.present? %>
+        <div class="mb-3" data-controller="auto-dismiss" data-auto-dismiss-delay-value="5000">
+          <div class="alert alert-error py-2 flex items-center justify-between gap-2">
+            <span class="text-sm"><%= command_error %></span>
+            <button type="button"
+                    class="btn btn-ghost btn-xs ml-auto"
+                    data-action="auto-dismiss#close"
+                    aria-label="Close error message">
+              x
+            </button>
+          </div>
+        </div>
+      <% end %>
+
       <%= form_with model: [conversation, new_message],
           class: "flex items-end gap-2",
-          data: { action: "turbo:submit-end->conversation#handleSubmitEnd" } do |form| %>
+          data: { turbo_stream: true, action: "turbo:submit-end->conversation#handleSubmitEnd" } do |form| %>
         <% if new_message.errors.any? %>
           <div class="alert alert-error mb-2">
             <ul class="list-disc list-inside">
@@ -17,7 +33,7 @@
         <div class="form-control flex-1 relative">
           <%= form.text_area :content,
               class: "textarea textarea-bordered w-full resize-none min-h-[80px]",
-              placeholder: "Type your message... (Ctrl+Enter to send, @ to mention)",
+              placeholder: "Type your message... (Ctrl+Enter to send, @ to mention, / for commands)",
               rows: 3,
               required: true,
               maxlength: 4000,
@@ -38,6 +54,7 @@
       <div class="flex items-center justify-between mt-2 text-xs text-base-content/50">
         <div class="flex items-center gap-4">
           <span>Use <kbd class="kbd kbd-sm">@all</kbd> for everyone</span>
+          <span>Type <kbd class="kbd kbd-sm">/</kbd> for commands</span>
           <span>Ctrl+Enter to send</span>
         </div>
         <div data-conversation-target="charCount">0 / 4000</div>

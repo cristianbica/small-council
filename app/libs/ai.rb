@@ -64,6 +64,15 @@ module AI
     constant
   end
 
+  def self.command(type)
+    return type if type.is_a?(Class)
+
+    constant = "ai/commands/#{type}_command".classify.safe_constantize
+    raise ResolutionError, "Unknown command: #{type}" unless constant
+
+    constant
+  end
+
   def self.tool(ref)
     return ref if ref.is_a?(Class)
 

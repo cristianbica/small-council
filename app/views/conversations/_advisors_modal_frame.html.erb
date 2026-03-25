@@ -1,0 +1,49 @@
+<%= turbo_frame_tag "page-modal" do %>
+  <dialog data-page-modal-target="modalDialog"
+          data-action="close->page-modal#closeDialog"
+          class="modal">
+    <div class="modal-box w-11/12 max-w-2xl">
+      <form method="dialog">
+        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+      </form>
+
+      <h3 class="font-bold text-lg">Advisors in <%= conversation.space.name %></h3>
+      <p class="text-sm text-base-content/70 mt-1 mb-4">
+        <%= advisors.count %> total advisors
+      </p>
+
+      <div class="space-y-2 max-h-[60vh] overflow-y-auto">
+        <% advisors.each do |advisor| %>
+          <% participating = conversation.advisors.include?(advisor) %>
+          <div class="flex items-center justify-between rounded-lg border border-base-300 px-3 py-2">
+            <div class="flex items-center gap-3">
+              <div class="avatar placeholder">
+                <div class="bg-neutral text-neutral-content rounded-full w-8 h-8 flex items-center justify-center text-xs">
+                  <%= advisor.name.first.upcase %>
+                </div>
+              </div>
+              <div>
+                <p class="font-medium"><%= advisor.name %></p>
+                <% if advisor.scribe? %>
+                  <p class="text-xs text-base-content/60">Scribe</p>
+                <% end %>
+              </div>
+            </div>
+
+            <% if advisor.scribe? %>
+              <span class="badge badge-primary badge-sm">Auto-present</span>
+            <% elsif participating %>
+              <span class="badge badge-success badge-sm">In conversation</span>
+            <% else %>
+              <span class="badge badge-ghost badge-sm">Not in conversation</span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <form method="dialog" class="modal-backdrop">
+      <button>close</button>
+    </form>
+  </dialog>
+<% end %>

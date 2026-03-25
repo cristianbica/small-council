@@ -364,6 +364,33 @@ module AI
         assert_not message_contents.any? { |c| c.include?("Summary of trade-off analysis") },
           "Should NOT include the second compaction message itself"
       end
+
+      test "conversation_messages excludes info messages and includes memory_attachment messages" do
+        info_message = @account.messages.create!(
+          conversation: @conversation,
+          sender: @user,
+          role: "system",
+          content: "user added fixture-counselor-two",
+          message_type: "info",
+          status: "complete"
+        )
+
+        attachment_message = @account.messages.create!(
+          conversation: @conversation,
+          sender: @user,
+          role: "user",
+          content: "Attached memory #1: Test Knowledge Memory",
+          message_type: "memory_attachment",
+          status: "complete"
+        )
+
+        task = RespondTask.new(context: @context)
+        messages = task.send(:conversation_messages)
+        contents = messages.map { |entry| entry[:content] }
+
+        assert contents.any? { |entry| entry.include?(attachment_message.content) }
+        assert_not contents.any? { |entry| entry.include?(info_message.content) }
+      end
     end
   end
 end

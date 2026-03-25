@@ -5,13 +5,14 @@ require "ostruct"
 
 module AI
   class AITest < ActiveSupport::TestCase
-    test "resolves known constants for context/task/agent/handler/tracker/schema" do
+    test "resolves known constants for context/task/agent/handler/tracker/schema/command" do
       assert_equal AI::Contexts::ConversationContext, AI.context(:conversation)
       assert_equal AI::Tasks::RespondTask, AI.task(:respond)
       assert_equal AI::Agents::AdvisorAgent, AI.agent(:advisor)
       assert_equal AI::Handlers::ConversationResponseHandler, AI.handler(:conversation_response)
       assert_equal AI::Trackers::ModelInteractionTracker, AI.tracker(:model_interaction)
       assert_equal AI::Schemas::AdvisorProfileSchema, AI.schema(:advisor_profile)
+      assert_equal AI::Commands::AttachCommand, AI.command(:attach)
     end
 
     test "returns passed class references unchanged for all resolvers" do
@@ -21,6 +22,7 @@ module AI
       assert_equal AI::Handlers::ConversationResponseHandler, AI.handler(AI::Handlers::ConversationResponseHandler)
       assert_equal AI::Trackers::UsageTracker, AI.tracker(AI::Trackers::UsageTracker)
       assert_equal AI::Schemas::AdvisorProfileSchema, AI.schema(AI::Schemas::AdvisorProfileSchema)
+      assert_equal AI::Commands::MemoryCommand, AI.command(AI::Commands::MemoryCommand)
       assert_equal AI::Tools::Memories::CreateMemoryTool, AI.tool(AI::Tools::Memories::CreateMemoryTool)
     end
 
@@ -31,6 +33,7 @@ module AI
       assert_raises(AI::ResolutionError) { AI.handler("invalid_type") }
       assert_raises(AI::ResolutionError) { AI.tracker("invalid_type") }
       assert_raises(AI::ResolutionError) { AI.schema("invalid_type") }
+      assert_raises(AI::ResolutionError) { AI.command("invalid_type") }
     end
 
     test "tool raises ResolutionError for unknown tool reference" do
@@ -82,6 +85,7 @@ module AI
       assert_raises(AI::ResolutionError) { AI.handler(:missing) }
       assert_raises(AI::ResolutionError) { AI.tracker(:missing) }
       assert_raises(AI::ResolutionError) { AI.schema(:missing) }
+      assert_raises(AI::ResolutionError) { AI.command(:missing) }
       assert_raises(AI::ResolutionError) { AI.prompt("missing/prompt") }
       assert_raises(AI::ResolutionError) { AI.tool("missing/tool") }
     end

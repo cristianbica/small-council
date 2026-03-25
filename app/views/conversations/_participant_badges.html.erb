@@ -1,0 +1,24 @@
+<div id="conversation-participants" class="flex items-center gap-2 mt-3 flex-wrap">
+  <% if conversation.scribe_advisor %>
+    <% scribe = conversation.scribe_advisor %>
+    <div class="badge badge-primary badge-sm gap-1">
+      <div class="avatar placeholder">
+        <div class="bg-primary text-primary-content rounded-full w-4 h-4 flex items-center justify-center text-[8px]">
+          <%= scribe.name.first.upcase %>
+        </div>
+      </div>
+      <%= scribe.name %>
+    </div>
+  <% end %>
+
+  <% conversation.participant_advisors.each do |advisor| %>
+    <div class="badge badge-ghost badge-sm gap-1">
+      <div class="avatar placeholder">
+        <div class="bg-neutral text-neutral-content rounded-full w-4 h-4 flex items-center justify-center text-[8px]">
+          <%= advisor.name.first.upcase %>
+        </div>
+      </div>
+      <%= advisor.name %>
+    </div>
+  <% end %>
+</div>

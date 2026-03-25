@@ -1,0 +1,37 @@
+<%= turbo_frame_tag "page-modal" do %>
+  <dialog data-page-modal-target="modalDialog"
+          data-action="close->page-modal#closeDialog"
+          class="modal">
+    <div class="modal-box w-11/12 max-w-4xl">
+      <form method="dialog">
+        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+      </form>
+
+      <h3 class="font-bold text-lg">Memories in <%= conversation.space.name %></h3>
+      <p class="text-sm text-base-content/70 mt-1 mb-4">
+        <%= memories.count %> total memories
+      </p>
+
+      <div class="max-h-[60vh] overflow-y-auto">
+        <% if memories.any? %>
+          <ul class="space-y-2">
+            <% memories.each do |memory| %>
+              <li class="rounded-lg border border-base-300 px-3 py-2">
+                <div class="flex items-center gap-3">
+                  <span class="badge badge-ghost badge-sm"><%= memory.id %></span>
+                  <span class="font-medium"><%= memory.title %></span>
+                </div>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <div class="text-sm text-base-content/60">No memories available in this space.</div>
+        <% end %>
+      </div>
+    </div>
+
+    <form method="dialog" class="modal-backdrop">
+      <button>close</button>
+    </form>
+  </dialog>
+<% end %>

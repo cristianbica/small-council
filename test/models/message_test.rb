@@ -564,6 +564,52 @@ class MessageTest < ActiveSupport::TestCase
     assert message.compaction?
   end
 
+  test "can set message_type to info" do
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "system",
+      content: "user added advisor",
+      message_type: "info"
+    )
+
+    assert message.info?
+  end
+
+  test "can set message_type to memory_attachment" do
+    message = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Attached memory",
+      message_type: "memory_attachment"
+    )
+
+    assert message.memory_attachment?
+  end
+
+  test "visible_in_context excludes info but includes memory_attachment" do
+    info_message = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "system",
+      content: "user added advisor",
+      message_type: "info"
+    )
+
+    attachment_message = @account.messages.create!(
+      conversation: @conversation,
+      sender: @user,
+      role: "user",
+      content: "Attached memory",
+      message_type: "memory_attachment"
+    )
+
+    visible = @conversation.messages.visible_in_context
+    assert_not_includes visible, info_message
+    assert_includes visible, attachment_message
+  end
+
   test "since_last_compaction returns all messages when no compaction exists" do
     msg1 = @account.messages.create!(
       conversation: @conversation,

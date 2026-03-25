@@ -45,7 +45,7 @@ module AI
       end
 
       def conversation_messages
-        scope = context.conversation.messages.complete.chronological
+        scope = context.conversation.messages.complete.visible_in_context.chronological
         scope = scope.where.not(id: context.message.previous_message.id) if context.message&.previous_message&.compaction?
         scope = scope.since_last_compaction
 
