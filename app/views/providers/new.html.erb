@@ -1,130 +1,39 @@
-<div class="space-y-6 max-w-2xl mx-auto">
-  <h1 class="text-3xl font-bold">Add Provider</h1>
+<div class="space-y-6 max-w-3xl mx-auto">
+  <div>
+    <h1 class="text-3xl font-bold">Add Provider</h1>
+    <p class="text-base-content/70 mt-1">Choose a provider, test the connection, then save.</p>
+  </div>
 
-  <%= form_with model: @provider, class: "card bg-base-100 shadow" do |form| %>
-    <div class="card-body space-y-4">
-      <% if @provider.errors.any? %>
-        <div class="alert alert-error">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div>
-            <h3 class="font-bold"><%= pluralize(@provider.errors.count, "error") %> prohibited this provider from being saved:</h3>
-            <ul class="mt-1 list-disc list-inside text-sm">
-              <% @provider.errors.full_messages.each do |message| %>
-                <li><%= message %></li>
-              <% end %>
-            </ul>
-          </div>
-        </div>
-      <% end %>
-
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text">
-            Name
-            <span class="text-error" aria-label="required">*</span>
-          </span>
-        </label>
-        <%= form.text_field :name,
-            class: "input input-bordered w-full #{'input-error' if form.object.errors[:name].any?}",
-            placeholder: "e.g., OpenAI Production",
-            required: true %>
-        <% if form.object.errors[:name].any? %>
-          <label class="label">
-            <span class="label-text-alt text-error flex items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <%= form.object.errors[:name].first %>
-            </span>
-          </label>
-        <% end %>
+  <div class="grid gap-3 sm:grid-cols-3">
+    <%= link_to new_provider_path(provider_type: "openai"),
+        class: "card border #{@selected_provider_type == 'openai' ? 'border-primary bg-primary/5' : 'border-base-300 bg-base-100'} hover:border-primary transition-colors",
+        data: { turbo_frame: "provider_form_frame" } do %>
+      <div class="card-body p-4">
+        <h2 class="font-semibold">OpenAI</h2>
+        <p class="text-sm text-base-content/70">GPT models with optional organization support.</p>
       </div>
+    <% end %>
 
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text">
-            Provider Type
-            <span class="text-error" aria-label="required">*</span>
-          </span>
-        </label>
-        <%= form.select :provider_type,
-            Provider.provider_types.keys.map { |t| [t.humanize, t] },
-            {},
-            class: "select select-bordered w-full #{'select-error' if form.object.errors[:provider_type].any?}",
-            required: true %>
-        <% if form.object.errors[:provider_type].any? %>
-          <label class="label">
-            <span class="label-text-alt text-error flex items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <%= form.object.errors[:provider_type].first %>
-            </span>
-          </label>
-        <% end %>
+    <%= link_to new_provider_path(provider_type: "openrouter"),
+        class: "card border #{@selected_provider_type == 'openrouter' ? 'border-primary bg-primary/5' : 'border-base-300 bg-base-100'} hover:border-primary transition-colors",
+        data: { turbo_frame: "provider_form_frame" } do %>
+      <div class="card-body p-4">
+        <h2 class="font-semibold">OpenRouter</h2>
+        <p class="text-sm text-base-content/70">One key for multiple model providers.</p>
       </div>
+    <% end %>
 
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text">
-            API Key
-            <span class="text-error" aria-label="required">*</span>
-          </span>
-        </label>
-        <%= form.password_field :api_key,
-            class: "input input-bordered w-full #{'input-error' if form.object.errors[:api_key].any?}",
-            placeholder: "sk-...",
-            required: true %>
-        <label class="label">
-          <span class="label-text-alt text-base-content/60">Your API key is encrypted at rest</span>
-        </label>
-        <% if form.object.errors[:api_key].any? %>
-          <label class="label">
-            <span class="label-text-alt text-error flex items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <%= form.object.errors[:api_key].first %>
-            </span>
-          </label>
-        <% end %>
+    <%= link_to new_provider_path(provider_type: "anthropic"),
+        class: "card border #{@selected_provider_type == 'anthropic' ? 'border-primary bg-primary/5' : 'border-base-300 bg-base-100'} hover:border-primary transition-colors",
+        data: { turbo_frame: "provider_form_frame" } do %>
+      <div class="card-body p-4">
+        <h2 class="font-semibold">Anthropic</h2>
+        <p class="text-sm text-base-content/70">Claude models directly from Anthropic.</p>
       </div>
+    <% end %>
+  </div>
 
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text">Organization ID</span>
-        </label>
-        <%= form.text_field :organization_id,
-            class: "input input-bordered w-full #{'input-error' if form.object.errors[:organization_id].any?}",
-            placeholder: "org-..." %>
-        <label class="label">
-          <span class="label-text-alt text-base-content/60">Only required for OpenAI enterprise accounts</span>
-        </label>
-        <% if form.object.errors[:organization_id].any? %>
-          <label class="label">
-            <span class="label-text-alt text-error flex items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <%= form.object.errors[:organization_id].first %>
-            </span>
-          </label>
-        <% end %>
-      </div>
-
-      <div class="form-control">
-        <label class="label cursor-pointer justify-start gap-3">
-          <%= form.check_box :enabled, class: "checkbox checkbox-primary" %>
-          <span class="label-text">Enabled</span>
-        </label>
-      </div>
-
-      <div class="card-actions justify-end">
-        <%= link_to "Cancel", providers_path, class: "btn btn-ghost" %>
-        <%= form.submit "Add Provider", class: "btn btn-primary" %>
-      </div>
-    </div>
-  <% end %>
+  <%= render "providers/provider_form_frame",
+      provider: @provider,
+      selected_provider_type: @selected_provider_type %>
 </div>

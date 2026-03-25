@@ -1,4 +1,5 @@
 require "test_helper"
+require "ostruct"
 
 class ProvidersControllerTest < ActionDispatch::IntegrationTest
   def setup
@@ -436,66 +437,7 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "wizard initializes fresh session state" do
-    sign_in_as(@user)
-    set_tenant(@account)
-    get wizard_providers_url
-
-    assert_response :success
-    assert_equal 1, session[:provider_wizard][:step]
-  end
-
-  test "wizard_step step 1 stores provider type and advances" do
-    sign_in_as(@user)
-    set_tenant(@account)
-    session[:provider_wizard] = { step: 1 }
-
-    post wizard_step_providers_url, params: { provider_type: "openai" }
-
-    assert_redirected_to wizard_providers_url
-    assert_equal "openai", session[:provider_wizard][:provider_type]
-    assert_equal 2, session[:provider_wizard][:step]
-  end
-
-  test "wizard_step step 2 forwards credentials in redirect and advances" do
-    sign_in_as(@user)
-    set_tenant(@account)
-    post wizard_step_providers_url, params: { provider_type: "openai" }
-
-    post wizard_step_providers_url, params: { api_key: "sk-123", organization_id: "org-1" }
-
-    assert_redirected_to wizard_providers_url(api_key: "sk-123", organization_id: "org-1")
-  end
-
-  test "wizard_step step 3 advances to configure step" do
-    sign_in_as(@user)
-    set_tenant(@account)
-    post wizard_step_providers_url, params: { provider_type: "openai" }
-    post wizard_step_providers_url, params: { api_key: "sk-123", organization_id: "org-2" }
-
-    post wizard_step_providers_url, params: { api_key: "sk-123", organization_id: "org-2" }
-
-    assert_redirected_to wizard_providers_url(api_key: "sk-123", organization_id: "org-2")
-  end
-
-  test "wizard_step step 4 creates provider with default name and unchecked enabled" do
-    sign_in_as(@user)
-    set_tenant(@account)
-    post wizard_step_providers_url, params: { provider_type: "openrouter" }
-    post wizard_step_providers_url, params: { api_key: "rk-123", organization_id: "org-r" }
-    post wizard_step_providers_url, params: { api_key: "rk-123", organization_id: "org-r" }
-
-    assert_difference("Provider.count", 1) do
-      post wizard_step_providers_url, params: { api_key: "rk-123", enabled: "0" }
-    end
-
-    created = Provider.last
-    assert_equal "OpenRouter", created.name
-    assert_equal false, created.enabled
-    assert_redirected_to providers_url
-  end
-
-  test "test_connection stores model data in session on success" do
+  test "test_connection returns success payload" do
     sign_in_as(@user)
     set_tenant(@account)
     ProviderConnectionTester.stubs(:test).returns({ success: true, models: [ { id: "gpt-4o" } ] })
@@ -503,30 +445,19 @@ class ProvidersControllerTest < ActionDispatch::IntegrationTest
     post test_connection_providers_url, params: { provider_type: "openai", api_key: "k" }, as: :json
 
     assert_response :success
-    assert_equal true, session[:provider_wizard][:tested]
-    assert_equal [ { id: "gpt-4o" } ], session[:provider_wizard][:available_models]
+    body = JSON.parse(response.body)
+    assert_equal true, body["success"]
+    assert_equal [ { "id" => "gpt-4o" } ], body["models"]
   end
 
-  test "test_connection does not mutate session on failure" do
+  test "test_connection does not mutate session" do
     sign_in_as(@user)
     set_tenant(@account)
-    get wizard_providers_url
     ProviderConnectionTester.stubs(:test).returns({ success: false, error: "bad key" })
 
     post test_connection_providers_url, params: { provider_type: "openai", api_key: "bad" }, as: :json
 
     assert_response :success
-    assert_nil session[:provider_wizard][:tested]
-  end
-
-  test "wizard_cancel clears session" do
-    sign_in_as(@user)
-    set_tenant(@account)
-    session[:provider_wizard] = { step: 4 }
-
-    post wizard_cancel_providers_url
-
-    assert_redirected_to providers_url
     assert_nil session[:provider_wizard]
   end
 

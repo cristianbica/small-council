@@ -1,0 +1,11 @@
+<%= turbo_frame_tag "provider_form_frame" do %>
+  <% if selected_provider_type == "openai" %>
+    <%= render "providers/new_form_openai", provider: provider %>
+  <% elsif selected_provider_type == "openrouter" %>
+    <%= render "providers/new_form_openrouter", provider: provider %>
+  <% elsif selected_provider_type == "anthropic" %>
+    <%= render "providers/new_form_anthropic", provider: provider %>
+  <% else %>
+    <%= render "providers/new_form_placeholder" %>
+  <% end %>
+<% end %>

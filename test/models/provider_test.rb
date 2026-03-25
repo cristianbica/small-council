@@ -91,11 +91,20 @@ class ProviderTest < ActiveSupport::TestCase
   test "provider_type enum values" do
     assert_includes Provider.provider_types.keys, "openai"
     assert_includes Provider.provider_types.keys, "openrouter"
+    assert_includes Provider.provider_types.keys, "anthropic"
   end
 
   test "type_openai? predicate method" do
     provider = @account.providers.create!(name: "Test", provider_type: "openai", api_key: "key")
     assert provider.type_openai?
+    assert_not provider.type_openrouter?
+    assert_not provider.type_anthropic?
+  end
+
+  test "type_anthropic? predicate method" do
+    provider = @account.providers.create!(name: "Claude", provider_type: "anthropic", api_key: "key")
+    assert provider.type_anthropic?
+    assert_not provider.type_openai?
     assert_not provider.type_openrouter?
   end
 

@@ -69,4 +69,27 @@ class ProviderConnectionTesterTest < ActiveSupport::TestCase
     assert_equal false, result[:success]
     assert_match(/Invalid API key/, result[:error])
   end
+
+  test "test_anthropic returns success with models on valid connection" do
+    AI::Client.stubs(:test_connection).returns({ success: true, model: "claude-3-5-haiku-latest" })
+    AI::Client.stubs(:list_models).returns([
+      { id: "claude-3-5-sonnet-latest", name: "Claude 3.5 Sonnet", provider: "anthropic" },
+      { id: "claude-3-5-haiku-latest", name: "Claude 3.5 Haiku", provider: "anthropic" }
+    ])
+
+    result = ProviderConnectionTester.test("anthropic", "sk-ant-test")
+
+    assert_equal true, result[:success]
+    assert_includes result[:models], "claude-3-5-sonnet-latest"
+    assert_includes result[:models], "claude-3-5-haiku-latest"
+  end
+
+  test "test_anthropic handles errors" do
+    AI::Client.stubs(:test_connection).returns({ success: false, error: "Invalid API key" })
+
+    result = ProviderConnectionTester.test("anthropic", "invalid-key")
+
+    assert_equal false, result[:success]
+    assert_match(/Invalid API key/, result[:error])
+  end
 end

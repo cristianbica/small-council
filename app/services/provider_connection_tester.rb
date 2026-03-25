@@ -16,6 +16,8 @@ class ProviderConnectionTester
       { success: false, error: result[:error] }
     end
   rescue => e
+    Rails.logger.debug "[ProviderConnectionTester] Error testing provider connection: #{e.message}"
+    Rails.logger.debug e.backtrace.join("\n")
     { success: false, error: e.message }
   end
 end

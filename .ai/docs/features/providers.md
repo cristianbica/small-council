@@ -15,15 +15,16 @@ AI provider management for LLM API credentials and model configuration.
 |----------|------|--------|
 | OpenAI | `openai` | GPT-4o, GPT-4o-mini, o1, o3-mini, etc. |
 | OpenRouter | `openrouter` | Multi-provider access (OpenAI, Anthropic, Google, etc.) |
+| Anthropic | `anthropic` | Claude 3.5/3.7 family (Sonnet, Haiku, etc.) |
 
-## Provider Setup Wizard
+## Provider Setup (Single Page)
 
-Adding a provider uses a 4-step wizard flow:
+Adding a provider uses a single-page flow:
 
-1. **Select Provider** - Choose OpenAI or OpenRouter from the provider type dropdown
-2. **Enter Credentials** - Provide API key (and organization ID for OpenAI if applicable)
-3. **Test Connection** - System validates the API key by making a test call
-4. **Name Provider** - Give the provider a descriptive name (e.g., "OpenAI Production")
+1. **Select Provider** - Choose OpenAI, OpenRouter, or Anthropic on the new provider page
+2. **Fill Credentials** - Enter API key (and organization ID for OpenAI if needed)
+3. **Test Connection** - Click the test button to validate credentials and preview available models
+4. **Create Provider** - Save is enabled only after a successful connection test in the UI
 
 ## Model Management
 
@@ -55,10 +56,6 @@ Models can also be toggled via the UI at `/providers/:id/models` (toggle switch 
 /providers                    # index, new, create
 /providers/:id/edit           # edit, update
 /providers/:id                # destroy
-/providers/wizard             # GET
-/providers/wizard_step        # POST
-/providers/wizard_back        # POST
-/providers/wizard_cancel      # POST
 /providers/test_connection    # POST
 /providers/models             # GET (collection)
 /providers/:id/models         # GET (member)
@@ -110,7 +107,7 @@ Requirements:
 - Test environment uses deterministic keys (see `config/initializers/active_record_encryption.rb`)
 
 ### Controllers
-- `ProvidersController`: Standard CRUD + wizard flow + model toggle
+- `ProvidersController`: Standard CRUD + single-page provider setup + model toggle
 - All account users can manage providers (no role restrictions currently)
 
 ### Access Control
@@ -121,7 +118,7 @@ Requirements:
 ## Security
 
 - API keys encrypted with AES-256-GCM
-- Keys never logged or displayed in UI
+- Keys never logged or placed in URL query params
 - Only stored encrypted in database
 - Decryption only happens when making API calls
 

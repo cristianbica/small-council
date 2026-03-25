@@ -6,7 +6,8 @@ class Provider < ApplicationRecord
 
   enum :provider_type, {
     openai: "openai",
-    openrouter: "openrouter"
+    openrouter: "openrouter",
+    anthropic: "anthropic"
   }, prefix: :type
 
   validates :name, presence: true, uniqueness: { scope: :account_id }

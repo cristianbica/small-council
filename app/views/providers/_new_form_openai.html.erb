@@ -1,0 +1,86 @@
+<%= form_with model: provider,
+    class: "card bg-base-100 shadow",
+    data: {
+      controller: "provider-form",
+  turbo_frame: "_top",
+      provider_form_provider_type_value: "openai"
+    } do |form| %>
+  <div class="card-body space-y-4">
+    <% if provider.errors.any? %>
+      <div class="alert alert-error">
+        <div>
+          <h3 class="font-bold"><%= pluralize(provider.errors.count, "error") %> prohibited this provider from being saved:</h3>
+          <ul class="mt-1 list-disc list-inside text-sm">
+            <% provider.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      </div>
+    <% end %>
+
+    <%= form.hidden_field :provider_type, value: "openai" %>
+
+    <div class="form-control">
+      <label class="label">
+        <span class="label-text">Name <span class="text-error">*</span></span>
+      </label>
+      <%= form.text_field :name,
+          class: "input input-bordered w-full #{'input-error' if provider.errors[:name].any?}",
+          placeholder: "OpenAI",
+          required: true %>
+    </div>
+
+    <div class="form-control">
+      <label class="label">
+        <span class="label-text">API Key <span class="text-error">*</span></span>
+      </label>
+      <%= form.password_field :api_key,
+          class: "input input-bordered w-full #{'input-error' if provider.errors[:api_key].any?}",
+          placeholder: "sk-...",
+          required: true,
+          autocomplete: "off",
+          data: {
+            provider_form_target: "apiKey",
+            action: "input->provider-form#markDirty"
+          } %>
+      <label class="label">
+        <span class="label-text-alt text-base-content/60">Encrypted at rest</span>
+      </label>
+    </div>
+
+    <div class="form-control">
+      <label class="label">
+        <span class="label-text">Organization ID</span>
+        <span class="label-text-alt">Optional</span>
+      </label>
+      <%= form.text_field :organization_id,
+          class: "input input-bordered w-full #{'input-error' if provider.errors[:organization_id].any?}",
+          placeholder: "org-...",
+          data: {
+            provider_form_target: "organizationId",
+            action: "input->provider-form#markDirty"
+          } %>
+    </div>
+
+    <div class="form-control">
+      <label class="label cursor-pointer justify-start gap-3">
+        <%= form.check_box :enabled, class: "checkbox checkbox-primary" %>
+        <span class="label-text">Enabled</span>
+      </label>
+    </div>
+
+    <div data-provider-form-target="status" class="alert hidden">
+      <div>
+        <p class="font-medium" data-provider-form-target="statusText"></p>
+        <ul class="mt-2 text-sm list-disc list-inside hidden" data-provider-form-target="modelsList"></ul>
+      </div>
+    </div>
+
+    <div class="card-actions justify-end">
+      <%= link_to "Cancel", providers_path, class: "btn btn-ghost" %>
+      <button type="button" class="btn btn-outline" data-provider-form-target="testButton" data-action="provider-form#testConnection">Test Connection</button>
+      <%= form.submit "Create Provider", class: "btn btn-primary", disabled: true, data: { provider_form_target: "saveButton" } %>
+    </div>
+  </div>
+<% end %>

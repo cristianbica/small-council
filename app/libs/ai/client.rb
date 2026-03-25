@@ -60,13 +60,15 @@ module AI
         RubyLLM.configure do |config|
           configure_provider(config, provider)
         end
-
         model_id = test_model_id || find_test_model_id(provider)
+
         chat = RubyLLM.chat(model: model_id)
         response = chat.ask("Test connection")
 
         { success: true, model: response.model }
       rescue => e
+        Rails.logger.debug "[AI::Client] Error testing provider connection: #{e.message}"
+        Rails.logger.debug e.backtrace.join("\n")
         { success: false, error: e.message }
       end
 
@@ -75,8 +77,19 @@ module AI
       def find_test_model_id(provider)
         # Find first available model for this provider
         models = RubyLLM.models.by_provider(provider.provider_type.to_sym)
-        free_model = models.find(&:free?)
-        (free_model || models.first)&.id || "gpt-3.5-turbo"
+        model_list = models.respond_to?(:all) ? models.all : Array(models)
+
+        free_model = model_list.find { |model| model.respond_to?(:free?) && model.free? }
+        (free_model || model_list.first)&.id || default_test_model_id(provider.provider_type)
+      end
+
+      def default_test_model_id(provider_type)
+        case provider_type
+        when "anthropic"
+          "claude-3-5-haiku-latest"
+        else
+          "gpt-3.5-turbo"
+        end
       end
 
       def configure_provider(config, provider)
@@ -86,6 +99,8 @@ module AI
           config.openai_organization_id = provider.organization_id if provider.organization_id.present?
         when "openrouter"
           config.openrouter_api_key = provider.api_key
+        when "anthropic"
+          config.anthropic_api_key = provider.api_key
         else
           raise APIError, "Unsupported provider type: #{provider.provider_type}"
         end

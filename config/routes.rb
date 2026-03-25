@@ -67,10 +67,6 @@ Rails.application.routes.draw do
 
   resources :providers do
     collection do
-      get :wizard
-      post :wizard_step
-      post :wizard_back
-      post :wizard_cancel
       post :test_connection
       get :models
       post :toggle_model

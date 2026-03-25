@@ -5,7 +5,7 @@
       <h1 class="text-3xl font-bold">AI Providers</h1>
       <p class="text-base-content/70 mt-1">Manage your AI service providers and models</p>
     </div>
-    <%= link_to "Add Provider", wizard_providers_path, class: "btn btn-primary" %>
+    <%= link_to "Add Provider", new_provider_path, class: "btn btn-primary" %>
   </div>
 
   <% if @providers.any? %>
@@ -61,7 +61,7 @@
     <%= render "shared/empty_state",
         title: "No providers configured",
         description: "Add an AI provider to start using AI advisors in your councils.",
-        action_path: wizard_providers_path,
+        action_path: new_provider_path,
         action_text: "Add your first provider" %>
   <% end %>
 </div>
