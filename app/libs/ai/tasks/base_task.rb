@@ -34,11 +34,12 @@ module AI
       private
 
       def register_tools(chat)
-        refs = Array(agent.tools)
-        return if refs.empty?
+        agent.tools&.each do |tool|
+          next unless tool["policy"].to_s.downcase == "allow"
 
-        tools = AI.tools(*refs).map { |klass| klass.new(context) }
-        chat.tools(tools)
+          klass = AI.tool(tool["ref"])
+          chat.tools(klass.new(context)) if klass
+        end
       end
 
       def register_trackers(chat, trackers)

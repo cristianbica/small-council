@@ -11,9 +11,8 @@ module AI
 
       def tools
         return @tools unless @tools.nil?
-        return [ "memories/*", "internet/browse_web" ] if @context.respond_to?(:scribe?) && @context.scribe?
-
-        []
+        context_tools = @context.respond_to?(:tools) ? @context.tools : nil
+        context_tools || []
       end
 
       def system_prompt

@@ -87,9 +87,9 @@ module AI
         context_budget_ratio = 0.70
         fallback_context_window = 8_192
 
-        involved_advisors = Array(@conversation.all_participant_advisors).compact
-        context_windows = involved_advisors.filter_map do |advisor|
-          advisor.effective_llm_model&.context_window&.to_i
+        participants = @conversation.conversation_participants.includes(:advisor, :llm_model).to_a
+        context_windows = participants.filter_map do |participant|
+          participant.effective_llm_model&.context_window&.to_i
         end.select(&:positive?)
 
         weakest_context_window = context_windows.min || fallback_context_window

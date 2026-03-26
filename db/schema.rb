@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_12_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_25_123000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -92,15 +92,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_12_090000) do
   create_table "conversation_participants", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "advisor_id", null: false
+    t.jsonb "allowed_tools"
     t.bigint "conversation_id", null: false
     t.datetime "created_at", null: false
+    t.bigint "llm_model_id"
     t.integer "position", default: 0
     t.string "role", default: "advisor", null: false
+    t.jsonb "tools", default: []
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_conversation_participants_on_account_id"
     t.index ["advisor_id"], name: "index_conversation_participants_on_advisor_id"
     t.index ["conversation_id", "advisor_id"], name: "index_conversation_participants_unique", unique: true
     t.index ["conversation_id"], name: "index_conversation_participants_on_conversation_id"
+    t.index ["llm_model_id"], name: "index_conversation_participants_on_llm_model_id"
+    t.index ["tools"], name: "index_conversation_participants_on_tools", using: :gin
   end
 
   create_table "conversations", force: :cascade do |t|
@@ -369,6 +374,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_12_090000) do
   add_foreign_key "conversation_participants", "accounts"
   add_foreign_key "conversation_participants", "advisors"
   add_foreign_key "conversation_participants", "conversations"
+  add_foreign_key "conversation_participants", "llm_models"
   add_foreign_key "conversations", "accounts"
   add_foreign_key "conversations", "councils"
   add_foreign_key "conversations", "spaces"

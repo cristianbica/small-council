@@ -30,7 +30,7 @@ module AI
       end
 
       test "initialize stores context and tools" do
-        task = ConcreteTask.new(context: @context, tools: [ "tool1" ])
+        task = ConcreteTask.new(context: @context, tools: [ { "ref" => "memories/create", "policy" => "allow" } ])
 
         assert_equal @context, task.context
       end
@@ -56,7 +56,7 @@ module AI
 
         chat = mock("chat")
         AI::Client.expects(:chat).returns(chat)
-        chat.expects(:tools)
+        chat.expects(:tools).with(instance_of(AI::Tools::Memories::CreateMemoryTool))
         chat.expects(:instructions).with("prepared")
 
         # Create a tracker that responds to :register
@@ -66,8 +66,9 @@ module AI
         chat.expects(:complete).with(result)
 
         # Mock agent to return tools
-        AI::Agents::AdvisorAgent.any_instance.stubs(:tools).returns([ "tool1" ])
-        AI::Agents::AdvisorAgent.any_instance.stubs(:system_prompt).returns("agent prompt")
+        AI::Agents::AdvisorAgent.any_instance.stubs(:tools).returns([
+          { "ref" => "memories/create", "policy" => "allow" }
+        ])
 
         returned_result = task.run(result, trackers: [ tracker ])
 
@@ -99,6 +100,41 @@ module AI
 
         # Agent with no tools returns empty array
         AI::Agents::AdvisorAgent.any_instance.stubs(:tools).returns([])
+        chat.expects(:tools).never
+
+        task.send(:register_tools, chat)
+      end
+
+      test "register_tools ignores deny entries" do
+        task = ConcreteTask.new(context: @context)
+        chat = mock("chat")
+
+        AI::Agents::AdvisorAgent.any_instance.stubs(:tools).returns([
+          { "ref" => "memories/create", "policy" => "deny" }
+        ])
+        chat.expects(:tools).never
+
+        task.send(:register_tools, chat)
+      end
+
+      test "register_tools does nothing when agent tools is nil" do
+        task = ConcreteTask.new(context: @context)
+        chat = mock("chat")
+
+        AI::Agents::AdvisorAgent.any_instance.stubs(:tools).returns(nil)
+        chat.expects(:tools).never
+
+        task.send(:register_tools, chat)
+      end
+
+      test "register_tools skips tool when resolved class is nil" do
+        task = ConcreteTask.new(context: @context)
+        chat = mock("chat")
+
+        AI::Agents::AdvisorAgent.any_instance.stubs(:tools).returns([
+          { "ref" => "memories/create", "policy" => "allow" }
+        ])
+        AI.expects(:tool).with("memories/create").returns(nil)
         chat.expects(:tools).never
 
         task.send(:register_tools, chat)

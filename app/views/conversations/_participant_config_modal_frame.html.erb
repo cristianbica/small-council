@@ -1,0 +1,77 @@
+<%= turbo_frame_tag "page-modal" do %>
+  <dialog data-page-modal-target="modalDialog"
+          data-action="close->page-modal#closeDialog"
+          class="modal">
+    <div class="modal-box w-11/12 max-w-2xl">
+      <form method="dialog">
+        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+      </form>
+
+      <h3 class="font-bold text-lg">Configure <%= participant.advisor.name %></h3>
+      <p class="text-sm text-base-content/70 mt-1 mb-4">
+        Set model and allowed tools for this conversation participant.
+      </p>
+
+      <%= form_with model: [conversation, participant], url: conversation_conversation_participant_path(conversation, participant), method: :patch, class: "space-y-6" do |form| %>
+        <% if participant.errors.any? %>
+          <div class="alert alert-error">
+            <span><%= participant.errors.full_messages.first %></span>
+          </div>
+        <% end %>
+
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-semibold">Model</span>
+            <span class="label-text-alt text-base-content/60">Leave empty to inherit advisor default</span>
+          </label>
+          <%= form.select :llm_model_id,
+              options_from_collection_for_select(available_models, :id, :name, participant.llm_model_id),
+              { include_blank: "Inherit advisor model" },
+              class: "select select-bordered w-full" %>
+        </div>
+
+        <div class="space-y-4">
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text font-semibold">Tools</span>
+              <span class="label-text-alt text-base-content/60">Set allow or deny per tool</span>
+            </label>
+          </div>
+
+          <div class="space-y-4 max-h-[45vh] overflow-y-auto rounded-lg border border-base-300 p-4">
+            <% tools_by_category(participant.tools).each do |category, tools| %>
+              <section>
+                <h4 class="font-semibold text-sm uppercase tracking-wide text-base-content/70 mb-2"><%= category.humanize %></h4>
+                <div class="grid gap-2">
+                  <% tools.each do |tool| %>
+                    <%= form.fields_for :tools, tool, index: tool[:index] do |tool_fields| %>
+                      <div class="label cursor-pointer justify-between items-center">
+                        <span class="label-text font-mono text-xs"><%= tool[:ref].split("/").last.humanize %></span>
+                        <div class="">
+                          <%= tool_fields.hidden_field :ref, value: tool[:ref] %>
+                          <div class="tabs tabs-box tabs-xs">
+                            <%= tool_fields.radio_button :policy, "allow", checked: tool[:policy] == "allow", class: "tab", "aria-label" => "Allow" %>
+                            <%= tool_fields.radio_button :policy, "deny", checked: tool[:policy] == "deny", class: "tab", "aria-label" => "Deny" %>
+                          </div>
+                        </div>
+                      </div>
+                    <% end %>
+                  <% end %>
+                </div>
+              </section>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="modal-action">
+          <button class="btn btn-ghost" type="button" onclick="this.closest('dialog').close()">Cancel</button>
+          <%= form.submit "Save", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+
+    <form method="dialog" class="modal-backdrop">
+      <button>close</button>
+    </form>
+  </dialog>
+<% end %>

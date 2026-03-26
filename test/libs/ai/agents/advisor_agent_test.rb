@@ -5,22 +5,24 @@ require "test_helper"
 module AI
   module Agents
     class AdvisorAgentTest < ActiveSupport::TestCase
-      ContextStub = Struct.new(:scribe?)
+      ContextStub = Struct.new(:tools)
 
       test "uses initializer tools when provided" do
-        agent = AdvisorAgent.new(context: ContextStub.new(false), tools: [ "conversations/update_conversation" ])
+        explicit_tools = [ { "ref" => "conversations/update_conversation", "policy" => "allow" } ]
+        agent = AdvisorAgent.new(context: ContextStub.new([]), tools: explicit_tools)
 
-        assert_equal [ "conversations/update_conversation" ], agent.tools
+        assert_equal explicit_tools, agent.tools
       end
 
-      test "defaults scribe tools to memories and internet wildcards" do
-        agent = AdvisorAgent.new(context: ContextStub.new(true))
+      test "falls back to context tools" do
+        context_tools = [ { "ref" => "memories/create", "policy" => "allow" } ]
+        agent = AdvisorAgent.new(context: ContextStub.new(context_tools))
 
-        assert_equal [ "memories/*", "internet/browse_web" ], agent.tools
+        assert_equal context_tools, agent.tools
       end
 
-      test "defaults to no tools for non-scribe context" do
-        agent = AdvisorAgent.new(context: ContextStub.new(false))
+      test "defaults to empty tools when context has none" do
+        agent = AdvisorAgent.new(context: ContextStub.new(nil))
 
         assert_equal [], agent.tools
       end

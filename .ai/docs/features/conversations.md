@@ -23,6 +23,15 @@ Messages are persisted first, then runtime orchestration schedules advisor repli
 3. Runtime creates hidden `pending` placeholders for selected advisors.
 4. Async runs transition placeholders to `responding`, then `complete` or `error`.
 
+### Configure participant model and tools
+1. In conversation header, click an advisor participant chip.
+2. A modal opens with participant-scoped settings.
+3. Choose an optional participant model override (`llm_model_id`) or inherit advisor defaults.
+4. Choose tools mode:
+	- inherit defaults (`tools = nil`)
+	- custom allowed tools (`tools = []` means explicit no-tools)
+5. Save updates to `ConversationParticipant`, and chips refresh via Turbo Streams.
+
 ### Finish or archive
 - `POST /conversations/:id/finish` transitions active council meetings to `resolved`.
 - `POST /conversations/:id/archive` transitions to `archived`.
@@ -54,13 +63,15 @@ See [Conversation Title Lifecycle](conversation-title-lifecycle.md).
 - `/conversations/:id/finish` (`POST`)
 - `/conversations/:id/archive` (`POST`)
 - `/conversations/:id/invite_advisor` (`POST`)
+- `/conversations/:conversation_id/participants/:id/edit` (`GET`)
+- `/conversations/:conversation_id/participants/:id` (`PATCH`)
 - `/conversations/:conversation_id/messages` (`POST`)
 - `/conversations/:conversation_id/messages/:id/retry` (`POST`)
 
 ### Key models
 - `Conversation`: status, `roe_type`, `conversation_type`, `title_state`, `space_id`, optional `council_id`
 - `Message`: polymorphic sender, response status, pending advisor tracking
-- `ConversationParticipant`: advisor or scribe role and ordering
+- `ConversationParticipant`: advisor or scribe role and ordering, plus optional participant-scoped `llm_model_id` and `tools`
 
 ### Key classes
 - `app/controllers/conversations_controller.rb`

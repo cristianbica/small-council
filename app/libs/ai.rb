@@ -86,9 +86,21 @@ module AI
   end
 
   def self.tools(*refs)
-    Tools::AbstractTool::REGISTRY.filter_map do |ref, class_name|
-      class_name.safe_constantize if refs.any? { |tref| tref.to_s == ref || (tref.to_s.end_with?("/*") && ref.start_with?(tref.to_s.delete_suffix("/*"))) }
+    expand_tools(refs).filter_map do |name|
+      class_name = Tools::AbstractTool::REGISTRY[name]
+      class_name&.safe_constantize
     end
+  end
+
+  def self.expand_tools(refs)
+    names = Array(refs).flatten.compact.map(&:to_s).map(&:strip).reject(&:blank?)
+    return [] if names.empty?
+
+    Tools::AbstractTool::REGISTRY.keys.select do |tool_name|
+      names.any? do |name|
+        name == tool_name || (name.end_with?("/*") && tool_name.start_with?(name.delete_suffix("/*")))
+      end
+    end.sort
   end
 
   def self.run(task:, context:, handler: nil, tracker: nil, async: false)

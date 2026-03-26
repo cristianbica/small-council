@@ -32,6 +32,7 @@ Max ~200 lines. Keep durable, high-signal facts only.
 - Slash command handlers live under `app/libs/ai/commands/` and are dispatched in the message create flow via `AI::Commands::CommandRouter`.
 - `Message.message_type` also includes `info` and `memory_attachment`; `Message.visible_in_context` excludes `info` but includes `memory_attachment`.
 - Sensitive fields are encrypted at rest (`Provider.credentials`, `Advisor.system_prompt/short_description`, `Conversation.memory/draft_memory`, `Message.content/prompt_text`, `Memory.content`).
+- `ConversationParticipant` supports participant-level `llm_model_id` and `tools` overrides where `tools=nil` inherits defaults and `tools=[]` means explicit no-tools.
 
 ## Versioning
 - Versioning is handled by `Versionable` concern using `RecordVersion` model with jsonb storage.

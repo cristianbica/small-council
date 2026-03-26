@@ -210,7 +210,7 @@ class ConversationTest < ActiveSupport::TestCase
     AI.expects(:run).with do |args|
       assert_equal :text, args.dig(:task, :type)
       assert_equal "conversations/title_generator", args.dig(:task, :prompt)
-      assert_equal [ "conversations/update_conversation" ], args.dig(:task, :tools)
+      assert_equal [ { "ref" => "conversations/update_conversation", "policy" => "allow" } ], args.dig(:task, :tools)
       assert_equal true, args[:async]
       assert_equal :conversation, args.dig(:context, :type)
       assert_equal conversation, args.dig(:context, :conversation)

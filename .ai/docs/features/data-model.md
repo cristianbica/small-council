@@ -106,6 +106,10 @@ Chat sessions within a council.
 ### conversation_participants
 Join table: advisors participating in a conversation.
 - `role` — `advisor` or `scribe`
+- `llm_model_id` — optional participant-scoped model override
+- `tools` (jsonb) — optional participant-scoped allowed tools list
+        - `nil` means inherit role defaults
+        - `[]` means explicit no-tools
 - Belongs to `conversation` and `advisor`
 
 ### messages

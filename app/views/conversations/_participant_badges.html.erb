@@ -1,24 +1,33 @@
 <div id="conversation-participants" class="flex items-center gap-2 mt-3 flex-wrap">
-  <% if conversation.scribe_advisor %>
-    <% scribe = conversation.scribe_advisor %>
-    <div class="badge badge-primary badge-sm gap-1">
-      <div class="avatar placeholder">
-        <div class="bg-primary text-primary-content rounded-full w-4 h-4 flex items-center justify-center text-[8px]">
-          <%= scribe.name.first.upcase %>
-        </div>
-      </div>
-      <%= scribe.name %>
-    </div>
-  <% end %>
+  <% conversation.conversation_participants.includes(:advisor, :llm_model).ordered.each do |participant| %>
+    <% advisor = participant.advisor %>
+    <% badge = conversation_participant_badge_data(participant) %>
 
-  <% conversation.participant_advisors.each do |advisor| %>
-    <div class="badge badge-ghost badge-sm gap-1">
-      <div class="avatar placeholder">
-        <div class="bg-neutral text-neutral-content rounded-full w-4 h-4 flex items-center justify-center text-[8px]">
-          <%= advisor.name.first.upcase %>
+    <%= link_to edit_conversation_conversation_participant_path(conversation, participant),
+        class: "#{participant.scribe? ? 'bg-primary/10 border-primary/30' : 'bg-base-100 border-base-300'} rounded-lg border px-3 py-2 min-w-[220px] max-w-[280px] hover:border-primary/40 transition-colors",
+        data: { turbo_frame: "page-modal" } do %>
+      <div class="flex items-start gap-2">
+        <div class="avatar placeholder mt-0.5">
+          <div class="#{participant.scribe? ? 'bg-primary text-primary-content' : 'bg-neutral text-neutral-content'} rounded-full w-6 h-6 flex items-center justify-center text-[10px] font-semibold">
+            <%= advisor.name.first.upcase %>
+          </div>
+        </div>
+
+        <div class="min-w-0">
+          <div class="font-semibold text-sm leading-tight truncate"><%= advisor.name %></div>
+          <div class="text-xs text-base-content/70 leading-tight mt-0.5 flex items-center gap-1.5 min-w-0">
+            <span class="truncate" title="<%= badge[:model_name] %>"><%= badge[:model_label] %></span>
+            <span class="opacity-40">•</span>
+            <span class="inline-flex items-center gap-1 shrink-0" title="<%= badge[:tools_tooltip] %>">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317a1 1 0 011.414 0l1.944 1.944a1 1 0 010 1.414l-1.457 1.457 3.182 3.182 1.457-1.457a1 1 0 011.414 0l1.944 1.944a1 1 0 010 1.414l-5.657 5.657a1 1 0 01-1.414 0l-1.944-1.944a1 1 0 010-1.414l1.457-1.457-3.182-3.182-1.457 1.457a1 1 0 01-1.414 0L4.317 11.74a1 1 0 010-1.414z" />
+              </svg>
+              <span><%= badge[:tools_count] %></span>
+            </span>
+          </div>
         </div>
       </div>
-      <%= advisor.name %>
-    </div>
+
+    <% end %>
   <% end %>
 </div>

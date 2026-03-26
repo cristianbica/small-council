@@ -31,8 +31,19 @@ module AI
         advisor&.scribe? || false
       end
 
+      def participant
+        return nil unless advisor&.id
+        return @participant if defined?(@participant)
+
+        @participant ||= conversation.conversation_participants.find_by(advisor_id: advisor.id)
+      end
+
+      def tools
+        participant&.tools
+      end
+
       def model
-        advisor&.effective_llm_model || account&.default_llm_model || account&.llm_models&.enabled&.first
+        participant&.effective_llm_model || advisor&.effective_llm_model || account&.default_llm_model || account&.llm_models&.enabled&.first
       end
     end
   end

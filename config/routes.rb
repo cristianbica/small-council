@@ -54,6 +54,7 @@ Rails.application.routes.draw do
         post :retry
       end
     end
+    resources :conversation_participants, path: "participants", only: [ :edit, :update ]
     member do
       post :finish
       post :archive

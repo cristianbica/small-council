@@ -65,6 +65,10 @@ class Advisor < ApplicationRecord
     name
   end
 
+  def role
+    scribe? ? :scribe : :advisor
+  end
+
   # Get the effective LLM model for this advisor
   # Returns the advisor's specific model, or falls back to account default
   def effective_llm_model
